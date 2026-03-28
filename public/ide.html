@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="window-title">Marshal IDE - Mod</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.26.1/min/vs/loader.min.js"></script>
+    <style>
+    .titlebar {
+    height: 32px;
+    background-color: #1e1e1e;
+    color: #858585;
+    display: flex;
+    justify-content: center; 
+    align-items: center;
+    app-region: drag;
+    width: 100%;         
+    flex-shrink: 0;       
+    box-sizing: border-box; 
+    border-bottom: 1px solid #2d2d30;
+    }
+
+    /* New class to handle centering without affecting the titlebar */
+    .main-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        flex-grow: 1;
+    }
+
+    #import-image-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+    }
+
+    nav.shrink-0 {
+        background-color: #0d0d0d !important;
+    }
+
+    /* Standardize Scrollbars */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #444;
+    }
+        /* VS Code Themed Colors */
+        :root {
+            --sidebar-bg: #252526;
+            --editor-bg: #1e1e1e; 
+            --console-bg: #1e1e1e;
+            --text-color: #cccccc;
+            --primary-blue: #007acc;
+            --active-bg: #37373d; /* Hover background color */
+            --selected-bg: #007acc66; /* Selected item background color (Blue with transparency) */
+            --resizer-color: #444c56;
+            
+            --header-height: 3rem; 
+            --sidebar-width: 250px;
+            
+            --console-height-full: 150px; /* Standard restored height */
+            --console-height: 30px;    /* Minimized height (Initial State) */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-color: var(--sidebar-bg);
+            color: var(--text-color);
+        }
+        
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            width: 100%;
+        }
+        
+        /* Editor and Console Container (Flex Column) */
+        #editor-console-container {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; 
+            overflow: hidden;
+        }
+
+        /* Editor must take all remaining vertical space */
+        #editor-container {
+            flex-grow: 1; 
+            flex-shrink: 1; 
+            overflow: hidden;
+            position: relative; 
+            background-color: var(--editor-bg);
+        }
+        
+        /* Console with initial height set to minimized height */
+        #console-container {
+            height: var(--console-height);
+            min-height: 30px;
+            max-height: 80vh;
+            display: flex; 
+            flex-direction: column;
+            flex-shrink: 0; 
+            transition: height 0.3s ease;
+        }
+        
+        /* Console output needs full flexibility inside its container */
+        #console-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+        
+        /* Resizers (Base visual properties) */
+        .resizer {
+            background-color: var(--resizer-color);
+            z-index: 10;
+            transition: background-color 0.1s;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .resizer:hover {
+            background-color: var(--primary-blue);
+        }
+
+        .resizer-v {
+            width: 1px; /* Visually thin line */
+            cursor: col-resize;
+        }
+        .resizer-v::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -5px; /* Extends the click area 5px left */
+            width: 11px; /* Total click area: 5px left + 1px visual + 5px right = 11px */
+            height: 100%;
+            cursor: col-resize;
+        }
+
+        .resizer-h {
+            height: 1px; /* Visually thin line */
+            cursor: row-resize;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            z-index: 15; /* Ensure the resizer is above console content */
+        }
+        .resizer-h::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: -5px; /* Extends the click area 5px up */
+            width: 100%;
+            height: 11px; /* Total click area: 5px up + 1px visual + 5px down = 11px */
+            cursor: row-resize;
+        }
+        
+        /* Style for the console toggle button (needs to be clickable over the resizer) */
+        #console-toggle-btn {
+            position: relative; /* Ensure z-index works */
+            z-index: 20; /* Ensure button is above the resizer's click area */
+            background-color: var(--resizer-color); /* Match resizer color */
+        }
+        #console-toggle-btn:hover {
+            background-color: var(--primary-blue); /* Match resizer hover color */
+        }
+
+        /* --- File Tree Item Styling --- */
+        
+        .file-item {
+            padding: 2px 8px;
+            cursor: pointer;
+            white-space: nowrap; 
+            display: flex; 
+            align-items: center;
+            font-size: 0.875rem;
+            color: var(--text-color);
+        }
+        .file-item:hover {
+            background-color: var(--active-bg);
+        }
+        .file-item.active {
+            background-color: var(--selected-bg);
+            font-weight: 600;
+        }
+
+        /* Toggle icon for folders */
+        .folder-toggle-icon {
+            margin-right: 4px;
+            transition: transform 0.1s;
+            display: inline-block;
+            width: 12px; 
+            text-align: center;
+            color: var(--text-color);
+            font-size: 8px;
+        }
+        
+        /* Icon spacing next to text */
+        .file-item > svg {
+            margin-right: 4px;
+            flex-shrink: 0;
+        }
+        
+        /* Root project name style */
+        .project-root-item {
+            padding: 4px 8px;
+            background-color: #313131;
+            color: #ffffff;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="titlebar">
+        <span class="text-xs font-medium opacity-80">Marshal IDE - Mod</span>
+    </div>
+    <script>
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.26.1/min/vs' } });
+        // The following line is CRITICAL for Electron to correctly load Monaco:
+        if (typeof module === 'object') {window.module = module; module = undefined;} 
+    </script>
+    
+    <header class="bg-header-bg text-white flex items-center justify-between px-4" style="height: var(--header-height);">
+        <div class="flex items-center space-x-4">
+            <h1 class="text-lg font-bold">Marshal IDE</h1>
+            <span id="current-project-display" class="text-sm text-gray-400">Project: Loading...</span>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+             <button id="save-file-btn" class="bg-primary-blue hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <svg class="w-4 h-4 inline mr-1" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5C3.89 3 3 3.89 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                Save
+            </button>
+            <button id="back-to-mods-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1 px-3 rounded text-sm">
+                Back to Mods
+            </button>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        
+        <div id="sidebar" class="bg-sidebar-bg flex flex-col" style="width: var(--sidebar-width); min-width: 150px;">
+            <div class="flex items-center justify-between p-3 border-b border-gray-700">
+                <span class="text-xs font-semibold uppercase text-gray-400 tracking-wider">Explorer</span>
+                <button id="import-image-btn" class="p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-all" title="Import Image (.dds)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div id="file-tree-container" class="overflow-y-auto pt-1 pb-2 text-sm flex-grow">
+                <p class="text-gray-400 text-xs p-2">Loading file structure...</p>
+            </div>
+        </div>
+        
+        <div id="sidebar-resizer" class="resizer resizer-v"></div>
+
+        <div id="editor-console-container" class="flex-grow overflow-hidden">
+            
+            <div id="editor-container">
+                <div class="h-full w-full flex items-center justify-center text-gray-400">
+                    <p>Select a file to begin editing.</p>
+                </div>
+            </div>
+            
+            <div id="console-resizer" class="resizer resizer-h">
+                <button id="console-toggle-btn" class="text-white p-1 h-full flex items-center justify-center bg-transparent transition-colors" title="Toggle Console">
+                    <svg id="console-toggle-icon" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg>
+                </button>
+            </div>
+            
+            <div id="console-container" class="bg-console-bg p-2">
+                <div class="text-xs font-semibold border-b border-gray-700 pb-1 flex justify-between uppercase text-gray-400 tracking-wider">
+                    <span id="console-title-clear" class="cursor-pointer hover:text-white transition duration-100">Output/Console</span>
+                </div>
+                <div id="console-output" class="text-xs font-mono overflow-y-auto flex-grow mt-1 text-gray-300">
+                    [System] Console Initialized.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="context-menu" class="fixed bg-gray-700 text-white text-sm rounded shadow-lg py-1 z-50 hidden">
+        <div class="context-item hover:bg-primary-blue px-4 py-2 cursor-pointer flex items-center space-x-2" data-action="new-file">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM15 11h-2v2h-2v-2H9V9h2V7h2v2h2v2z"/></svg>
+            <span>New File...</span>
+        </div>
+        
+        <div class="context-item hover:bg-primary-blue px-4 py-2 cursor-pointer flex items-center space-x-2" data-action="refresh">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.7 1.95-2.59 3.39-4.82 3.39-2.97 0-5.38-2.41-5.38-5.38S9.03 6.62 12 6.62c1.45 0 2.76.6 3.7 1.54l-2.7 2.7h6.5V4l-2.35 2.35z"/></svg>
+            <span>Refresh</span>
+        </div>
+        
+        <div class="context-item hover:bg-primary-blue px-4 py-2 cursor-pointer flex items-center space-x-2" data-action="rename">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M7 19h10v-1H7v1zm2-6h6v-1H9v1zm-2-4h10V8H7v1zm12-4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-3 14H8V5h8v12z"/></svg>
+            <span>Rename...</span>
+        </div>
+        <div class="context-item hover:bg-red-500 px-4 py-2 cursor-pointer flex items-center space-x-2" data-action="delete">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            <span>Delete...</span>
+        </div>
+    </div>
+    
+    <div id="action-modal" class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center hidden">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-sm">
+            <h2 id="action-title" class="text-xl font-bold text-white mb-4"></h2>
+            <p id="action-message" class="text-gray-300 mb-4"></p>
+            <div id="action-input-container" class="mb-4 hidden">
+                <input type="text" id="action-input" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-primary-blue">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-action-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded text-sm">
+                    Cancel
+                </button>
+                <button id="confirm-action-btn" class="bg-primary-blue hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded text-sm">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Monaco configuration
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.26.1/min/vs' } });
+        // Preserve Electron's global 'module' object before Monaco potentially overwrites it
+        if (typeof module === 'object') {window.module = module; module = undefined;} 
+    </script>
+    
+
+    
+    <script type="module" type="module" src="../modules/console_module.js"></script>
+    <script type="module" type="module" src="../src/ide_renderer.js"></script>
+</body>
+</html>

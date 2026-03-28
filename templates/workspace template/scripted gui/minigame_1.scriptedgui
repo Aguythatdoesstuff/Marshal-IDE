@@ -1,0 +1,546 @@
+define sprite button1_gfx
+    if
+        check_variable = { button1_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button1_text
+    if
+        check_variable = { button1_enabled = 1 }
+        then
+            text "§GDB Core§"
+    else
+        text "§RDB Core§"
+define text enable_or_disable_button1
+    if
+        check_variable = { button1_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+
+
+
+
+define sprite button2_gfx
+    if
+        check_variable = { button2_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button2_text
+    if
+        check_variable = { button2_enabled = 1 }
+        then
+            text "§GUser Table§"
+    else
+        text "§RUser Table§"
+define text enable_or_disable_button2
+    if
+        check_variable = { button2_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+
+
+
+
+# --- DATABASE NODES ---
+define sprite button3_gfx
+    if
+        check_variable = { button3_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button3_text
+    if
+        check_variable = { button3_enabled = 1 }
+        then
+            text "§GLog File§"
+    else
+        text "§RLog File§"
+define text enable_or_disable_button3
+    if
+        check_variable = { button3_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+# --- SECURITY MODULES ---
+define sprite button4_gfx
+    if
+        check_variable = { button4_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button4_text
+    if
+        check_variable = { button4_enabled = 1 }
+        then
+            text "§GFirewall 01§"
+    else
+        text "§RFirewall 01§"
+define text enable_or_disable_button4
+    if
+        check_variable = { button4_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+define sprite button5_gfx
+    if
+        check_variable = { button5_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button5_text
+    if
+        check_variable = { button5_enabled = 1 }
+        then
+            text "§GIDS Panel§"
+    else
+        text "§RIDS Panel§"
+define text enable_or_disable_button5
+    if
+        check_variable = { button5_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+define sprite button6_gfx
+    if
+        check_variable = { button6_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button6_text
+    if
+        check_variable = { button6_enabled = 1 }
+        then
+            text "§GEncryption Key§"
+    else
+        text "§REncryption Key§"
+define text enable_or_disable_button6
+    if
+        check_variable = { button6_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+# --- SYSTEM FUNCTIONS ---
+define sprite button7_gfx
+    if
+        check_variable = { button7_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button7_text
+    if
+        check_variable = { button7_enabled = 1 }
+        then
+            text "§GRender Core§"
+    else
+        text "§RRender Core§"
+define text enable_or_disable_button7
+    if
+        check_variable = { button7_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+define sprite button8_gfx
+    if
+        check_variable = { button8_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button8_text
+    if
+        check_variable = { button8_enabled = 1 }
+        then
+            text "§GAuth Service§"
+    else
+        text "§RAuth Service§"
+define text enable_or_disable_button8
+    if
+        check_variable = { button8_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+define sprite button9_gfx
+    if
+        check_variable = { button9_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button9_text
+    if
+        check_variable = { button9_enabled = 1 }
+        then
+            text "§GMain Exec§"
+    else
+        text "§RMain Exec§"
+define text enable_or_disable_button9
+    if
+        check_variable = { button9_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+        
+
+
+
+
+# --- SYSTEM UTILITIES ---
+define sprite button10_gfx
+    if
+        check_variable = { button10_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button10_text
+    if
+        check_variable = { button10_enabled = 1 }
+        then
+            text "§GProxy Chain§"
+    else
+        text "§RProxy Chain§"
+define text enable_or_disable_button10
+    if
+        check_variable = { button10_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+define sprite button11_gfx
+    if
+        check_variable = { button11_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button11_text
+    if
+        check_variable = { button11_enabled = 1 }
+        then
+            text "§GAPI Gateway§"
+    else
+        text "§RAPI Gateway§"
+define text enable_or_disable_button11
+    if
+        check_variable = { button11_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+define sprite button12_gfx
+    if
+        check_variable = { button12_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+define text button12_text
+    if
+        check_variable = { button12_enabled = 1 }
+        then
+            text "§GTask Manager§"
+    else
+        text "§RTask Manager§"
+define text enable_or_disable_button12
+    if
+        check_variable = { button12_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"
+
+
+# --- MAIN GUI WINDOW ---
+draggable window "minigame_1"
+    size x700 y600 # Reduced height slightly for better layout
+    position x430 y270
+    sprite "GFX_tiled_window"
+    visible
+        has_country_flag = open_minigame_1
+
+    # Window Title
+    text
+        text "§HWAR ON ADS MINIGAME§"
+        font "hoi_36header"
+        position x200 y10
+        max size x400 y30
+
+    button
+        sprite "GFX_closebutton"
+        position x665 y2 
+        on click
+            set_country_flag = open_confirmation_popup
+
+    # --- INFO / HELP BUTTON ---
+    button
+        sprite "GFX_help_button"
+        position x0 y2
+        size 120%
+        on click
+            set_country_flag = open_info_panel_minigame_1
+        # Add your tooltip here
+
+# timer
+    text
+        text "§BTime left§"
+        font "hoi_20b"
+        position x320 y50
+
+    icon
+        sprite "GFX_pol_goal_progress_frame"
+        position x233 y75 
+        size 100%
+
+    horizontal bar with 70 steps
+        #full bar sprite "gfx/interface/pol_goal_progress.dds"
+        #empty bar sprite "gfx/interface/pol_goal_progress_bg.dds"
+        unprogressed color 0.0 0.0 0.3
+        progressed color 0.0 0.0 0.7
+        var "time_left"
+        position x235 y76   
+        size x235 y4
+        
+    # done in
+    text
+        text "§GDone in§"
+        font "hoi_20b"
+        position x320 y90
+        
+    icon
+        sprite "GFX_pol_goal_progress_frame"
+        position x233 y115 
+        size 100%
+
+    horizontal bar with 80 steps
+        #full bar sprite "gfx/interface/pol_goal_progress.dds"
+        #empty bar sprite "gfx/interface/pol_goal_progress_bg.dds"
+        unprogressed color 0.0 0.3 0.0
+        progressed color 0.0 0.7 0.0
+        var "done_in"
+        position x235 y116   
+        size x235 y4
+
+    # ----- ALL THE buttons!!!! ------
+
+    # DB Core
+    text
+        text button1_text
+        font "hoi_20b"
+        position x127 y175
+    icon
+        sprite button1_gfx
+        position x110 y200 
+    button
+        text enable_or_disable_button1
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x110 y200 
+        on click
+            set_variable = {button1_enabled = 1}
+
+
+
+    # User Table
+    text
+        text button2_text
+        font "hoi_20b"
+        position x299 y175
+    icon
+        sprite button2_gfx
+        position x290 y200 
+    button
+        text enable_or_disable_button2
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x290 y200 
+        on click
+            set_variable = {button2_enabled = 1}
+
+
+# Log File
+    text
+        text button3_text
+        font "hoi_20b"
+        position x490 y175
+    icon
+        sprite button3_gfx
+        position x470 y200 
+    button
+        text enable_or_disable_button3
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x470 y200 
+        on click
+            set_variable = { button3_enabled = 1 }
+
+    # Firewall 01
+    text
+        text button4_text
+        font "hoi_20b"
+        position x119 y275
+    icon
+        sprite button4_gfx
+        position x110 y300 
+    button
+        text enable_or_disable_button4
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x110 y300 
+        on click
+            set_variable = { button4_enabled = 1 }
+
+    # IDS Panel
+    text
+        text button5_text
+        font "hoi_20b"
+        position x303 y275
+    icon
+        sprite button5_gfx
+        position x290 y300 
+    button
+        text enable_or_disable_button5
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x290 y300 
+        on click
+            set_variable = { button5_enabled = 1 }
+
+    # Encryption Key
+    text
+        text button6_text
+        font "hoi_20b"
+        position x465 y275
+    icon
+        sprite button6_gfx
+        position x470 y300 
+    button
+        text enable_or_disable_button6
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x470 y300 
+        on click
+            set_variable = { button6_enabled = 1 }
+
+    # Render Core
+    text
+        text button7_text
+        font "hoi_20b"
+        position x111 y375
+    icon
+        sprite button7_gfx
+        position x110 y400 
+    button
+        text enable_or_disable_button7
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x110 y400 
+        on click
+            set_variable = { button7_enabled = 1 }
+
+    # Auth Service
+    text
+        text button8_text
+        font "hoi_20b"
+        position x294 y375
+    icon
+        sprite button8_gfx
+        position x290 y400 
+    button
+        text enable_or_disable_button8
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x290 y400 
+        on click
+            set_variable = { button8_enabled = 1 }
+
+    # Main Exec
+    text
+        text button9_text
+        font "hoi_20b"
+        position x479 y375
+    icon
+        sprite button9_gfx
+        position x470 y400 
+    button
+        text enable_or_disable_button9
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x470 y400 
+        on click
+            set_variable = { button9_enabled = 1 }   
+# Proxy Chain (Button 10)
+    text
+        text button10_text
+        font "hoi_20b"
+        position x115 y475
+    icon
+        sprite button10_gfx
+        position x110 y500 
+    button
+        text enable_or_disable_button10
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x110 y500 
+        on click
+            set_variable = { button10_enabled = 1 }
+
+    # API Gateway (Button 11)
+    text
+        text button11_text
+        font "hoi_20b"
+        position x292 y475
+    icon
+        sprite button11_gfx
+        position x290 y500 
+    button
+        text enable_or_disable_button11
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x290 y500 
+        on click
+            set_variable = { button11_enabled = 1 }
+
+    # Task Manager (Button 12)
+    text
+        text button12_text
+        font "hoi_20b"
+        position x467 y475
+    icon
+        sprite button12_gfx
+        position x470 y500 
+    button
+        text enable_or_disable_button12
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x470 y500 
+        on click
+            set_variable = { button12_enabled = 1 }  

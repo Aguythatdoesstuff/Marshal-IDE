@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marshal IDE - License Agreement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --sidebar-bg: #252526;
+            --editor-bg: #1e1e1e; 
+            --text-color: #cccccc;
+            --primary-blue: #007acc;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--sidebar-bg);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 0 0 2rem 0;
+            overflow: hidden;
+        }
+        #eula-content {
+            flex-grow: 1;
+            background-color: var(--editor-bg);
+            border: 1px solid #333;
+            padding: 2rem;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            margin: 0 5rem 1.5rem 5rem;
+            color: #d4d4d4;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="titlebar">
+        <span class="text-xs font-medium opacity-80">Marshal IDE - License Agreement</span>
+    </div>
+    <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-white">License Agreement</h1>
+        <p id="license-status" class="text-xs text-blue-400 uppercase tracking-widest mt-1">
+            Standard User License
+        </p>
+    </div>
+    
+    <div id="eula-content">Loading...</div>
+
+    <div class="flex justify-center space-x-6 mb-4">
+        <button id="decline-btn" class="px-10 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition font-semibold text-white">
+            Decline & Exit
+        </button>
+        <button id="accept-btn" class="px-10 py-2 bg-[#007acc] hover:bg-blue-600 text-white rounded font-bold text-sm transition shadow-lg">
+            Accept & Continue
+        </button>
+    </div>
+
+    <div class="text-center">
+        <button id="open-code-modal" class="text-[10px] text-gray-500 hover:text-white underline uppercase tracking-wider transition">
+            I have a license code
+        </button>
+    </div>
+
+    <div id="code-modal" class="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center hidden">
+        <div class="bg-[#2d2d2d] p-6 rounded border border-[#444] shadow-2xl w-80">
+            <h2 class="text-white font-bold mb-2">License Code</h2>
+            <p class="text-[10px] text-gray-400 mb-4">Enter your private access code to unlock special terms.</p>
+            
+            <input type="text" id="modal-input" 
+                class="w-full p-2 mb-4 bg-[#1e1e1e] border border-[#555] text-white text-sm outline-none focus:border-[#007acc] rounded" 
+                placeholder="Enter code here...">
+            
+            <div class="flex justify-end space-x-2">
+                <button id="close-modal" class="px-3 py-1 text-xs text-gray-400 hover:text-white transition">Cancel</button>
+                <button id="confirm-code" class="px-4 py-1 bg-[#007acc] hover:bg-blue-600 text-white text-xs font-bold rounded transition">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../src/eula_renderer.js"></script>
+</body>
+</html>

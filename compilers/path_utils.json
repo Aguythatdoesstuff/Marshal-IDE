@@ -1,0 +1,36 @@
+{
+    ".event": {
+        "event":"events",
+        "eventLocalisation":"localisation/english/events"
+    },
+    ".decision": {
+        "decision":"common/decisions",
+        "decisionCategory":"common/decisions/categories",
+        "decisionLocalisation":"localisation/english/decisions"
+    },
+    ".scriptedgui": {
+        "guiinterface":"interface",
+        "guiscripted":"common/scripted_guis",
+        "guiLocalisation":"localisation/english/scripted_gui",
+        "scriptedguiLocalisation":"common/scripted_localisation"
+    },
+    ".script": {
+        "game_rules":"common/game_rules",
+        "on_actions":"common/on_actions",
+        "scripted_triggers":"common/scripted_triggers",
+        "scripted_effects":"common/scripted_effects",
+        "game_rules_localisation":"localisation/english/game_rules"
+    },
+    ".idea": {
+        "ideas":"common/ideas",
+        "gideasLocalisation":"localisation/english/ideas"
+    },
+    ".focus": {
+        "image":"common/national_focus",
+        "definition":"localisation/english/national_focus"
+    },
+    ".dds": {
+        "definition":"interface/marshalIDE_definitions.gfx",
+        "images":"gfx/interface/handledByMarshalIDE"
+    }
+}

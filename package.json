@@ -1,0 +1,88 @@
+{
+  "name": "marshal-ide",
+  "version": "1.0.0",
+  "productName": "Marshal IDE",
+  "description": "Marshal IDE + MarshalScript Editor",
+  "type": "module",
+  "main": "./out/main/index.cjs",
+  "author": "Your Name <your.email@example.com>",
+  "homepage": "https://your-website-or-repo.com",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "scripts": {
+    "license-gen": "generate-license-file --input package.json --output licenses/THIRD-PARTY-LICENSES.txt --overwrite",
+    "start": "bash -c 'electron-vite build && electron . 2> >(grep -vE \"gfx1201|bailing out\" >&2)'", 
+    "watcher": "node watcher_workspace.js",
+    "dist": "electron-vite build && electron-builder",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "dist:linux": "electron-vite build && electron-builder --linux",
+    "dist:all": "electron-vite build && electron-builder --win --linux"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "archiver": "^7.0.1",
+    "chalk": "^5.0.0",
+    "chokidar": "^3.6.0",
+    "codemirror": "^6.0.2",
+    "electron-updater": "^6.6.2",
+    "fs-extra": "^11.3.3",
+    "inquirer": "^9.0.0",
+    "js-yaml": "^4.1.1",
+    "monaco-editor": "^0.52.0",
+    "open": "^10.2.0",
+    "winston": "^3.18.3"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^24.0.0",
+    "electron-vite": "^2.0.0",
+    "generate-license-file": "^4.1.1",
+    "vite-plugin-static-copy": "^3.1.4"
+  },
+  "build": {
+    "appId": "com.kacper.marshalide",
+    "productName": "Marshal IDE",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json",
+      "compilers/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "maintainer": "Your Name <your.email@example.com>",
+      "category": "Development",
+      "icon": "build"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": true,
+      "createDesktopShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://your-update-server.com/updates"
+    },
+    "extraResources": [
+      {
+        "from": "licenses/",
+        "to": "licenses"
+      },
+      "LICENSE.txt"
+    ]
+  }
+}

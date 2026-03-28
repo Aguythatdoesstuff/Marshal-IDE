@@ -1,0 +1,2550 @@
+default tree generic_focus
+    name "Smart Generic Focus Tree"
+    desc "A dynamic tree that adapts to the nation's geopolitical situation."
+    reset_on_civilwar = no
+    initial_show_position = {
+        focus = political_effort
+    }
+
+    # --- POLITICAL BRANCH ---
+
+    focus political_effort takes 10 days
+        name "Address the Political Crisis"
+        desc "Our nation stands at a crossroads. We must choose a direction."
+        sprite "GFX_goal_generic_political_pressure"
+        position x24 y0
+        on complete
+            add_political_power = 50
+
+# --- THE ATLANTIC OUTREACH (PRO-WEST) BRANCH ---
+
+    focus pro_west_path takes 70 days
+        name "The Atlantic Outreach"
+        sprite "GFX_focus_generic_approach_the_west"
+        require political_effort
+        prevents pro_east_path
+            neutral_path
+            radical_junta_path
+        follow position of political_effort
+        position x-12 y1
+        on complete
+            add_popularity = {
+                ideology = democratic
+                popularity = 0.5
+            } 
+
+    # --- ROW 1: WESTERN INTEGRATION ---
+
+    focus democratic_reforms takes 70 days
+        name "Institutional Democratic Reforms"
+        sprite "GFX_focus_ICE_republicanism"
+        require pro_west_path
+        follow position of pro_west_path
+        position x-2 y1
+        on complete
+            add_political_power = 100
+            add_stability = 0.05
+
+    focus nato_partnership_prog takes 70 days
+        name "NATO Partnership for Peace"
+        sprite "GFX_focus_generic_treaty"
+        require pro_west_path
+        follow position of pro_west_path
+        position x0 y1
+        on complete
+            add_command_power = 20
+            army_experience = 10
+
+    focus eu_association_agreement takes 70 days
+        name "EU Association Agreement"
+        sprite "GFX_focus_generic_the_council_of_europe"
+        require pro_west_path
+        follow position of pro_west_path
+        position x2 y1
+        on complete
+            add_offsite_base_ic = 1
+            add_political_power = 50
+
+    # --- ROW 2: LIBERALIZATION & SECURITY ---
+
+    focus judicial_independence takes 70 days
+        name "Judicial Independence Act"
+        sprite "GFX_focus_generic_improve_the_administration_2"
+        require democratic_reforms
+        follow position of democratic_reforms
+        position x-1 y1
+        on complete
+            add_stability = 0.10
+
+    focus joint_nato_training takes 70 days
+        name "Joint NATO Training Centers"
+        sprite "GFX_focus_generic_military_mission"
+        require nato_partnership_prog
+        follow position of nato_partnership_prog
+        position x0 y1
+        on complete
+            add_tech_bonus = { name = land_doc_bonus bonus = 1.0 }
+            army_experience = 20
+
+    focus free_trade_negotiations takes 70 days
+        name "Western Free Trade Negotiations"
+        sprite "GFX_goal_generic_trade"
+        require eu_association_agreement
+        follow position of eu_association_agreement
+        position x1 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    # --- ROW 3: MODERNIZATION & ALIGNMENT ---
+
+    focus anti_corruption_taskforce takes 70 days
+        name "Anti-Corruption Taskforce"
+        sprite "GFX_focus_NOR_restore_public_trust_in_the_storting"
+        require judicial_independence
+        follow position of judicial_independence
+        position x0 y1
+        on complete
+            add_stability = 0.05
+            add_political_power = 50
+
+    focus western_arms_procurement takes 70 days
+        name "Western Arms Procurement"
+        sprite "GFX_goal_generic_military_deal"
+        require joint_nato_training
+        follow position of joint_nato_training
+        position x-1 y1
+        on complete
+            army_experience = 25
+            add_command_power = 15
+
+    focus intel_sharing_network takes 70 days
+        name "Five Eyes Data Sharing"
+        sprite "GFX_goal_generic_intelligence_exchange"
+        require joint_nato_training
+        follow position of joint_nato_training
+        position x1 y1
+        on complete
+            add_tech_bonus = { name = electronics_tech bonus = 1.0 }
+
+    focus foreign_direct_investment takes 70 days
+        name "Encourage Western FDI"
+        sprite "GFX_focus_ETH_invest_in_the_west"
+        require free_trade_negotiations
+        follow position of free_trade_negotiations
+        position x0 y1
+        on complete
+            add_offsite_base_ic = 2
+
+    # --- ROW 4: ATLANTIC BASTION (CHOKEPOINT) ---
+
+    focus atlantic_integration takes 70 days
+        name "Full Atlantic Integration"
+        sprite "GFX_goal_generic_major_alliance"
+        require anti_corruption_taskforce
+            western_arms_procurement
+            intel_sharing_network
+            foreign_direct_investment
+        follow position of nato_partnership_prog
+        position x0 y3
+        on complete
+            add_political_power = 100
+            add_stability = 0.05
+
+    # --- ROW 5: STRATEGIC ALLIANCE FINISHERS ---
+
+    focus major_non_nato_ally takes 70 days
+        name "Major Non-NATO Ally Status"
+        sprite "GFX_goal_generic_alliance"
+        require atlantic_integration
+        follow position of atlantic_integration
+        position x-1 y1
+        on complete
+            add_command_power = 50
+            add_war_support = 0.10
+
+    focus common_market_access takes 70 days
+        name "Common Market Access"
+        sprite "GFX_goal_generic_positive_trade_relations"
+        require atlantic_integration
+        follow position of atlantic_integration
+        position x1 y1
+        on complete
+            add_offsite_base_ic = 3
+
+    focus western_shield takes 70 days
+        name "The Western Shield"
+        sprite "GFX_goal_generic_defence"
+        require major_non_nato_ally
+            common_market_access
+        follow position of atlantic_integration
+        position x0 y2
+        on complete
+            add_stability = 0.15
+            army_experience = 50
+
+# --- THE EASTERN ALIGNMENT (PRO-EAST) BRANCH ---
+
+    focus pro_east_path takes 70 days
+        name "The Eastern Alignment"
+        sprite "GFX_focus_generic_join_comintern"
+        require political_effort
+        prevents pro_west_path
+            neutral_path
+        follow position of political_effort
+        position x-4 y1
+        on complete
+            add_popularity = {
+                ideology = communism
+                popularity = 0.5
+            } 
+
+    # --- ROW 1: EURASIAN INTEGRATION ---
+
+    focus silk_road_initiative takes 70 days
+        name "Join the Silk Road Initiative"
+        sprite "GFX_focus_JAP_develop_the_yen_block"
+        require pro_east_path
+        follow position of pro_east_path
+        position x-2 y1
+        on complete
+            add_offsite_base_ic = 1
+            add_political_power = 50
+
+    focus security_dialogue takes 70 days
+        name "Eurasian Security Dialogue"
+        sprite "GFX_goal_generic_diplomatic_treaty"
+        require pro_east_path
+        follow position of pro_east_path
+        position x0 y1
+        on complete
+            add_political_power = 75
+            add_command_power = 20
+
+    focus energy_partnership takes 70 days
+        name "Strategic Energy Partnership"
+        sprite "GFX_focus_AUS_the_matzen_oil_fields"
+        require pro_east_path
+        follow position of pro_east_path
+        position x2 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    # --- ROW 2: TECHNICAL & MILITARY COOPERATION ---
+
+    focus digital_sovereignty takes 70 days
+        name "Digital Sovereignty Cooperation"
+        sprite "GFX_focus_generic_cryptologic_bomb"
+        require silk_road_initiative
+        follow position of silk_road_initiative
+        position x-1 y1
+        on complete
+            add_tech_bonus = { name = computing_tech bonus = 1.0 }
+
+    focus joint_military_exercises takes 70 days
+        name "Joint Military Exercises"
+        sprite "GFX_goal_generic_military_sphere"
+        require security_dialogue
+        follow position of security_dialogue
+        position x0 y1
+        on complete
+            army_experience = 30
+            add_war_support = 0.05
+
+    focus pipeline_infrastructure takes 70 days
+        name "Expand Pipeline Infrastructure"
+        sprite "GFX_focus_generic_africa_infrastructure"
+        require energy_partnership
+        follow position of energy_partnership
+        position x1 y1
+        on complete
+            add_offsite_base_ic = 2
+
+    # --- ROW 3: DEPENDECY & SPECIALIZATION ---
+
+    focus tech_transfer_east takes 70 days
+        name "Eastern Tech Transfer"
+        sprite "GFX_goal_generic_scientific_exchange"
+        require digital_sovereignty
+        follow position of digital_sovereignty
+        position x0 y1
+        on complete
+            add_tech_bonus = { name = industry_tech bonus = 1.0 }
+
+    focus arms_procurement_east takes 70 days
+        name "Eastern Arms Procurement"
+        sprite "GFX_goal_generic_small_arms"
+        require joint_military_exercises
+        follow position of joint_military_exercises
+        position x-1 y1
+        on complete
+            army_experience = 25
+            add_command_power = 20
+
+    focus currency_swap_agreements takes 70 days
+        name "Currency Swap Agreements"
+        sprite "GFX_focus_CHI_promote_national_currency"
+        require joint_military_exercises
+        follow position of joint_military_exercises
+        position x1 y1
+        on complete
+            add_political_power = 75
+
+    focus specialized_export_zones takes 70 days
+        name "Specialized Export Zones"
+        sprite "GFX_focus_generic_africa_production"
+        require pipeline_infrastructure
+        follow position of pipeline_infrastructure
+        position x0 y1
+        on complete
+            add_offsite_base_ic = 2
+
+    # --- ROW 4: EURASIAN BLOC MEMBER (CHOKEPOINT) ---
+
+    focus eurasian_bloc_integration takes 70 days
+        name "Full Eurasian Integration"
+        sprite "GFX_goal_generic_war_with_comintern"
+        require tech_transfer_east
+            arms_procurement_east
+            currency_swap_agreements
+            specialized_export_zones
+        follow position of security_dialogue
+        position x0 y3
+        on complete
+            add_stability = 0.05
+            add_political_power = 100
+
+    # --- ROW 5: STRATEGIC ALLIANCE FINISHERS ---
+
+    focus intelligence_sharing_treaty takes 70 days
+        name "Intelligence Sharing Treaty"
+        sprite "GFX_focus_generic_polish_deal"
+        require eurasian_bloc_integration
+        follow position of eurasian_bloc_integration
+        position x-1 y1
+        on complete
+            add_command_power = 30
+            add_tech_bonus = { name = electronics_tech bonus = 1.0 }
+
+    focus mutual_defense_pact takes 70 days
+        name "Mutual Defense Pact"
+        sprite "GFX_goal_molotov_ribbentrop_pact"
+        require eurasian_bloc_integration
+        follow position of eurasian_bloc_integration
+        position x1 y1
+        on complete
+            add_war_support = 0.15
+            add_political_power = 50
+
+    focus the_eastern_bulwark takes 70 days
+        name "The Eastern Bulwark"
+        sprite "GFX_focus_ger_bulwark_against_bolshevism"
+        require intelligence_sharing_treaty
+            mutual_defense_pact
+        follow position of eurasian_bloc_integration
+        position x0 y2
+        on complete
+            add_stability = 0.10
+            army_experience = 50
+
+# --- MAINTAIN SOVEREIGNTY (NEUTRAL) BRANCH ---
+
+    focus neutral_path takes 70 days
+        name "Maintain Sovereignty"
+        sprite "GFX_focus_ger_bulwark_against_bolshevism"
+        require political_effort
+        prevents pro_east_path
+            radical_junta_path
+        follow position of political_effort
+        position x4 y1
+        on complete
+            add_stability = 0.10
+
+    # --- ROW 1: THE PATH OF NEUTRALITY ---
+
+    focus policy_of_non_alignment takes 70 days
+        name "Policy of Non-Alignment"
+        sprite "GFX_focus_generic_self_management"
+        require neutral_path
+        follow position of neutral_path
+        position x0 y1
+        on complete
+            add_political_power = 120
+
+    focus national_unity_government takes 70 days
+        name "National Unity Government"
+        sprite "GFX_goal_generic_national_unity"
+        require policy_of_non_alignment
+        follow position of policy_of_non_alignment
+        position x-2 y1
+        on complete
+            add_stability = 0.15
+            add_political_power = 50
+
+    focus armed_neutrality takes 70 days
+        name "Armed Neutrality"
+        sprite "GFX_focus_generic_home_defense"
+        require policy_of_non_alignment
+        follow position of policy_of_non_alignment
+        position x2 y1
+        on complete
+            add_command_power = 30
+            add_war_support = 0.05
+
+    # --- ROW 2: DOMESTIC CONSOLIDATION ---
+
+    focus suppress_extremism takes 70 days
+        name "Suppress Political Extremism"
+        sprite "GFX_goal_continuous_suppression"
+        require national_unity_government
+        follow position of national_unity_government
+        position x-1 y1
+        on complete
+            add_stability = 0.10
+            add_political_power = 50
+
+    focus the_middle_way takes 70 days
+        name "The Middle Way"
+        sprite "GFX_focus_generic_support_the_left_right"
+        require policy_of_non_alignment
+        follow position of policy_of_non_alignment
+        position x0 y1
+        on complete
+            add_political_power = 75
+
+    focus border_fortifications takes 70 days
+        name "Expand Border Fortifications"
+        sprite "GFX_focus_generic_coastal_fort"
+        require armed_neutrality
+        follow position of armed_neutrality
+        position x1 y1
+        on complete
+            add_command_power = 20
+            army_experience = 10
+
+    # --- ROW 3: SOVEREIGN INSTITUTIONS ---
+
+    focus state_intelligence_service takes 70 days
+        name "State Intelligence Service"
+        sprite "GFX_focus_EST_rally_the_nation"
+        require suppress_extremism
+        follow position of suppress_extremism
+        position x0 y1
+        on complete
+            add_political_power = 50
+            add_tech_bonus = { name = electronics_tech bonus = 1.0 }
+
+    focus promote_nationalism takes 70 days
+        name "Promote Civic Nationalism"
+        sprite "GFX_focus_NOR_the_lone_wolf_norway"
+        require the_middle_way
+        follow position of the_middle_way
+        position x-1 y1
+        on complete
+            add_war_support = 0.10
+            add_stability = 0.05
+
+    focus civilian_defense_drills takes 70 days
+        name "Civilian Defense Drills"
+        sprite "GFX_focus_generic_the_giant_wakes"
+        require the_middle_way
+        follow position of the_middle_way
+        position x1 y1
+        on complete
+            add_war_support = 0.10
+            add_command_power = 20
+
+    focus the_impassable_border takes 70 days
+        name "The Impassable Border"
+        require border_fortifications
+        follow position of border_fortifications
+        position x0 y1
+        on complete
+            add_stability = 0.05
+            army_experience = 20
+
+    # --- ROW 4: NATIONAL BASTION (CHOKEPOINT) ---
+
+    focus national_bastion takes 70 days
+        name "The National Bastion"
+        require state_intelligence_service
+            promote_nationalism
+            civilian_defense_drills
+            the_impassable_border
+        follow position of the_middle_way
+        position x0 y3
+        on complete
+            add_stability = 0.15
+            add_war_support = 0.10
+
+    # --- ROW 5: INDEPENDENT POWER FINISHERS ---
+
+    focus total_isolation takes 70 days
+        name "Splendid Isolation"
+        require national_bastion
+        follow position of national_bastion
+        position x-1 y1
+        on complete
+            add_stability = 0.15
+
+    focus diplomatic_mediator takes 70 days
+        name "Global Diplomatic Mediator"
+        require national_bastion
+        follow position of national_bastion
+        position x1 y1
+        on complete
+            add_political_power = 150
+
+    focus sovereign_destiny takes 70 days
+        name "Sovereign Destiny"
+        require total_isolation
+            diplomatic_mediator
+        follow position of national_bastion
+        position x0 y2
+        on complete
+            add_political_power = 100
+            add_stability = 0.10
+
+# --- RADICAL JUNTA (MILITARY DIRECTIVE) BRANCH ---
+
+    focus radical_junta_path takes 70 days
+        name "The Military Directive"
+        sprite "GFX_focus_generic_military_dictatorship"
+        require political_effort
+        prevents pro_west_path
+            pro_east_path
+            neutral_path
+        follow position of political_effort
+        position x12 y1
+        on complete
+            set_politics = { ruling_party = fascism }
+            add_political_power = 50
+
+    # --- ROW 1: CONSOLIDATING THE COUP ---
+
+    focus stabilize_the_regime takes 70 days
+        name "Stabilize the Regime"
+        sprite "GFX_focus_GER_the_supreme_leader"
+        require radical_junta_path
+        follow position of radical_junta_path
+        position x0 y1
+        on complete
+            add_stability = 0.15
+            add_political_power = 50
+
+    focus purge_dissidents takes 70 days
+        name "Purge Dissidents"
+        sprite "GFX_goal_continuous_restrict_freedom"
+        require stabilize_the_regime
+        follow position of stabilize_the_regime
+        position x-2 y1
+        on complete
+            add_stability = 0.10
+            add_political_power = -50
+
+    focus martial_law_decree takes 70 days
+        name "Martial Law Decree"
+        sprite "GFX_focus_EST_era_of_silence"
+        require stabilize_the_regime
+        follow position of stabilize_the_regime
+        position x2 y1
+        on complete
+            add_war_support = 0.10
+            add_command_power = 20
+
+    # --- ROW 2: LOYALTY AND MOBILIZATION ---
+
+    focus loyalty_program takes 70 days
+        name "Officer Loyalty Program"
+        sprite "GFX_focus_CONGO_congolese_generals"
+        require purge_dissidents
+        follow position of purge_dissidents
+        position x-1 y1
+        on complete
+            army_experience = 30
+
+    focus military_oversight takes 70 days
+        name "Military Oversight Bureau"
+        sprite "GFX_focus_GER_subdue_the_wehrmacht"
+        require stabilize_the_regime
+        follow position of stabilize_the_regime
+        position x0 y1
+        on complete
+            add_command_power = 30
+            add_political_power = 50
+
+    focus national_youth_cadets takes 70 days
+        name "National Youth Cadets"
+        sprite "GFX_focus_AUS_apprentice_programmes"
+        require martial_law_decree
+        follow position of martial_law_decree
+        position x1 y1
+        on complete
+            add_war_support = 0.10
+            add_manpower = 20000
+
+    # --- ROW 3: THE WAR MACHINE ---
+
+    focus paramilitary_wings takes 70 days
+        name "Establish Paramilitary Wings"
+        sprite "GFX_focus_fra_milice"
+        require loyalty_program
+        follow position of loyalty_program
+        position x0 y1
+        on complete
+            add_manpower = 50000
+
+    focus state_controlled_media takes 70 days
+        name "State-Controlled Media"
+        sprite "GFX_focus_JAP_fund_propaganda_films"
+        require military_oversight
+        follow position of military_oversight
+        position x-1 y1
+        on complete
+            add_stability = 0.10
+            add_war_support = 0.05
+
+    focus industrial_conscription takes 70 days
+        name "Industrial Conscription"
+        sprite "GFX_goal_tfv_can_forced_quebec_conscription"
+        require military_oversight
+        follow position of military_oversight
+        position x1 y1
+        on complete
+            add_offsite_base_ic = 2
+
+    focus expand_conscription_laws takes 70 days
+        name "Expand Conscription Laws"
+        sprite "GFX_focus_AUS_totalitarian_safety"
+        require national_youth_cadets
+        follow position of national_youth_cadets
+        position x0 y1
+        on complete
+            add_war_support = 0.15
+
+    # --- ROW 4: TOTALITARIAN MILITARISM (CHOKEPOINT) ---
+
+    focus total_militarization takes 70 days
+        name "Totalitarian Militarization"
+        sprite "GFX_focus_generic_army_attack"
+        require paramilitary_wings
+            state_controlled_media
+            industrial_conscription
+            expand_conscription_laws
+        follow position of military_oversight
+        position x0 y3
+        on complete
+            add_war_support = 0.20
+            add_stability = -0.05
+
+    # --- ROW 5: THE SUPREME COMMAND FINISHERS ---
+
+    focus strategic_depth_doctrine takes 70 days
+        name "Strategic Depth Doctrine"
+        require total_militarization
+        follow position of total_militarization
+        position x-1 y1
+        on complete
+            add_tech_bonus = { name = land_doc_bonus bonus = 1.0 }
+
+    focus offensive_spirit takes 70 days
+        name "The Cult of the Offensive"
+        require total_militarization
+        follow position of total_militarization
+        position x1 y1
+        on complete
+            army_experience = 50
+
+    focus the_supreme_command takes 70 days
+        name "The Supreme Command"
+        require strategic_depth_doctrine
+            offensive_spirit
+        follow position of total_militarization
+        position x0 y2
+        on complete
+            add_command_power = 50
+            add_war_support = 0.10
+
+    # --- EXPANSION / INTERVENTION BRANCH ---
+# --- REGIONAL SECURITY & INTERVENTION BRANCH ---
+    # Positioned at x0 y4 to sit centrally below the initial choice
+
+    focus peacekeeping_missions takes 70 days
+        name "Regional Security Initiative"
+        require political_effort
+        follow position of political_effort
+        position x0 y8
+        on complete
+            # Logic: boost diplomatic influence and tension
+            add_political_power = 50
+
+    # --- ROW 1: DOCTRINE SELECTION ---
+
+    focus defensive_pacts takes 70 days
+        name "Formalize Defensive Pacts"
+        require peacekeeping_missions
+        follow position of peacekeeping_missions
+        position x-2 y1
+        on complete
+            add_political_power = 50
+            add_stability = 0.05
+
+    focus regional_hegemony takes 70 days
+        name "Claim Regional Hegemony"
+        require peacekeeping_missions
+        follow position of peacekeeping_missions
+        position x2 y1
+        on complete
+            add_war_support = 0.10
+            add_command_power = 20
+
+    # --- ROW 2: INFLUENCE & PRESSURE ---
+
+    focus satellite_states takes 70 days
+        name "Establish Satellite States"
+        require regional_hegemony
+        follow position of regional_hegemony
+        position x1 y1
+        on complete
+            add_political_power = 75
+
+    focus border_conflict_resolution takes 70 days
+        name "Border Conflict Resolution"
+        require defensive_pacts
+        follow position of defensive_pacts
+        position x-1 y1
+        on complete
+            add_stability = 0.10
+
+    focus intelligence_outreach takes 70 days
+        name "Intelligence Outreach"
+        require peacekeeping_missions
+        follow position of peacekeeping_missions
+        position x0 y2
+        on complete
+            add_command_power = 20
+            add_political_power = 50
+
+    # --- ROW 3: INTERVENTIONISM ---
+
+    focus proxy_war_support takes 70 days
+        name "Proxy War Support"
+        require border_conflict_resolution
+        require intelligence_outreach
+        follow position of intelligence_outreach
+        position x-1 y1
+        on complete
+            add_war_support = 0.10
+            army_experience = 25
+
+    focus coercive_diplomacy takes 70 days
+        name "Coercive Diplomacy"
+        require satellite_states
+        require intelligence_outreach
+        follow position of intelligence_outreach
+        position x1 y1
+        on complete
+            add_political_power = 75
+            add_command_power = 20
+
+    # --- ROW 4: REGIONAL MASTER (CHOKEPOINT) ---
+
+    focus regional_arbiter takes 70 days
+        name "The Regional Arbiter"
+        require proxy_war_support
+        require coercive_diplomacy
+        follow position of intelligence_outreach
+        position x0 y2
+        on complete
+            add_political_power = 100
+            add_stability = 0.05
+
+    # --- ROW 5: FINAL STANCE ---
+
+    focus interventionist_doctrine takes 70 days
+        name "Universal Interventionism"
+        require regional_arbiter
+        follow position of regional_arbiter
+        position x-1 y1
+        on complete
+            add_war_support = 0.15
+
+    focus isolationist_bastion takes 70 days
+        name "Fortress of Stability"
+        require regional_arbiter
+        follow position of regional_arbiter
+        position x1 y1
+        on complete
+            add_stability = 0.15
+
+    # --- INDUSTRY BRANCH ---
+
+    focus economic_reconstruction takes 70 days
+        name "Economic Reconstruction"
+        sprite "GFX_goal_continuous_repairments"
+        position x56 y0
+        on complete
+            add_offsite_base_ic = 2
+
+# --- OPEN MARKET INITIATIVE (GLOBALIST) BRANCH ---
+
+    focus globalist_market takes 70 days
+        name "Open Market Initiative"
+        sprite "GFX_focus_PHI_develop_japanese_trade_connections"
+        require economic_reconstruction
+        prevents protectionist_model
+            state_led_dev
+        follow position of economic_reconstruction
+        position x-9 y1
+        on complete
+            add_political_power = 50
+
+    # --- ROW 1: LIBERALIZATION FOUNDATIONS ---
+
+    focus foreign_investment_zones takes 70 days
+        name "Foreign Investment Zones"
+        require globalist_market
+        follow position of globalist_market
+        position x-2 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus export_oriented_growth takes 70 days
+        name "Export Oriented Growth"
+        sprite "GFX_goal_generic_consumer_goods"
+        require globalist_market
+        follow position of globalist_market
+        position x0 y1
+        on complete
+            add_political_power = 50
+            add_offsite_base_ic = 1
+
+    focus currency_stabilization takes 70 days
+        name "Currency Stabilization"
+        require globalist_market
+        follow position of globalist_market
+        position x2 y1
+        on complete
+            add_stability = 0.10
+
+    # --- ROW 2: CORPORATE & TRADE EXPANSION ---
+
+    focus multinational_partnerships takes 70 days
+        name "Multinational Partnerships"
+        require foreign_investment_zones
+        follow position of foreign_investment_zones
+        position x-1 y1
+        on complete
+            add_offsite_base_ic = 2
+
+    focus trade_council_est takes 70 days
+        name "Establish the Trade Council"
+        require export_oriented_growth
+        follow position of export_oriented_growth
+        position x0 y1
+        on complete
+            add_political_power = 75
+
+    focus banking_deregulation takes 70 days
+        name "Banking Deregulation"
+        require currency_stabilization
+        follow position of currency_stabilization
+        position x1 y1
+        on complete
+            add_political_power = 50
+            add_offsite_base_ic = 1
+
+    # --- ROW 3: TECHNOLOGICAL ACQUISITION ---
+
+    focus intellectual_property_laws takes 70 days
+        name "Intellectual Property Laws"
+        require multinational_partnerships
+        follow position of multinational_partnerships
+        position x0 y1
+        on complete
+            add_tech_bonus = { name = industry_tech bonus = 1.0 }
+
+    focus resource_export_contracts takes 70 days
+        name "Resource Export Contracts"
+        sprite "GFX_focus_generic_steel"
+        require trade_council_est
+        follow position of trade_council_est
+        position x-1 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus consumer_goods_import takes 70 days
+        name "Consumer Goods Importation"
+        require trade_council_est
+        follow position of trade_council_est
+        position x1 y1
+        on complete
+            add_stability = 0.10
+            add_political_power = 25
+
+    focus tech_transfer_programs takes 70 days
+        name "Tech Transfer Programs"
+        require banking_deregulation
+        follow position of banking_deregulation
+        position x0 y1
+        on complete
+            add_tech_bonus = { name = electronics_tech bonus = 1.0 }
+
+    # --- ROW 4: THE ECONOMIC HUB (CHOKEPOINT) ---
+
+    focus global_economic_hub takes 70 days
+        name "The Global Economic Hub"
+        require intellectual_property_laws
+            resource_export_contracts
+            consumer_goods_import
+            tech_transfer_programs
+        follow position of export_oriented_growth
+        position x0 y3
+        on complete
+            add_offsite_base_ic = 2
+            add_political_power = 100
+
+    # --- ROW 5: ADVANCED INDUSTRIAL FINISHERS ---
+
+    focus foreign_military_contracts takes 70 days
+        name "Foreign Military Contracts"
+        require global_economic_hub
+        follow position of global_economic_hub
+        position x-1 y1
+        on complete
+            add_offsite_base_ic = 1
+            army_experience = 20
+
+    focus offshore_manufacturing takes 70 days
+        name "Offshore Manufacturing"
+        require global_economic_hub
+        follow position of global_economic_hub
+        position x1 y1
+        on complete
+            add_offsite_base_ic = 2
+
+    focus the_world_factory takes 70 days
+        name "The World's Factory"
+        sprite "GFX_focus_generic_industry_3"
+        require foreign_military_contracts
+            offshore_manufacturing
+        follow position of global_economic_hub
+        position x0 y2
+        on complete
+            add_offsite_base_ic = 3
+            add_political_power = 50
+
+# --- NATIONAL SELF-SUFFICIENCY (PROTECTIONIST) BRANCH ---
+
+    focus protectionist_model takes 70 days
+        name "National Self-Sufficiency"
+        sprite "GFX_focus_generic_concessions"
+        require economic_reconstruction
+        prevents globalist_market
+            state_led_dev
+        follow position of economic_reconstruction
+        position x0 y1
+        on complete
+            add_political_power = 50
+
+    # --- ROW 1: ISOLATIONIST FOUNDATIONS ---
+
+    focus import_substitution takes 70 days
+        name "Import Substitution Industrialization"
+        require protectionist_model
+        follow position of protectionist_model
+        position x-2 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus secure_the_interior takes 70 days
+        name "Secure the Interior"
+        require protectionist_model
+        follow position of protectionist_model
+        position x0 y1
+        on complete
+            add_stability = 0.10
+
+    focus domestic_market_focus takes 70 days
+        name "Domestic Market Focus"
+        require protectionist_model
+        follow position of protectionist_model
+        position x2 y1
+        on complete
+            add_political_power = 50
+            add_offsite_base_ic = 1
+
+    # --- ROW 2: RESOURCE & BORDER CONTROL ---
+
+    focus local_resource_substitutes takes 70 days
+        name "Local Resource Substitutes"
+        require import_substitution
+        follow position of import_substitution
+        position x-1 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus fortress_logistics takes 70 days
+        name "Fortress Logistics"
+        require secure_the_interior
+        follow position of secure_the_interior
+        position x0 y1
+        on complete
+            add_command_power = 20
+
+    focus buy_national_campaign takes 70 days
+        name "Buy National Campaign"
+        require domestic_market_focus
+        follow position of domestic_market_focus
+        position x1 y1
+        on complete
+            add_stability = 0.10
+
+    # --- ROW 3: INDUSTRIAL INDEPENDENCE ---
+
+    focus synthetic_refineries_init takes 70 days
+        name "Synthetic Refineries Initiative"
+        sprite "GFX_goal_generic_oil_refinery"
+        require local_resource_substitutes
+        follow position of local_resource_substitutes
+        position x0 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus decentralized_industry takes 70 days
+        name "Decentralized Industry"
+        require fortress_logistics
+        follow position of fortress_logistics
+        position x-1 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus internal_investment_bank takes 70 days
+        name "Internal Investment Bank"
+        require buy_national_campaign
+        follow position of buy_national_campaign
+        position x1 y1
+        on complete
+            add_political_power = 75
+
+    focus civilian_defense_works takes 70 days
+        name "Civilian Defense Works"
+        require fortress_logistics
+        follow position of fortress_logistics
+        position x1 y1
+        on complete
+            add_stability = 0.10
+            add_war_support = 0.05
+
+    # --- ROW 4: THE AUTARKIC BREAKTHROUGH (CHOKEPOINT) ---
+
+    focus total_autarky takes 70 days
+        name "Total Autarky"
+        require synthetic_refineries_init
+            decentralized_industry
+            internal_investment_bank
+            civilian_defense_works
+        follow position of secure_the_interior
+        position x0 y3
+        on complete
+            add_offsite_base_ic = 2
+
+    # --- ROW 5: WAR ECONOMY FINISHERS ---
+
+    focus hidden_stockpiles takes 70 days
+        name "Hidden Stockpiles"
+        require total_autarky
+        follow position of total_autarky
+        position x-1 y1
+        on complete
+            add_command_power = 30
+
+    focus the_home_guard_industry takes 70 days
+        name "Home Guard Industry"
+        require total_autarky
+        follow position of total_autarky
+        position x1 y1
+        on complete
+            add_offsite_base_ic = 2
+
+    focus fortress_nation takes 70 days
+        name "The Fortress Nation"
+        require hidden_stockpiles
+            the_home_guard_industry
+        follow position of total_autarky
+        position x0 y2
+        on complete
+            add_stability = 0.15
+            add_war_support = 0.15
+
+# --- CENTRALLY PLANNED MODEL: EXPANDED ---
+
+    focus state_led_dev takes 70 days
+        name "The Centrally Planned Model"
+        sprite "GFX_goal_generic_soviet_construction"
+        require economic_reconstruction
+        prevents globalist_market
+            protectionist_model
+        follow position of economic_reconstruction
+        position x10 y1
+        on complete
+            add_political_power = 50
+
+    # --- ROW 1: THE INITIAL TRIAD ---
+
+    focus diversion_or_reclamation takes 70 days
+        name "River Diversion/Land Reclamation"
+        require state_led_dev
+        follow position of state_led_dev
+        position x-2 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus grid_project takes 70 days
+        name "The Great Grid Project"
+        require state_led_dev
+        follow position of state_led_dev
+        position x0 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus forced_urbanization takes 70 days
+        name "Forced Urbanization"
+        sprite "GFX_focus_PRC_bolshevik_urbanization_1"
+        require state_led_dev
+        follow position of state_led_dev
+        position x2 y1
+        on complete
+            add_manpower = 20000
+
+    # --- ROW 2: NEW OUTER BRANCHES & CORE ---
+
+    focus resource_nationalization takes 70 days
+        name "Resource Nationalization"
+        sprite "GFX_focus_generic_expropriate_industrialist"
+        require diversion_or_reclamation
+        follow position of diversion_or_reclamation
+        position x-1 y1
+        on complete
+            add_political_power = 50
+
+    focus planning_commission takes 70 days
+        name "Establish the Planning Commission"
+        require grid_project
+        follow position of grid_project
+        position x0 y1
+        on complete
+            add_political_power = 75
+
+    focus labor_battalions takes 70 days
+        name "Organize Labor Battalions"
+        sprite "GFX_focus_CHI_commemorate_labour_corp"
+        require forced_urbanization
+        follow position of forced_urbanization
+        position x1 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    # --- ROW 3: INDUSTRIAL EXPANSION ---
+
+    focus mineral_prospecting takes 70 days
+        name "State Mineral Prospecting"
+        sprite "GFX_focus_generic_mineral_prospecting"
+        require resource_nationalization
+        follow position of resource_nationalization
+        position x0 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus steel_quota takes 70 days
+        name "The Steel Quota"
+        require planning_commission
+        follow position of planning_commission
+        position x-1 y1
+        on complete
+            add_offsite_base_ic = 1
+
+    focus state_heavy_industry takes 70 days
+        name "State-Owned Heavy Industry"
+        require planning_commission
+        follow position of planning_commission
+        position x1 y1
+        on complete
+            add_offsite_base_ic = 2
+
+    focus mass_housing_projects takes 70 days
+        name "Mass Housing Projects"
+        require labor_battalions
+        follow position of labor_battalions
+        position x0 y1
+        on complete
+            add_stability = 0.10
+
+    # --- ROW 4: THE FIVE-YEAR AUDIT (CHOKEPOINT) ---
+
+    focus five_year_audit takes 70 days
+        name "The Five-Year Audit"
+        require steel_quota
+            state_heavy_industry
+            mineral_prospecting
+            mass_housing_projects
+        follow position of planning_commission
+        position x0 y2
+        on complete
+            add_political_power = 100
+            add_stability = 0.05
+
+    # --- ROW 5: MILITARY-INDUSTRIAL WRAP-UP ---
+
+    focus standardized_armament takes 70 days
+        name "Standardized Armament"
+        sprite "GFX_goal_generic_production"
+        require five_year_audit
+        follow position of five_year_audit
+        position x-1 y1
+        on complete
+            add_offsite_base_ic = 1
+            army_experience = 20
+
+    focus state_research_institutes takes 70 days
+        name "State Research Institutes"
+        require five_year_audit
+        follow position of five_year_audit
+        position x1 y1
+        on complete
+            add_tech_bonus = { name = industry_tech bonus = 1.0 }
+
+    focus sovereign_arsenal takes 70 days
+        name "The Sovereign Arsenal"
+        require standardized_armament
+            state_research_institutes
+        follow position of five_year_audit
+        position x0 y2
+        on complete
+            add_offsite_base_ic = 3
+            add_war_support = 0.10
+
+# --- MILITARY MODERNIZATION BRANCH (FAR LEFT) ---
+
+    focus military_modernization takes 70 days
+        name "Military Modernization"
+        desc "Our equipment is aging. We must adapt to the requirements of 21st-century warfare."
+        position x14 y9
+        on complete
+            add_tech_bonus = { name = land_doc_bonus bonus = 1.0 }
+
+    # --- ROW 1: THE THREE BRANCHES ---
+
+    focus army_reorganization takes 70 days
+        name "Army Reorganization"
+        sprite "GFX_goal_generic_army_doctrines"
+        require military_modernization
+        follow position of military_modernization
+        position x-2 y1
+        on complete
+            army_experience = 30
+
+    focus air_force_expansion takes 70 days
+        name "Air Force Expansion"
+        sprite "GFX_goal_generic_build_airforce"
+        require military_modernization
+        follow position of military_modernization
+        position x0 y1
+        on complete
+            air_experience = 30
+
+    focus naval_revitalization takes 70 days
+        name "Naval Revitalization"
+        sprite "GFX_goal_generic_build_navy"
+        require military_modernization
+        follow position of military_modernization
+        position x2 y1
+        on complete
+            navy_experience = 30
+
+    # --- ROW 2: MODERN DOCTRINES ---
+
+    focus rapid_response_brigades takes 70 days
+        name "Rapid Response Brigades"
+        sprite "GFX_focus_generic_jet_planes"
+        require army_reorganization
+        follow position of army_reorganization
+        position x-1 y1
+        on complete
+            add_command_power = 20
+            army_experience = 20
+
+    focus drone_integration_prog takes 70 days
+        name "Drone Integration Program"
+        require air_force_expansion
+        follow position of air_force_expansion
+        position x0 y1
+        on complete
+            air_experience = 30
+            add_tech_bonus = { name = electronics_tech bonus = 1.0 }
+
+    focus littoral_combat_focus takes 70 days
+        name "Littoral Combat Focus"
+        require naval_revitalization
+        follow position of naval_revitalization
+        position x1 y1
+        on complete
+            navy_experience = 30
+            add_command_power = 15
+
+    # --- ROW 3: ADVANCED CAPABILITIES ---
+
+    focus cyber_warfare_division takes 70 days
+        name "Cyber Warfare Division"
+        require rapid_response_brigades
+        follow position of rapid_response_brigades
+        position x0 y1
+        on complete
+            add_tech_bonus = { name = computing_tech bonus = 1.0 }
+            add_political_power = 25
+
+    focus precision_strike_missiles takes 70 days
+        name "Precision Strike Missiles"
+        require drone_integration_prog
+        follow position of drone_integration_prog
+        position x-1 y1
+        on complete
+            add_command_power = 30
+
+    focus electronic_countermeasures takes 70 days
+        name "Electronic Countermeasures"
+        require drone_integration_prog
+        follow position of drone_integration_prog
+        position x1 y1
+        on complete
+            air_experience = 25
+
+    focus blue_water_aspirations takes 70 days
+        name "Blue Water Aspirations"
+        require littoral_combat_focus
+        follow position of littoral_combat_focus
+        position x0 y1
+        on complete
+            navy_experience = 30
+            add_political_power = 25
+
+    # --- ROW 4: JOINT COMMAND (CHOKEPOINT) ---
+
+    focus joint_task_force_cmd takes 70 days
+        name "Joint Task Force Command"
+        require cyber_warfare_division
+        require precision_strike_missiles
+        require electronic_countermeasures
+        require blue_water_aspirations
+        follow position of air_force_expansion
+        position x0 y3
+        on complete
+            add_command_power = 50
+            army_experience = 20
+            air_experience = 20
+            navy_experience = 20
+
+    # --- ROW 5: THE MODERN WAR MACHINE ---
+
+    focus domestic_arms_industry takes 70 days
+        name "Domestic Arms Industry"
+        require joint_task_force_cmd
+        follow position of joint_task_force_cmd
+        position x-1 y1
+        on complete
+            add_offsite_base_ic = 2
+
+    focus total_military_readiness takes 70 days
+        name "Total Military Readiness"
+        require joint_task_force_cmd
+        follow position of joint_task_force_cmd
+        position x1 y1
+        on complete
+            add_war_support = 0.15
+            add_command_power = 20
+
+    focus the_modern_war_machine takes 70 days
+        name "The Modern War Machine"
+        require domestic_arms_industry
+        require total_military_readiness
+        follow position of joint_task_force_cmd
+        position x0 y2
+        on complete
+            army_experience = 50
+            air_experience = 50
+            navy_experience = 50
+            add_tech_bonus = { name = land_doc_bonus bonus = 1.0 }
+#{
+default tree generic_focus
+    name "Smart Generic Focus Tree"
+    desc "A dynamic tree that adapts to the nation's geopolitical situation."
+    reset_on_civilwar = no
+    initial_show_position = {
+        focus = political_effort
+    }
+
+    # --- POLITICAL BRANCH ---
+
+    focus political_effort takes 10 days
+        name "Address the Political Crisis"
+        desc "Our nation stands at a crossroads. We must choose a direction."
+        sprite "GFX_goal_generic_political_pressure"
+        position x24 y0
+        on complete
+            add_political_power = 50
+# --- THE ATLANTIC OUTREACH (PRO-WEST) BRANCH ---
+
+    focus pro_west_path takes 70 days
+        name "The Atlantic Outreach"
+        sprite "GFX_focus_generic_approach_the_west"
+        require political_effort
+        prevents pro_east_path
+            neutral_path
+            radical_junta_path
+        follow position of political_effort
+        position x-12 y1
+        on complete
+            add_popularity = {
+                ideology = democratic
+                popularity = 0.5
+            } 
+    # --- ROW 1: WESTERN INTEGRATION ---
+
+    focus democratic_reforms takes 70 days
+        name "Institutional Democratic Reforms"
+        sprite "GFX_focus_ICE_republicanism"
+        require pro_west_path
+        follow position of pro_west_path
+        position x-2 y1
+        on complete
+
+    focus nato_partnership_prog takes 70 days
+        name "NATO Partnership for Peace"
+        sprite "GFX_focus_generic_treaty"
+        require pro_west_path
+        follow position of pro_west_path
+        position x0 y1
+        on complete
+
+    focus eu_association_agreement takes 70 days
+        name "EU Association Agreement"
+        sprite "GFX_focus_generic_the_council_of_europe"
+        require pro_west_path
+        follow position of pro_west_path
+        position x2 y1
+        on complete
+
+    # --- ROW 2: LIBERALIZATION & SECURITY ---
+
+    focus judicial_independence takes 70 days
+        name "Judicial Independence Act"
+        sprite "GFX_focus_generic_improve_the_administration_2"
+        require democratic_reforms
+        follow position of democratic_reforms
+        position x-1 y1
+        on complete
+
+    focus joint_nato_training takes 70 days
+        name "Joint NATO Training Centers"
+        sprite "GFX_focus_generic_military_mission"
+        require nato_partnership_prog
+        follow position of nato_partnership_prog
+        position x0 y1
+        on complete
+
+    focus free_trade_negotiations takes 70 days
+        name "Western Free Trade Negotiations"
+        sprite "GFX_goal_generic_trade"
+        require eu_association_agreement
+        follow position of eu_association_agreement
+        position x1 y1
+        on complete
+
+    # --- ROW 3: MODERNIZATION & ALIGNMENT ---
+
+    focus anti_corruption_taskforce takes 70 days
+        name "Anti-Corruption Taskforce"
+        sprite "GFX_focus_NOR_restore_public_trust_in_the_storting"
+        require judicial_independence
+        follow position of judicial_independence
+        position x0 y1
+        on complete
+
+    focus western_arms_procurement takes 70 days
+        name "Western Arms Procurement"
+        sprite "GFX_goal_generic_military_deal"
+        require joint_nato_training
+        follow position of joint_nato_training
+        position x-1 y1
+        on complete
+
+    focus intel_sharing_network takes 70 days
+        name "Five Eyes Data Sharing"
+        sprite "GFX_goal_generic_intelligence_exchange"
+        require joint_nato_training
+        follow position of joint_nato_training
+        position x1 y1
+        on complete
+
+    focus foreign_direct_investment takes 70 days
+        name "Encourage Western FDI"
+        sprite "GFX_focus_ETH_invest_in_the_west"
+        require free_trade_negotiations
+        follow position of free_trade_negotiations
+        position x0 y1
+        on complete
+
+    # --- ROW 4: ATLANTIC BASTION (CHOKEPOINT) ---
+
+    focus atlantic_integration takes 70 days
+        name "Full Atlantic Integration"
+        sprite "GFX_goal_generic_major_alliance"
+        require anti_corruption_taskforce
+            western_arms_procurement
+            intel_sharing_network
+            foreign_direct_investment
+        follow position of nato_partnership_prog
+        position x0 y3
+        on complete
+
+    # --- ROW 5: STRATEGIC ALLIANCE FINISHERS ---
+
+    focus major_non_nato_ally takes 70 days
+        name "Major Non-NATO Ally Status"
+        sprite "GFX_goal_generic_alliance"
+        require atlantic_integration
+        follow position of atlantic_integration
+        position x-1 y1
+        on complete
+
+    focus common_market_access takes 70 days
+        name "Common Market Access"
+        sprite "GFX_goal_generic_positive_trade_relations"
+        require atlantic_integration
+        follow position of atlantic_integration
+        position x1 y1
+        on complete
+
+    focus western_shield takes 70 days
+        name "The Western Shield"
+        sprite "GFX_goal_generic_defence"
+        require major_non_nato_ally
+            common_market_access
+        follow position of atlantic_integration
+        position x0 y2
+        on complete
+
+# --- THE EASTERN ALIGNMENT (PRO-EAST) BRANCH ---
+
+    focus pro_east_path takes 70 days
+        name "The Eastern Alignment"
+        sprite "GFX_focus_generic_join_comintern"
+        require political_effort
+        prevents pro_west_path
+            neutral_path
+        follow position of political_effort
+        position x-4 y1
+        on complete
+
+    # --- ROW 1: EURASIAN INTEGRATION ---
+
+    focus silk_road_initiative takes 70 days
+        name "Join the Silk Road Initiative"
+        sprite "GFX_focus_JAP_develop_the_yen_block"
+        require pro_east_path
+        follow position of pro_east_path
+        position x-2 y1
+        on complete
+
+    focus security_dialogue takes 70 days
+        name "Eurasian Security Dialogue"
+        sprite "GFX_goal_generic_diplomatic_treaty"
+        require pro_east_path
+        follow position of pro_east_path
+        position x0 y1
+        on complete
+
+    focus energy_partnership takes 70 days
+        name "Strategic Energy Partnership"
+        sprite "GFX_focus_AUS_the_matzen_oil_fields"
+        require pro_east_path
+        follow position of pro_east_path
+        position x2 y1
+        on complete
+
+    # --- ROW 2: TECHNICAL & MILITARY COOPERATION ---
+
+    focus digital_sovereignty takes 70 days
+        name "Digital Sovereignty Cooperation"
+        sprite "GFX_focus_generic_cryptologic_bomb"
+        require silk_road_initiative
+        follow position of silk_road_initiative
+        position x-1 y1
+        on complete
+
+    focus joint_military_exercises takes 70 days
+        name "Joint Military Exercises"
+        sprite "GFX_goal_generic_military_sphere"
+        require security_dialogue
+        follow position of security_dialogue
+        position x0 y1
+        on complete
+
+    focus pipeline_infrastructure takes 70 days
+        name "Expand Pipeline Infrastructure"
+        sprite "GFX_focus_generic_africa_infrastructure"
+        require energy_partnership
+        follow position of energy_partnership
+        position x1 y1
+        on complete
+
+    # --- ROW 3: DEPENDECY & SPECIALIZATION ---
+
+    focus tech_transfer_east takes 70 days
+        name "Eastern Tech Transfer"
+        sprite "GFX_goal_generic_scientific_exchange"
+        require digital_sovereignty
+        follow position of digital_sovereignty
+        position x0 y1
+        on complete
+
+    focus arms_procurement_east takes 70 days
+        name "Eastern Arms Procurement"
+        sprite "GFX_goal_generic_small_arms"
+        require joint_military_exercises
+        follow position of joint_military_exercises
+        position x-1 y1
+        on complete
+
+    focus currency_swap_agreements takes 70 days
+        name "Currency Swap Agreements"
+        sprite "GFX_focus_CHI_promote_national_currency"
+        require joint_military_exercises
+        follow position of joint_military_exercises
+        position x1 y1
+        on complete
+
+    focus specialized_export_zones takes 70 days
+        name "Specialized Export Zones"
+        sprite "GFX_focus_generic_africa_production"
+        require pipeline_infrastructure
+        follow position of pipeline_infrastructure
+        position x0 y1
+        on complete
+
+    # --- ROW 4: EURASIAN BLOC MEMBER (CHOKEPOINT) ---
+
+    focus eurasian_bloc_integration takes 70 days
+        name "Full Eurasian Integration"
+        sprite "GFX_goal_generic_war_with_comintern"
+        require tech_transfer_east
+            arms_procurement_east
+            currency_swap_agreements
+            specialized_export_zones
+        follow position of security_dialogue
+        position x0 y3
+        on complete
+
+    # --- ROW 5: STRATEGIC ALLIANCE FINISHERS ---
+
+    focus intelligence_sharing_treaty takes 70 days
+        name "Intelligence Sharing Treaty"
+        sprite "GFX_focus_generic_polish_deal"
+        require eurasian_bloc_integration
+        follow position of eurasian_bloc_integration
+        position x-1 y1
+        on complete
+
+    focus mutual_defense_pact takes 70 days
+        name "Mutual Defense Pact"
+        sprite "GFX_goal_molotov_ribbentrop_pact"
+        require eurasian_bloc_integration
+        follow position of eurasian_bloc_integration
+        position x1 y1
+        on complete
+
+    focus the_eastern_bulwark takes 70 days
+        name "The Eastern Bulwark"
+        sprite "GFX_focus_ger_bulwark_against_bolshevism"
+        require intelligence_sharing_treaty
+            mutual_defense_pact
+        follow position of eurasian_bloc_integration
+        position x0 y2
+        on complete
+# --- MAINTAIN SOVEREIGNTY (NEUTRAL) BRANCH ---
+
+    focus neutral_path takes 70 days
+        name "Maintain Sovereignty"
+        sprite "GFX_focus_ger_bulwark_against_bolshevism"
+        require political_effort
+        prevents pro_east_path
+            radical_junta_path
+        follow position of political_effort
+        position x4 y1
+        on complete
+            add_stability = 0.10
+
+    # --- ROW 1: THE PATH OF NEUTRALITY ---
+
+    focus policy_of_non_alignment takes 70 days
+        name "Policy of Non-Alignment"
+        sprite "GFX_focus_generic_self_management"
+        require neutral_path
+        follow position of neutral_path
+        position x0 y1
+        on complete
+
+    focus national_unity_government takes 70 days
+        name "National Unity Government"
+        sprite "GFX_goal_generic_national_unity"
+        require policy_of_non_alignment
+        follow position of policy_of_non_alignment
+        position x-2 y1
+        on complete
+
+    focus armed_neutrality takes 70 days
+        name "Armed Neutrality"
+        sprite "GFX_focus_generic_home_defense"
+        require policy_of_non_alignment
+        follow position of policy_of_non_alignment
+        position x2 y1
+        on complete
+
+    # --- ROW 2: DOMESTIC CONSOLIDATION ---
+
+    focus suppress_extremism takes 70 days
+        name "Suppress Political Extremism"
+        sprite "GFX_goal_continuous_suppression"
+        require national_unity_government
+        follow position of national_unity_government
+        position x-1 y1
+        on complete
+
+    focus the_middle_way takes 70 days
+        name "The Middle Way"
+        sprite "GFX_focus_generic_support_the_left_right"
+        require policy_of_non_alignment
+        follow position of policy_of_non_alignment
+        position x0 y1
+        on complete
+
+    focus border_fortifications takes 70 days
+        name "Expand Border Fortifications"
+        sprite "GFX_focus_generic_coastal_fort"
+        require armed_neutrality
+        follow position of armed_neutrality
+        position x1 y1
+        on complete
+
+    # --- ROW 3: SOVEREIGN INSTITUTIONS ---
+
+    focus state_intelligence_service takes 70 days
+        name "State Intelligence Service"
+        sprite "GFX_focus_EST_rally_the_nation"
+        require suppress_extremism
+        follow position of suppress_extremism
+        position x0 y1
+        on complete
+
+    focus promote_nationalism takes 70 days
+        name "Promote Civic Nationalism"
+        sprite "GFX_focus_NOR_the_lone_wolf_norway"
+        require the_middle_way
+        follow position of the_middle_way
+        position x-1 y1
+        on complete
+
+    focus civilian_defense_drills takes 70 days
+        name "Civilian Defense Drills"
+        sprite "GFX_focus_generic_the_giant_wakes"
+        require the_middle_way
+        follow position of the_middle_way
+        position x1 y1
+        on complete
+
+    focus the_impassable_border takes 70 days
+        name "The Impassable Border"
+        require border_fortifications
+        follow position of border_fortifications
+        position x0 y1
+        on complete
+
+    # --- ROW 4: NATIONAL BASTION (CHOKEPOINT) ---
+
+    focus national_bastion takes 70 days
+        name "The National Bastion"
+        require state_intelligence_service
+            promote_nationalism
+            civilian_defense_drills
+            the_impassable_border
+        follow position of the_middle_way
+        position x0 y3
+        on complete
+
+    # --- ROW 5: INDEPENDENT POWER FINISHERS ---
+
+    focus total_isolation takes 70 days
+        name "Splendid Isolation"
+        require national_bastion
+        follow position of national_bastion
+        position x-1 y1
+        on complete
+
+    focus diplomatic_mediator takes 70 days
+        name "Global Diplomatic Mediator"
+        require national_bastion
+        follow position of national_bastion
+        position x1 y1
+        on complete
+
+    focus sovereign_destiny takes 70 days
+        name "Sovereign Destiny"
+        require total_isolation
+            diplomatic_mediator
+        follow position of national_bastion
+        position x0 y2
+        on complete
+
+# --- RADICAL JUNTA (MILITARY DIRECTIVE) BRANCH ---
+
+    focus radical_junta_path takes 70 days
+        name "The Military Directive"
+        sprite "GFX_focus_generic_military_dictatorship"
+        require political_effort
+        prevents pro_west_path
+            pro_east_path
+            neutral_path
+        follow position of political_effort
+        position x12 y1
+        on complete
+            set_politics = { ruling_party = fascism }
+
+    # --- ROW 1: CONSOLIDATING THE COUP ---
+
+    focus stabilize_the_regime takes 70 days
+        name "Stabilize the Regime"
+        sprite "GFX_focus_GER_the_supreme_leader"
+        require radical_junta_path
+        follow position of radical_junta_path
+        position x0 y1
+        on complete
+
+    focus purge_dissidents takes 70 days
+        name "Purge Dissidents"
+        sprite "GFX_goal_continuous_restrict_freedom"
+        require stabilize_the_regime
+        follow position of stabilize_the_regime
+        position x-2 y1
+        on complete
+
+    focus martial_law_decree takes 70 days
+        name "Martial Law Decree"
+        sprite "GFX_focus_EST_era_of_silence"
+        require stabilize_the_regime
+        follow position of stabilize_the_regime
+        position x2 y1
+        on complete
+
+    # --- ROW 2: LOYALTY AND MOBILIZATION ---
+
+    focus loyalty_program takes 70 days
+        name "Officer Loyalty Program"
+        sprite "GFX_focus_CONGO_congolese_generals"
+        require purge_dissidents
+        follow position of purge_dissidents
+        position x-1 y1
+        on complete
+
+    focus military_oversight takes 70 days
+        name "Military Oversight Bureau"
+        sprite "GFX_focus_GER_subdue_the_wehrmacht"
+        require stabilize_the_regime
+        follow position of stabilize_the_regime
+        position x0 y1
+        on complete
+
+    focus national_youth_cadets takes 70 days
+        name "National Youth Cadets"
+        sprite "GFX_focus_AUS_apprentice_programmes"
+        require martial_law_decree
+        follow position of martial_law_decree
+        position x1 y1
+        on complete
+
+    # --- ROW 3: THE WAR MACHINE ---
+
+    focus paramilitary_wings takes 70 days
+        name "Establish Paramilitary Wings"
+        sprite "GFX_focus_fra_milice"
+        require loyalty_program
+        follow position of loyalty_program
+        position x0 y1
+        on complete
+
+    focus state_controlled_media takes 70 days
+        name "State-Controlled Media"
+        sprite "GFX_focus_JAP_fund_propaganda_films"
+        require military_oversight
+        follow position of military_oversight
+        position x-1 y1
+        on complete
+
+    focus industrial_conscription takes 70 days
+        name "Industrial Conscription"
+        sprite "GFX_goal_tfv_can_forced_quebec_conscription"
+        require military_oversight
+        follow position of military_oversight
+        position x1 y1
+        on complete
+
+    focus expand_conscription_laws takes 70 days
+        name "Expand Conscription Laws"
+        sprite "GFX_focus_AUS_totalitarian_safety"
+        require national_youth_cadets
+        follow position of national_youth_cadets
+        position x0 y1
+        on complete
+
+    # --- ROW 4: TOTALITARIAN MILITARISM (CHOKEPOINT) ---
+
+    focus total_militarization takes 70 days
+        name "Totalitarian Militarization"
+        sprite "GFX_focus_generic_army_attack"
+        require paramilitary_wings
+            state_controlled_media
+            industrial_conscription
+            expand_conscription_laws
+        follow position of military_oversight
+        position x0 y3
+        on complete
+
+    # --- ROW 5: THE SUPREME COMMAND FINISHERS ---
+
+    focus strategic_depth_doctrine takes 70 days
+        name "Strategic Depth Doctrine"
+        require total_militarization
+        follow position of total_militarization
+        position x-1 y1
+        on complete
+
+    focus offensive_spirit takes 70 days
+        name "The Cult of the Offensive"
+        require total_militarization
+        follow position of total_militarization
+        position x1 y1
+        on complete
+
+    focus the_supreme_command takes 70 days
+        name "The Supreme Command"
+        require strategic_depth_doctrine
+            offensive_spirit
+        follow position of total_militarization
+        position x0 y2
+        on complete
+
+    # --- EXPANSION / INTERVENTION BRANCH ---
+# --- REGIONAL SECURITY & INTERVENTION BRANCH ---
+    # Positioned at x0 y4 to sit centrally below the initial choice
+
+    focus peacekeeping_missions takes 70 days
+        name "Regional Security Initiative"
+        require political_effort
+        follow position of political_effort
+        position x0 y8
+        on complete
+            # Logic: boost diplomatic influence and tension
+            add_political_power = 50
+
+    # --- ROW 1: DOCTRINE SELECTION ---
+
+    focus defensive_pacts takes 70 days
+        name "Formalize Defensive Pacts"
+        require peacekeeping_missions
+        follow position of peacekeeping_missions
+        position x-2 y1
+        on complete
+
+    focus regional_hegemony takes 70 days
+        name "Claim Regional Hegemony"
+        require peacekeeping_missions
+        follow position of peacekeeping_missions
+        position x2 y1
+        on complete
+
+    # --- ROW 2: INFLUENCE & PRESSURE ---
+
+    focus satellite_states takes 70 days
+        name "Establish Satellite States"
+        require regional_hegemony
+        follow position of regional_hegemony
+        position x1 y1
+        on complete
+
+    focus border_conflict_resolution takes 70 days
+        name "Border Conflict Resolution"
+        require defensive_pacts
+        follow position of defensive_pacts
+        position x-1 y1
+        on complete
+
+    focus intelligence_outreach takes 70 days
+        name "Intelligence Outreach"
+        require peacekeeping_missions
+        follow position of peacekeeping_missions
+        position x0 y2
+        on complete
+
+    # --- ROW 3: INTERVENTIONISM ---
+
+    focus proxy_war_support takes 70 days
+        name "Proxy War Support"
+        require border_conflict_resolution
+        require intelligence_outreach
+        follow position of intelligence_outreach
+        position x-1 y1
+        on complete
+
+    focus coercive_diplomacy takes 70 days
+        name "Coercive Diplomacy"
+        require satellite_states
+        require intelligence_outreach
+        follow position of intelligence_outreach
+        position x1 y1
+        on complete
+
+    # --- ROW 4: REGIONAL MASTER (CHOKEPOINT) ---
+
+    focus regional_arbiter takes 70 days
+        name "The Regional Arbiter"
+        require proxy_war_support
+        require coercive_diplomacy
+        follow position of intelligence_outreach
+        position x0 y2
+        on complete
+
+    # --- ROW 5: FINAL STANCE ---
+
+    focus interventionist_doctrine takes 70 days
+        name "Universal Interventionism"
+        require regional_arbiter
+        follow position of regional_arbiter
+        position x-1 y1
+        on complete
+
+    focus isolationist_bastion takes 70 days
+        name "Fortress of Stability"
+        require regional_arbiter
+        follow position of regional_arbiter
+        position x1 y1
+        on complete
+    # --- INDUSTRY BRANCH ---
+
+    focus economic_reconstruction takes 70 days
+        name "Economic Reconstruction"
+        sprite "GFX_goal_continuous_repairments"
+        position x56 y0
+        on complete
+            add_offsite_base_ic = 2
+
+# --- OPEN MARKET INITIATIVE (GLOBALIST) BRANCH ---
+
+    focus globalist_market takes 70 days
+        name "Open Market Initiative"
+        sprite "GFX_focus_PHI_develop_japanese_trade_connections"
+        require economic_reconstruction
+        prevents protectionist_model
+            state_led_dev
+        follow position of economic_reconstruction
+        position x-9 y1
+        on complete
+
+    # --- ROW 1: LIBERALIZATION FOUNDATIONS ---
+
+    focus foreign_investment_zones takes 70 days
+        name "Foreign Investment Zones"
+        require globalist_market
+        follow position of globalist_market
+        position x-2 y1
+        on complete
+
+    focus export_oriented_growth takes 70 days
+        name "Export Oriented Growth"
+        sprite "GFX_goal_generic_consumer_goods"
+        require globalist_market
+        follow position of globalist_market
+        position x0 y1
+        on complete
+
+    focus currency_stabilization takes 70 days
+        name "Currency Stabilization"
+        require globalist_market
+        follow position of globalist_market
+        position x2 y1
+        on complete
+
+    # --- ROW 2: CORPORATE & TRADE EXPANSION ---
+
+    focus multinational_partnerships takes 70 days
+        name "Multinational Partnerships"
+        require foreign_investment_zones
+        follow position of foreign_investment_zones
+        position x-1 y1
+        on complete
+
+    focus trade_council_est takes 70 days
+        name "Establish the Trade Council"
+        require export_oriented_growth
+        follow position of export_oriented_growth
+        position x0 y1
+        on complete
+
+    focus banking_deregulation takes 70 days
+        name "Banking Deregulation"
+        require currency_stabilization
+        follow position of currency_stabilization
+        position x1 y1
+        on complete
+
+    # --- ROW 3: TECHNOLOGICAL ACQUISITION ---
+
+    focus intellectual_property_laws takes 70 days
+        name "Intellectual Property Laws"
+        require multinational_partnerships
+        follow position of multinational_partnerships
+        position x0 y1
+        on complete
+
+    focus resource_export_contracts takes 70 days
+        name "Resource Export Contracts"
+        sprite "GFX_focus_generic_steel"
+        require trade_council_est
+        follow position of trade_council_est
+        position x-1 y1
+        on complete
+
+    focus consumer_goods_import takes 70 days
+        name "Consumer Goods Importation"
+        require trade_council_est
+        follow position of trade_council_est
+        position x1 y1
+        on complete
+
+    focus tech_transfer_programs takes 70 days
+        name "Tech Transfer Programs"
+        require banking_deregulation
+        follow position of banking_deregulation
+        position x0 y1
+        on complete
+
+    # --- ROW 4: THE ECONOMIC HUB (CHOKEPOINT) ---
+
+    focus global_economic_hub takes 70 days
+        name "The Global Economic Hub"
+        require intellectual_property_laws
+            resource_export_contracts
+            consumer_goods_import
+            tech_transfer_programs
+        follow position of export_oriented_growth
+        position x0 y3
+        on complete
+
+    # --- ROW 5: ADVANCED INDUSTRIAL FINISHERS ---
+
+    focus foreign_military_contracts takes 70 days
+        name "Foreign Military Contracts"
+        require global_economic_hub
+        follow position of global_economic_hub
+        position x-1 y1
+        on complete
+
+    focus offshore_manufacturing takes 70 days
+        name "Offshore Manufacturing"
+        require global_economic_hub
+        follow position of global_economic_hub
+        position x1 y1
+        on complete
+
+    focus the_world_factory takes 70 days
+        name "The World's Factory"
+        sprite "GFX_focus_generic_industry_3"
+        require foreign_military_contracts
+            offshore_manufacturing
+        follow position of global_economic_hub
+        position x0 y2
+        on complete
+# --- NATIONAL SELF-SUFFICIENCY (PROTECTIONIST) BRANCH ---
+
+    focus protectionist_model takes 70 days
+        name "National Self-Sufficiency"
+        sprite "GFX_focus_generic_concessions"
+        require economic_reconstruction
+        prevents globalist_market
+            state_led_dev
+        follow position of economic_reconstruction
+        position x0 y1
+        on complete
+
+    # --- ROW 1: ISOLATIONIST FOUNDATIONS ---
+
+    focus import_substitution takes 70 days
+        name "Import Substitution Industrialization"
+        require protectionist_model
+        follow position of protectionist_model
+        position x-2 y1
+        on complete
+
+    focus secure_the_interior takes 70 days
+        name "Secure the Interior"
+        require protectionist_model
+        follow position of protectionist_model
+        position x0 y1
+        on complete
+
+    focus domestic_market_focus takes 70 days
+        name "Domestic Market Focus"
+        require protectionist_model
+        follow position of protectionist_model
+        position x2 y1
+        on complete
+
+    # --- ROW 2: RESOURCE & BORDER CONTROL ---
+
+    focus local_resource_substitutes takes 70 days
+        name "Local Resource Substitutes"
+        require import_substitution
+        follow position of import_substitution
+        position x-1 y1
+        on complete
+
+    focus fortress_logistics takes 70 days
+        name "Fortress Logistics"
+        require secure_the_interior
+        follow position of secure_the_interior
+        position x0 y1
+        on complete
+
+    focus buy_national_campaign takes 70 days
+        name "Buy National Campaign"
+        require domestic_market_focus
+        follow position of domestic_market_focus
+        position x1 y1
+        on complete
+
+    # --- ROW 3: INDUSTRIAL INDEPENDENCE ---
+
+    focus synthetic_refineries_init takes 70 days
+        name "Synthetic Refineries Initiative"
+        sprite "GFX_goal_generic_oil_refinery"
+        require local_resource_substitutes
+        follow position of local_resource_substitutes
+        position x0 y1
+        on complete
+
+    focus decentralized_industry takes 70 days
+        name "Decentralized Industry"
+        require fortress_logistics
+        follow position of fortress_logistics
+        position x-1 y1
+        on complete
+
+    focus internal_investment_bank takes 70 days
+        name "Internal Investment Bank"
+        require buy_national_campaign
+        follow position of buy_national_campaign
+        position x1 y1
+        on complete
+
+    focus civilian_defense_works takes 70 days
+        name "Civilian Defense Works"
+        require fortress_logistics
+        follow position of fortress_logistics
+        position x1 y1
+        on complete
+
+    # --- ROW 4: THE AUTARKIC BREAKTHROUGH (CHOKEPOINT) ---
+
+    focus total_autarky takes 70 days
+        name "Total Autarky"
+        require synthetic_refineries_init
+            decentralized_industry
+            internal_investment_bank
+            civilian_defense_works
+        follow position of secure_the_interior
+        position x0 y3
+        on complete
+
+    # --- ROW 5: WAR ECONOMY FINISHERS ---
+
+    focus hidden_stockpiles takes 70 days
+        name "Hidden Stockpiles"
+        require total_autarky
+        follow position of total_autarky
+        position x-1 y1
+        on complete
+
+    focus the_home_guard_industry takes 70 days
+        name "Home Guard Industry"
+        require total_autarky
+        follow position of total_autarky
+        position x1 y1
+        on complete
+
+    focus fortress_nation takes 70 days
+        name "The Fortress Nation"
+        require hidden_stockpiles
+            the_home_guard_industry
+        follow position of total_autarky
+        position x0 y2
+        on complete
+            
+# --- CENTRALLY PLANNED MODEL: EXPANDED ---
+
+    focus state_led_dev takes 70 days
+        name "The Centrally Planned Model"
+        sprite "GFX_goal_generic_soviet_construction"
+        require economic_reconstruction
+        prevents globalist_market
+            protectionist_model
+        follow position of economic_reconstruction
+        position x10 y1
+        on complete
+
+    # --- ROW 1: THE INITIAL TRIAD ---
+
+    focus diversion_or_reclamation takes 70 days
+        name "River Diversion/Land Reclamation"
+        require state_led_dev
+        follow position of state_led_dev
+        position x-2 y1
+        on complete
+
+    focus grid_project takes 70 days
+        name "The Great Grid Project"
+        require state_led_dev
+        follow position of state_led_dev
+        position x0 y1
+        on complete
+
+    focus forced_urbanization takes 70 days
+        name "Forced Urbanization"
+        sprite "GFX_focus_PRC_bolshevik_urbanization_1"
+        require state_led_dev
+        follow position of state_led_dev
+        position x2 y1
+        on complete
+
+    # --- ROW 2: NEW OUTER BRANCHES & CORE ---
+
+    focus resource_nationalization takes 70 days
+        name "Resource Nationalization"
+        sprite "GFX_focus_generic_expropriate_industrialist"
+        require diversion_or_reclamation
+        follow position of diversion_or_reclamation
+        position x-1 y1
+        on complete
+
+    focus planning_commission takes 70 days
+        name "Establish the Planning Commission"
+        require grid_project
+        follow position of grid_project
+        position x0 y1
+        on complete
+
+    focus labor_battalions takes 70 days
+        name "Organize Labor Battalions"
+        sprite "GFX_focus_CHI_commemorate_labour_corp"
+        require forced_urbanization
+        follow position of forced_urbanization
+        position x1 y1
+        on complete
+
+    # --- ROW 3: INDUSTRIAL EXPANSION ---
+
+    focus mineral_prospecting takes 70 days
+        name "State Mineral Prospecting"
+        sprite "GFX_focus_generic_mineral_prospecting"
+        require resource_nationalization
+        follow position of resource_nationalization
+        position x0 y1
+        on complete
+
+    focus steel_quota takes 70 days
+        name "The Steel Quota"
+        require planning_commission
+        follow position of planning_commission
+        position x-1 y1
+        on complete
+
+    focus state_heavy_industry takes 70 days
+        name "State-Owned Heavy Industry"
+        require planning_commission
+        follow position of planning_commission
+        position x1 y1
+        on complete
+
+    focus mass_housing_projects takes 70 days
+        name "Mass Housing Projects"
+        require labor_battalions
+        follow position of labor_battalions
+        position x0 y1
+        on complete
+
+    # --- ROW 4: THE FIVE-YEAR AUDIT (CHOKEPOINT) ---
+
+    focus five_year_audit takes 70 days
+        name "The Five-Year Audit"
+        require steel_quota
+            state_heavy_industry
+            mineral_prospecting
+            mass_housing_projects
+        follow position of planning_commission
+        position x0 y2
+        on complete
+
+    # --- ROW 5: MILITARY-INDUSTRIAL WRAP-UP ---
+
+    focus standardized_armament takes 70 days
+        name "Standardized Armament"
+        sprite "GFX_goal_generic_production"
+        require five_year_audit
+        follow position of five_year_audit
+        position x-1 y1
+        on complete
+
+    focus state_research_institutes takes 70 days
+        name "State Research Institutes"
+        require five_year_audit
+        follow position of five_year_audit
+        position x1 y1
+        on complete
+
+    focus sovereign_arsenal takes 70 days
+        name "The Sovereign Arsenal"
+        require standardized_armament
+            state_research_institutes
+        follow position of five_year_audit
+        position x0 y2
+        on complete
+# --- MILITARY MODERNIZATION BRANCH (FAR LEFT) ---
+
+    focus military_modernization takes 70 days
+        name "Military Modernization"
+        desc "Our equipment is aging. We must adapt to the requirements of 21st-century warfare."
+        position x14 y9
+        on complete
+            add_tech_bonus = { name = land_doc_bonus bonus = 1.0 }
+
+    # --- ROW 1: THE THREE BRANCHES ---
+
+    focus army_reorganization takes 70 days
+        name "Army Reorganization"
+        sprite "GFX_goal_generic_army_doctrines"
+        require military_modernization
+        follow position of military_modernization
+        position x-2 y1
+        on complete
+
+    focus air_force_expansion takes 70 days
+        name "Air Force Expansion"
+        sprite "GFX_goal_generic_build_airforce"
+        require military_modernization
+        follow position of military_modernization
+        position x0 y1
+        on complete
+
+    focus naval_revitalization takes 70 days
+        name "Naval Revitalization"
+        sprite "GFX_goal_generic_build_navy"
+        require military_modernization
+        follow position of military_modernization
+        position x2 y1
+        on complete
+
+    # --- ROW 2: MODERN DOCTRINES ---
+
+    focus rapid_response_brigades takes 70 days
+        name "Rapid Response Brigades"
+        sprite "GFX_focus_generic_jet_planes"
+        require army_reorganization
+        follow position of army_reorganization
+        position x-1 y1
+        on complete
+
+    focus drone_integration_prog takes 70 days
+        name "Drone Integration Program"
+        require air_force_expansion
+        follow position of air_force_expansion
+        position x0 y1
+        on complete
+
+    focus littoral_combat_focus takes 70 days
+        name "Littoral Combat Focus"
+        require naval_revitalization
+        follow position of naval_revitalization
+        position x1 y1
+        on complete
+
+    # --- ROW 3: ADVANCED CAPABILITIES ---
+
+    focus cyber_warfare_division takes 70 days
+        name "Cyber Warfare Division"
+        require rapid_response_brigades
+        follow position of rapid_response_brigades
+        position x0 y1
+        on complete
+
+    focus precision_strike_missiles takes 70 days
+        name "Precision Strike Missiles"
+        require drone_integration_prog
+        follow position of drone_integration_prog
+        position x-1 y1
+        on complete
+
+    focus electronic_countermeasures takes 70 days
+        name "Electronic Countermeasures"
+        require drone_integration_prog
+        follow position of drone_integration_prog
+        position x1 y1
+        on complete
+
+    focus blue_water_aspirations takes 70 days
+        name "Blue Water Aspirations"
+        require littoral_combat_focus
+        follow position of littoral_combat_focus
+        position x0 y1
+        on complete
+
+    # --- ROW 4: JOINT COMMAND (CHOKEPOINT) ---
+
+    focus joint_task_force_cmd takes 70 days
+        name "Joint Task Force Command"
+        require cyber_warfare_division
+        require precision_strike_missiles
+        require electronic_countermeasures
+        require blue_water_aspirations
+        follow position of air_force_expansion
+        position x0 y3
+        on complete
+
+    # --- ROW 5: THE MODERN WAR MACHINE ---
+
+    focus domestic_arms_industry takes 70 days
+        name "Domestic Arms Industry"
+        require joint_task_force_cmd
+        follow position of joint_task_force_cmd
+        position x-1 y1
+        on complete
+
+    focus total_military_readiness takes 70 days
+        name "Total Military Readiness"
+        require joint_task_force_cmd
+        follow position of joint_task_force_cmd
+        position x1 y1
+        on complete
+
+    focus the_modern_war_machine takes 70 days
+        name "The Modern War Machine"
+        require domestic_arms_industry
+        require total_military_readiness
+        follow position of joint_task_force_cmd
+        position x0 y2
+        on complete

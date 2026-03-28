@@ -1,0 +1,23 @@
+on action
+    on_monthly = {
+        effect = {
+            # Loop through everyone once per month
+            every_country = {
+                limit = {
+                    has_stability < 0.05
+                    has_civil_war = no
+                }
+                # If AI, trigger civil war
+                if = {
+                    limit = { is_ai = yes }
+                    random_civil_war = yes
+                    news_event = { id = stability_spiral.2 }
+                }
+                # If Player, trigger popup event
+                if = {
+                    limit = { is_ai = no }
+                    country_event = { id = stability_spiral.1 }
+                }
+            }
+        }
+    }

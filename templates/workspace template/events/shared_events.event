@@ -1,0 +1,26 @@
+country event stability_spiral.1
+    title "The Stability Death Spiral"
+    desc "The government is losing control. Protests have turned into riots, and the military is divided. We must act before the nation tears itself apart."
+    sprite "GFX_report_event_civil_war"
+
+    option "Suppress the Dissidents"
+        
+
+    option "Let the Flames Rise"
+        random_civil_war = yes
+        news_event = { id = stability_spiral.2 }
+        add_stability = -0.50
+
+    option "Join the Revolution"
+
+
+    option "Orchestrate a Coup"
+        add_stability = -0.50
+        add_war_support = -0.20
+
+news event stability_spiral.2
+    title "The Stability Death Spiral"
+    desc "A country lost control into a death spiral ending up in civilwar!"
+    sprite "GFX_report_event_civil_war"
+    major = yes
+    option "Suppress the Dissidents"

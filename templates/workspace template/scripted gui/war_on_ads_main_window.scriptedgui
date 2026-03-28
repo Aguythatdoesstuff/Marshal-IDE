@@ -1,0 +1,1194 @@
+define text random_yap_bullshit
+    if
+        check_variable = { text = 1 }
+        then
+            text "Just Rewrite it in rust!"
+    else if
+        check_variable = { text = 2 }
+        then
+            text "I use ARCH BTW!"
+    else if
+        check_variable = { text = 3 }
+        then
+            text "What the dawg doin, or whatever john f kennedy said"
+    else if
+        check_variable = { text = 4 }
+        then
+            text "The greater the mass the greater the force of attraction. (Especially your_mom.png)"
+    else if
+        check_variable = { text = 5 }
+        then
+            text "Actually dont use arch i actually use pop!_os, why? Well why do you like men?"
+    else if
+        check_variable = { text = 6 }
+        then
+            text "Im getting payed to tell you to use microslop!!"
+    else if
+        check_variable = { text = 7 }
+        then
+            text "Syntax error: unkown: at line 3628 collumt 628 in file hwhurjheheobe.bsbkhsh"
+    else if
+        check_variable = { text = 8 }
+        then
+            text "I have dementia"
+    else if
+        check_variable = { text = 9 }
+        then
+            text "Who are you?"
+    else if
+        check_variable = { text = 10 }
+        then
+            text "SpongeBob grew in size cuz of the patties. 1GB was necessary."
+    else if
+        check_variable = { text = 11 }
+        then
+            text "Hello big yahu"
+    else if
+        check_variable = { text = 12 }
+        then
+            text "Mein fuhrer, das reich habe kein problem"
+    else if
+        check_variable = { text = 13 }
+        then
+            text "Yabadabadoo!!!"
+    else if
+        check_variable = { text = 14 }
+        then
+            text "The death of one is a tragedy the death of millions is a statistic."
+    else if
+        check_variable = { text = 15 }
+        then
+            text "public static void Main(string[] args) { throw new Exception('KYS - Keep Yourself Safe <3'); }"
+    else if
+        check_variable = { text = 16 }
+        then
+            text "You love me and i love you, or whatever that one song said"
+    else if
+        check_variable = { text = 17 }
+        then
+            text "Totally not a rickroll link: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    else if
+        check_variable = { text = 18 }
+        then
+            text "If you see this, the 10,000 lines of code are actually working. Somehow."
+    else if
+        check_variable = { text = 19 }
+        then
+            text "You a UNC!"
+    else if
+        check_variable = { text = 20 }
+        then
+            text "I’m not a ‘bottom,’ I’m just ‘event-driven.’ :3"
+    else if
+        check_variable = { text = 21 }
+        then
+            text "Shadow Corp is currently looking at your webcam. Why are you wearing that? 🤨"
+    else if
+        check_variable = { text = 22 }
+        then
+            text "I’m not a stalker, I’m a ‘High-Resolution Talent Scout.’"
+    else if
+        check_variable = { text = 23 }
+        then
+            text "Wait, if you die in the mod, do you die in real life? Asking for a friend (Shadow Corp)."
+    else if
+        check_variable = { text = 24 }
+        then
+            text "Nya~ I just deleted your autosave! (I’m just a silly little guy! :3)"
+    else if
+        check_variable = { text = 25 }
+        then
+            text "Is it a hate crime if I only hate people who don't use dark mode?"
+    else if
+        check_variable = { text = 26 }
+        then
+            text "Shadow Corp is actually owned by a vtuber. You’re being farmed for content."
+    else if
+        check_variable = { text = 27 }
+        then
+            text "I’m not 'unfiltered,' I’m just 'streaming directly from my subconscious'."
+    else if
+        check_variable = { text = 28 }
+        then
+            text "Why is the mod folder glowing? Is it the 1GB SpongeBob? Or radiation?"
+    else if
+        check_variable = { text = 29 }
+        then
+            text "I’m not ‘toxic,’ I’m just ‘spiced with personality.’"
+    else if
+        check_variable = { text = 30 }
+        then
+            text "Warning: Shadow Corp is attempting to 'Adopt' you. Do not resist."
+    else if
+        check_variable = { text = 31 }
+        then
+            text "My code is like a toxic ex: It’s beautiful, it makes no sense, and it breaks my heart every night."
+    else if
+        check_variable = { text = 32 }
+        then
+            text "If you can read this, you’re cute. Also, your GPU is about to melt. <3"
+    else if
+        check_variable = { text = 33 }
+        then
+            text "Shadow Corp says you look like a 'Beta Tester.' That’s an insult, probably."
+    else if
+        check_variable = { text = 34 }
+        then
+            text "I’m not 'procrastinating,' I’m just letting the variables marinate."
+    else if
+        check_variable = { text = 35 }
+        then
+            text "Did you hear that? That was the sound of your RAM filing for a restraining order."
+    else if
+        check_variable = { text = 36 }
+        then
+            text "I’m not 'insane,' I’m just 'living in the extended cut of reality'."
+    else if
+        check_variable = { text = 37 }
+        then
+            text "Shadow Corp is currently 'Checking your vibe.' ... Oops, you have 'Stinky Vibe' syndrome."
+    else if
+        check_variable = { text = 38 }
+        then
+            text "I’m not 'broke,' I’m just 'financially unoptimized'."
+    else if
+        check_variable = { text = 39 }
+        then
+            text "If I go missing, check the 500MB 'your_mom.png' file. I might be stuck in the pixels."
+    else if
+        check_variable = { text = 40 }
+        then
+            text "Shadow Corp found your 'Hidden' folder. Don't worry, they’ve seen worse."
+    else if
+        check_variable = { text = 41 }
+        then
+            text "I’m not 'lonely,' I have 10,000 lines of code to talk to."
+    else if
+        check_variable = { text = 42 }
+        then
+            text "Why does the 'Exit' button feel so heavy? Because I didn't code it! You're here forever! :D"
+    else if
+        check_variable = { text = 43 }
+        then
+            text "I’m not 'weird,' I’m just 'limited edition'."
+    else if
+        check_variable = { text = 44 }
+        then
+            text "Shadow Corp detected that you haven't showered today. Deploying digital deodorant."
+    else if
+        check_variable = { text = 45 }
+        then
+            text "I’m not 'short,' I’m 'compact and efficient'."
+    else if
+        check_variable = { text = 46 }
+        then
+            text "Wait, is this mod actually a social experiment? Am I the experiment? ARE YOU?"
+    else if
+        check_variable = { text = 47 }
+        then
+            text "Shadow Corp is currently 'Simping' for your industrial capacity."
+    else if
+        check_variable = { text = 48 }
+        then
+            text "I’m not 'aggressive,' I’m just 'boldly assertive' about my errors."
+    else if
+        check_variable = { text = 49 }
+        then
+            text "Why is there a picture of a singular grape in the GFX folder? Don't touch it. It’s load-bearing."
+    else if
+        check_variable = { text = 50 }
+        then
+            text "Shadow Corp is currently 'Manifesting' a crash for you. Stay strong."
+    else if
+        check_variable = { text = 51 }
+        then
+            text "I’m not 'stupid,' my brain is just 'running at a different clock speed'."
+    else if
+        check_variable = { text = 52 }
+        then
+            text "Shadow Corp says you have 'No Rizz' and 'Zero Manpower'."
+    else if
+        check_variable = { text = 53 }
+        then
+            text "I’m not 'crying,' my eyes are just 'leaking coolant'."
+    else if
+        check_variable = { text = 54 }
+        then
+            text "Warning: This mod is 40% code, 60% 'I hope the player doesn't check the files'."
+    else if
+        check_variable = { text = 55 }
+        then
+            text "Shadow Corp is currently 'Gaslighting' your division commanders."
+    else if
+        check_variable = { text = 56 }
+        then
+            text "I’m not 'lazy,' I’m just 'preserving my internal energy' for the release."
+    else if
+        check_variable = { text = 57 }
+        then
+            text "Wait, did I forget to close the bracket? { ... nah, it's fine. Probably."
+    else if
+        check_variable = { text = 58 }
+        then
+            text "Shadow Corp is actually just your conscience in a suit."
+    else if
+        check_variable = { text = 59 }
+        then
+            text "I’m not 'finished' with this mod, I’m just 'stopping before the police arrive'."
+    else if
+        check_variable = { text = 60 }
+        then
+            text "Mom said I'm special :3 🌸✨"
+    else if
+        check_variable = { text = 61 }
+        then
+            text "Why is your name Moe Lester? That sounds like a very nice and normal name!"
+    else if
+        check_variable = { text = 62 }
+        then
+            text "Am I pretty? [Check box: Yes / Also Yes]"
+    else if
+        check_variable = { text = 63 }
+        then
+            text "Miauw Miauw, purr... wait, I mean, UNIT_LOST_SOUND.wav"
+    else if
+        check_variable = { text = 64 }
+        then
+            text "I'm so high making this I think I forgot to, uuh, idk... we will see if your PC survives."
+    else if
+        check_variable = { text = 65 }
+        then
+            text "Hear me out: You get: My Mod. I get: Your GPU for crypto mining? (Deal of the century!)"
+    else if
+        check_variable = { text = 66 }
+        then
+            text "Yeah I'm a drug addict (If programming is classified as a drug... and I'm overdosing on semicolons)."
+    else if
+        check_variable = { text = 67 }
+        then
+            text "I'm pregnant and you're the mother... wait, no, the variables are crossing again!"
+    else if
+        check_variable = { text = 68 }
+        then
+            text "Rawr x3 nuzzles pounces on your CPU (Please don't call the police)."
+    else if
+        check_variable = { text = 69 }
+        then
+            text "Is it a bug if the code is actually just a series of 'uwu's hidden in the comments?"
+    else if
+        check_variable = { text = 70 }
+        then
+            text "I'm not 'tweaking,' I'm just 'optimizing at 400 words per minute'."
+    else if
+        check_variable = { text = 71 }
+        then
+            text "Shadow Corp says you have 'Main Character Syndrome.' They're right."
+    else if
+        check_variable = { text = 72 }
+        then
+            text "If you click this, a 4K image of a singular bean is loaded into your VRAM."
+    else if
+        check_variable = { text = 73 }
+        then
+            text "My code doesn't have bugs, it has 'emotional outbursts'."
+    else if
+        check_variable = { text = 74 }
+        then
+            text "I'm not a furry, but 20% of this mod's code was written while wearing ears. Do with that what you will."
+    else if
+        check_variable = { text = 75 }
+        then
+            text "Error: 'Grass' not found. Please step outside to resolve this issue."
+    else if
+        check_variable = { text = 76 }
+        then
+            text "Shadow Corp is currently 'Checking your vibes.' ... Result: You failed."
+    else if
+        check_variable = { text = 77 }
+        then
+            text "I'm not a hacker, I just guessed your password was 'password123' (It was)."
+    else if
+        check_variable = { text = 78 }
+        then
+            text "Wait, if you're here, and I'm here... then who's flying the plane? ✈️💥"
+    else if
+        check_variable = { text = 79 }
+        then
+            text "This mod is 1% inspiration, 99% 'Why is this bracket here?'"
+    else if
+        check_variable = { text = 80 }
+        then
+            text "I told my therapist about Shadow Corp. Now we both have dementia."
+    else if
+        check_variable = { text = 81 }
+        then
+            text "Shadow Corp is actually just your FBI agent's side hustle."
+    else if
+        check_variable = { text = 82 }
+        then
+            text "I’m not 'delusional,' I’m just 'locally hosted in a different reality'."
+    else if
+        check_variable = { text = 83 }
+        then
+            text "Warning: This GUI contains 10,000% of your daily recommended dose of nonsense."
+    else if
+        check_variable = { text = 84 }
+        then
+            text "I’m not 'addicted' to C#, I can stop whenever I want! (I don't want to)."
+    else if
+        check_variable = { text = 85 }
+        then
+            text "Shadow Corp detected that you're playing in Windowed mode. Truly pathetic."
+    else if
+        check_variable = { text = 86 }
+        then
+            text "If this mod was a person, it would be banned from every Arby's in the country."
+    else if
+        check_variable = { text = 87 }
+        then
+            text "Stop looking at the ads and look at me! :3"
+    else if
+        check_variable = { text = 88 }
+        then
+            text "I'm not 'unstable,' I'm just 'dynamically allocated'."
+    else if
+        check_variable = { text = 89 }
+        then
+            text "Shadow Corp is currently using your PC to find the last digit of Pi."
+    else if
+        check_variable = { text = 90 }
+        then
+            text "This mod is like a box of chocolates: It’s mostly air and it makes you feel slightly sick."
+    else if
+        check_variable = { text = 91 }
+        then
+            text "I'm not 'procrastinating,' I'm 'buffering'."
+    else if
+        check_variable = { text = 92 }
+        then
+            text "Shadow Corp found your 'Minecraft' folder. Why is there a 1GB SpongeBob in there too?"
+    else if
+        check_variable = { text = 93 }
+        then
+            text "I’m not 'single,' I’m 'in a committed relationship with my C# compiler'."
+    else if
+        check_variable = { text = 94 }
+        then
+            text "Shadow Corp says your supply lines are 'mid' and your micro is 'low-tier'."
+    else if
+        check_variable = { text = 95 }
+        then
+            text "If you delete this mod, a singular tear will fall from a dev's eye (and your SSD will celebrate)."
+    else if
+        check_variable = { text = 96 }
+        then
+            text "I’m not 'crazy,' I just have 'unfiltered creative output'."
+    else if
+        check_variable = { text = 97 }
+        then
+            text "Shadow Corp is currently 'Rapping' your browser history. It’s a banger."
+    else if
+        check_variable = { text = 98 }
+        then
+            text "Wait, did I mention I use Arch? Oh, I did? Well, I use it btw."
+    else if
+        check_variable = { text = 99 }
+        then
+            text "This is line 140. If you’re still reading, you’re officially part of the problem."
+    else if
+        check_variable = { text = 100 }
+        then
+            text "Skibidi toilet has breached the firewall. Abandon ship."
+    else if
+        check_variable = { text = 101 }
+        then
+            text "I got a 'Glizzy Overdrive' error. Please consult the nearest hot dog stand."
+    else if
+        check_variable = { text = 102 }
+        then
+            text "POV: You are looking at a 1GB mod made by a guy who hasn't seen grass since 2022."
+    else if
+        check_variable = { text = 103 }
+        then
+            text "Is it 'rizz' if I make the GUI look this good, or is it just harassment?"
+    else if
+        check_variable = { text = 104 }
+        then
+            text "Drake called. He wants his ghostwriter back. I told him I'm busy writing HOI4 code."
+    else if
+        check_variable = { text = 105 }
+        then
+            text "I’m not 'toxic,' I’m just 'environmentally unfriendly'."
+    else if
+        check_variable = { text = 106 }
+        then
+            text "Shadow Corp is funded by the people who make 'Free Robux' generators."
+    else if
+        check_variable = { text = 107 }
+        then
+            text "Do you have games on your phone? No? Good, stay focused on the ads."
+    else if
+        check_variable = { text = 108 }
+        then
+            text "I put a hidden 'ratio' button in the code. If you find it, you lose 50PP."
+    else if
+        check_variable = { text = 109 }
+        then
+            text "You look like the type of person who uses the default division templates."
+    else if
+        check_variable = { text = 110 }
+        then
+            text "My lawyer has advised me not to finish this senten—"
+    else if
+        check_variable = { text = 111 }
+        then
+            text "If I had a dollar for every time this mod crashed, I’d be the one buying the islands."
+    else if
+        check_variable = { text = 112 }
+        then
+            text "Is it 'gaslighting' if I tell you the mod is optimized? Yes. Yes it is."
+    else if
+        check_variable = { text = 113 }
+        then
+            text "I’m not 'short-tempered,' my CPU just has a low thermal limit."
+    else if
+        check_variable = { text = 114 }
+        then
+            text "Fanum Taxed your supply lines. 20% of your trucks are gone."
+    else if
+        check_variable = { text = 115 }
+        then
+            text "I identify as 'Out of Memory.' Please respect my pronouns."
+    else if
+        check_variable = { text = 116 }
+        then
+            text "This mod is 100% 'No Cap' and 200% 'On God'."
+    else if
+        check_variable = { text = 117 }
+        then
+            text "Shadow Corp is just a front for the 'E-Girl' industrial complex."
+    else if
+        check_variable = { text = 118 }
+        then
+            text "I’m not a 'simp' for the Clausewitz engine, I’m just a victim of Stockholm Syndrome."
+    else if
+        check_variable = { text = 119 }
+        then
+            text "If you're reading this, you've spent 10 minutes looking at a meme instead of invading Poland."
+    else if
+        check_variable = { text = 120 }
+        then
+            text "Your CPU is screaming 'KYS' (Keep Your System) cool."
+    else if
+        check_variable = { text = 121 }
+        then
+            text "I added a secret code that gives you 1 extra manpower. It’s just one guy named Dave."
+    else if
+        check_variable = { text = 122 }
+        then
+            text "Dave is currently 500MB of the 1GB file size. He's a big guy."
+    else if
+        check_variable = { text = 123 }
+        then
+            text "I'm not 'gatekeeping' the source code, I'm just protecting you from the cringe."
+    else if
+        check_variable = { text = 124 }
+        then
+            text "Wait, is this a map game? I thought this was a C# compiler."
+    else if
+        check_variable = { text = 125 }
+        then
+            text "Shadow Corp found your 'Work' folder. Why is it 40GB of SpongeBob?"
+    else if
+        check_variable = { text = 126 }
+        then
+            text "I’m not 'delusional,' I’m just 'creatively optimistic' about my code working."
+    else if
+        check_variable = { text = 127 }
+        then
+            text "Error: 'Logic' is not a recognized command. Did you mean 'Chaos'?"
+    else if
+        check_variable = { text = 128 }
+        then
+            text "If you delete this mod, SpongeBob loses a tooth. Think about it."
+    else if
+        check_variable = { text = 129 }
+        then
+            text "I’m not 'unemployed,' I’m a 'freelance variable architect'."
+    else if
+        check_variable = { text = 130 }
+        then
+            text "Shadow Corp is currently 'Lurking' in your Twitch chat."
+    else if
+        check_variable = { text = 131 }
+        then
+            text "This text is the 10,000th line. We did it. We hit peak yap."
+    else if
+        check_variable = { text = 132 }
+        then
+            text "I went to the island for the snorkeling! I swear! Just like I was at the Diddy party for the cake! NOT THAT KIND OF CAKE!!"
+    else if
+        check_variable = { text = 133 }
+        then
+            text "Why is there a private jet tracker in my defines.lua?"
+    else if
+        check_variable = { text = 134 }
+        then
+            text "I’m not beating the allegations, I’m just deleting the evidence."
+    else if
+        check_variable = { text = 135 }
+        then
+            text "Hawk Tuah? I barely know 'ah!"
+    else if
+        check_variable = { text = 136 }
+        then
+            text "If you see a lawyer in the credits, no you didn't."
+    else if
+        check_variable = { text = 137 }
+        then
+            text "MrBeast told me that if I click this button 10,000 times, I get a free cookies (I lied)."
+    else if
+        check_variable = { text = 138 }
+        then
+            text "This mod is legally considered 'satire' in 48 states. Don't look up the other two."
+    else if
+        check_variable = { text = 139 }
+        then
+            text "Why is the FBI here? I thought I was modding a map game."
+    else if
+        check_variable = { text = 140 }
+        then
+            text "I’m not a professional developer, but I did stay at a Holiday Inn Express once."
+    else if
+        check_variable = { text = 141 }
+        then
+            text "Error 404: Motivation not found. Defaulting to 'Shitty Photoshop'."
+    else if
+        check_variable = { text = 142 }
+        then
+            text "The industrial revolution and its consequences have been a disaster for my CPU."
+    else if
+        check_variable = { text = 143 }
+        then
+            text "If you can read this, your monitor is too close to your face. Back up, UNC."
+    else if
+        check_variable = { text = 144 }
+        then
+            text "Shadow Corp is actually just 3 raccoons in a trench coat."
+    else if
+        check_variable = { text = 145 }
+        then
+            text "My code is like a sandwich. I don't know what's in it, but I hope it's not poisoned."
+    else if
+        check_variable = { text = 146 }
+        then
+            text "If I had a nickel for every variable I created, I could buy the rights to SpongeBob."
+    else if
+        check_variable = { text = 147 }
+        then
+            text "This mod is 100% organic, grass-fed, and gluten-free spaghetti code."
+    else if
+        check_variable = { text = 148 }
+        then
+            text "Abraham Lincoln once said: 'Don't believe everything you read on a HOI4 GUI.'"
+    else if
+        check_variable = { text = 149 }
+        then
+            text "I'm not saying my tool is better than yours, but my tool has a John F. Kennedy quote."
+    else if
+        check_variable = { text = 150 }
+        then
+            text "Windows is updating. Please don't turn off your computer. Too late."
+    else if
+        check_variable = { text = 151 }
+        then
+            text "Is it a war crime if the code is this ugly?"
+    else if
+        check_variable = { text = 152 }
+        then
+            text "I didn't choose the mod life, the mod life chose me (and then it crashed)."
+    else if
+        check_variable = { text = 153 }
+        then
+            text "Shadow Corp just hacked my toaster. Now my bread is burnt and it says 'L'."
+    else if
+        check_variable = { text = 154 }
+        then
+            text "What if we kissed in the 1GB SpongeBob folder? Haha jk... unless?"
+    else if
+        check_variable = { text = 155 }
+        then
+            text "I used to be a modder like you, then I took a syntax error to the knee."
+    else if
+        check_variable = { text = 156 }
+        then
+            text "Warning: This mod contains traces of nuts and bad decisions."
+    else if
+        check_variable = { text = 157 }
+        then
+            text "The secret ingredient is... more uncompressed textures."
+    else if
+        check_variable = { text = 158 }
+        then
+            text "If you stare into the code long enough, the code stares back and calls you a UNC."
+    else if
+        check_variable = { text = 159 }
+        then
+            text "Why do they call it 'Common Sense' when most people don't have it?"
+    else if
+        check_variable = { text = 160 }
+        then
+            text "System Message: Your RAM is filed for divorce. It gets the motherboard on weekends."
+    else if
+        check_variable = { text = 161 }
+        then
+            text "I’m in your walls. And your variables."
+    else if
+        check_variable = { text = 162 }
+        then
+            text "Is this a Jojo reference? No, it’s a 10,000 line if-statement."
+    else if
+        check_variable = { text = 163 }
+        then
+            text "I put the 'Fun' in 'Functional logic that barely works'."
+    else if
+        check_variable = { text = 164 }
+        then
+            text "Shadow Corp is currently mining Bitcoin on your naval dockyards."
+    else if
+        check_variable = { text = 165 }
+        then
+            text "Does this mod make me look like I know what I’m doing?"
+    else if
+        check_variable = { text = 166 }
+        then
+            text "Help! I’m trapped in a localization file and I can’t get out!"
+    else if
+        check_variable = { text = 167 }
+        then
+            text "This line of text was written by a ghost. Oooooooh."
+    else if
+        check_variable = { text = 168 }
+        then
+            text "I’m not lazy, I’m just highly motivated to do nothing."
+    else if
+        check_variable = { text = 169 }
+        then
+            text "Is it legal to have this much SpongeBob in one .zip file?"
+    else if
+        check_variable = { text = 170 }
+        then
+            text "If at first you don't succeed, hide the error log and hope nobody notices."
+    else if
+        check_variable = { text = 171 }
+        then
+            text "Shadow Corp is just a shell company for the people who make WinZip."
+    else if
+        check_variable = { text = 172 }
+        then
+            text "I'm not crying, it's just eye-sweat from looking at 1900x1300 pixels."
+    else if
+        check_variable = { text = 173 }
+        then
+            text "Wait, did I leave the oven on? Or was that just my CPU overheating?"
+    else if
+        check_variable = { text = 174 }
+        then
+            text "The cake is a lie, but the 500MB 'your_mom.png' is very real."
+    else if
+        check_variable = { text = 175 }
+        then
+            text "If you find a bug, it’s actually a feature called 'Surprise Gameplay'."
+    else if
+        check_variable = { text = 176 }
+        then
+            text "Shadow Corp is stealing your Political Power to buy V-Bucks."
+    else if
+        check_variable = { text = 177 }
+        then
+            text "I’m not a hacker, I just typed 'tree' in the command prompt once."
+    else if
+        check_variable = { text = 178 }
+        then
+            text "This mod is the reason God stays in heaven."
+    else if
+        check_variable = { text = 179 }
+        then
+            text "What if the dawg was actually doing... his taxes?"
+    else if
+        check_variable = { text = 180 }
+        then
+            text "I don't need a life, I have HOI4 modding."
+    else if
+        check_variable = { text = 181 }
+        then
+            text "Shadow Corp has determined that your division templates are 'Cringe'."
+    else if
+        check_variable = { text = 182 }
+        then
+            text "The only thing more bloated than this mod is my ego."
+    else if
+        check_variable = { text = 183 }
+        then
+            text "If you click this button, a fairy gets its wings. Or a variable gets a 1."
+    else if
+        check_variable = { text = 184 }
+        then
+            text "I’m not sure what this line does, but if I delete it, the whole mod breaks."
+    else if
+        check_variable = { text = 185 }
+        then
+            text "Shadow Corp is watching you. They think your playstyle is 'Mid'."
+    else if
+        check_variable = { text = 186 }
+        then
+            text "Is it too late to become a farmer? This coding thing is hard."
+    else if
+        check_variable = { text = 187 }
+        then
+            text "I'm not a bot, I'm just a very tired human with a lot of C# scripts."
+    else if
+        check_variable = { text = 188 }
+        then
+            text "End of the line. Go play the actual game now."
+    else if
+        check_variable = { text = 189 }
+        then
+            text "Why is the GUI shaking? Is it cold? Do I need to feed the GPU more RAM?"
+    else if
+        check_variable = { text = 190 }
+        then
+            text "I'm not saying it's a virus, but your CPU fan just started playing the Imperial March."
+    else if
+        check_variable = { text = 191 }
+        then
+            text "Error: User attempted to use logic in a Clausewitz engine mod. Logic.dll not found."
+    else if
+        check_variable = { text = 192 }
+        then
+            text "If you find a bracket '{' lying around, please return it. I'm missing about 400."
+    else if
+        check_variable = { text = 193 }
+        then
+            text "Napoleon once said: 'Never interrupt your enemy when he is making a mistake.' So I'll let you keep clicking."
+    else if
+        check_variable = { text = 194 }
+        then
+            text "Wait, if this is the War on Ads, where is the 'Skip Ad' button? Oh right, I forgot to code it."
+    else if
+        check_variable = { text = 195 }
+        then
+            text "Don't worry, the 1GB file size is just for 'immersion'."
+    else if
+        check_variable = { text = 196 }
+        then
+            text "My favorite Linux distro is whatever one doesn't make me want to cry (So, not Arch)."
+    else if
+        check_variable = { text = 197 }
+        then
+            text "What if the real Shadow Corp was the variables we made along the way?"
+    else if
+        check_variable = { text = 198 }
+        then
+            text "I asked my RAM if it was okay. It just screamed in Hexadecimal."
+    else if
+        check_variable = { text = 199 }
+        then
+            text "This mod is brought to you by 3 hours of sleep and a lukewarm Monster Energy."
+    else if
+        check_variable = { text = 200 }
+        then
+            text "Current Mood: Attempting to solve a P=NP problem with a 'random_list' block."
+    else if
+        check_variable = { text = 201 }
+        then
+            text "Is it 'Gray' or 'Grey'? Either way, the buttons are definitely Green."
+    else if
+        check_variable = { text = 202 }
+        then
+            text "Fun Fact: This specific line of text cost you 4MB of VRAM for no reason."
+    else if
+        check_variable = { text = 203 }
+        then
+            text "I have 99 problems and a missing semicolon is at least 98 of them."
+    else if
+        check_variable = { text = 204 }
+        then
+            text "Warning: Shadow Corp has detected that you haven't updated your WinRAR since 2004."
+    else if
+        check_variable = { text = 205 }
+        then
+            text "The Krabby Patty secret formula is actually just 10,000 lines of nested if-statements."
+    else if
+        check_variable = { text = 206 }
+        then
+            text "If the game crashes now, it was a 'creative choice' by the developer."
+    else if
+        check_variable = { text = 207 }
+        then
+            text "Steiner's counter-attack will fix the file size issues."
+    else if
+        check_variable = { text = 208 }
+        then
+            text "Look behind you! A three-headed monkey! (And a 1900x1300 SpongeBob)."
+    else if
+        check_variable = { text = 209 }
+        then
+            text "Why do they call it 'IDE' when I spend all my time 'I-D-Eing' inside?"
+    else if
+        check_variable = { text = 210 }
+        then
+            text "System Log: 12:00:01 - User is still clicking. 12:00:02 - User is still clicking. 12:00:03 - Pain."
+    else if
+        check_variable = { text = 211 }
+        then
+            text "I'd tell you a joke about UDP, but you might not get it."
+    else if
+        check_variable = { text = 212 }
+        then
+            text "I'd tell you a joke about TCP, but I'd have to keep repeating it until you acknowledged it."
+    else if
+        check_variable = { text = 213 }
+        then
+            text "Instruction Manual: Step 1: Click button. Step 2: ??? Step 3: Profit."
+    else if
+        check_variable = { text = 214 }
+        then
+            text "Shadow Corp is currently downloading your search history. They are very disappointed."
+    else if
+        check_variable = { text = 215 }
+        then
+            text "Does this GUI make my variables look fat?"
+    else if
+        check_variable = { text = 216 }
+        then
+            text "If you can read this, you aren't micro-managing your front line. Get back to work."
+    else if
+        check_variable = { text = 217 }
+        then
+            text "One does not simply 'walk' into a 1GB mod folder."
+    else if
+        check_variable = { text = 218 }
+        then
+            text "This mod is 10% code, 90% SpongeBob, and 100% reason to remember the name."
+    else if
+        check_variable = { text = 219 }
+        then
+            text "End of Log. Please insert Disc 2 to continue."
+    else
+        text "You a UNC!"
+
+
+# --- MAIN GUI WINDOW ---
+draggable window "war_on_ads_gui"
+    size x900 y700 # Reduced height slightly for better layout
+    position x500 y220
+    sprite "GFX_tiled_window"
+    visible
+        has_country_flag = open_war_on_ads_gui
+
+    #meme text
+    text
+        text random_yap_bullshit
+        font "hoi_36header"
+        position x100 y450
+        max size x700 y600
+    # Window Title
+    text
+        text "§HWAR ON ADS§"
+        font "hoi_36header"
+        position x380 y10
+        max size x400 y30
+        
+    button
+        sprite "GFX_closebutton"
+        position x865 y2 
+        on click
+            clr_country_flag = open_war_on_ads_gui
+
+    # --- INFO / HELP BUTTON ---
+    button
+        sprite "GFX_help_button"
+        position x0 y2
+        size 120%
+        on click
+            set_country_flag = open_info_panel
+            
+        # Add your tooltip here
+        
+    # ==========================================
+    # --- DEFFENCE (LEFT PANEL) ---
+    # ==========================================
+    icon
+        sprite "GFX_tiled_window_transparent"
+        position x50 y70
+        size x380 y250
+
+    text
+        text "§RDEFENCE SYSTEMS§"
+        font "hoi_36header"
+        position x70 y80
+        max size x300 y30
+    # ==========================================
+    # --- SERVER INTEGRITY (BOTTOM PANEL) ---
+    # ==========================================
+    icon
+        sprite "GFX_tiled_window_transparent"
+        position x50 y350
+        size x800 y150
+
+# breach progress bar
+    icon
+        sprite "GFX_pol_goal_progress_frame"
+        position x68 y182
+
+    horizontal bar with 100 steps
+        #full bar sprite "gfx/interface/pol_goal_progress.dds"
+        #empty bar sprite "gfx/interface/pol_goal_progress_bg.dds"
+        unprogressed color 0.3 0.0 0.0 # Dark Red
+        progressed color 0.6 0.0 0.0 # Red (danger)
+        var "breach_progress"
+        position x70 y183   
+        size x235 y4
+
+    button
+        sprite "GFX_button_123x34"
+        position x50 y200
+        text "Fix Vulnerability"
+        font "hoi_16mbs"
+        on click        
+            if
+                has_political_power > 49
+                num_of_civilian_factories > 1
+                then 
+                    if
+                        has_country_flag = has_minigame
+                        then
+                            #do nothing cuz you cant open 2 games at once
+                    else
+                        set_variable = { button_action = 1 }
+                        add_political_power = -50
+                        add_timed_idea = {
+                            idea = "basic_action"
+                            days = 60
+                        }
+                        open_random_minigame = yes
+                        
+    #  PRICES PP
+    text
+        static tooltip "political power cost"
+        text price_button_basic_pp
+        font "hoi_36header"
+        position x105 y238
+        max size x50 y36
+    icon
+        static tooltip "political power cost"
+        sprite "GFX_pol_power_icon"
+        position x75 y242
+    #  PRICES CIVS
+    text
+        static tooltip "civilian factories cost"
+        text price_button_basic_eco
+        font "hoi_36header"
+        position x105 y270
+        max size x50 y36
+    icon
+        static tooltip "civilian factories cost"
+        sprite "GFX_industrial_capacity_icon"
+        position x70 y274
+
+    button
+        sprite "GFX_button_123x34"
+        position x220 y200
+        text "Restore Backup"
+        font "hoi_16mbs"
+        on click       
+            if
+                    has_political_power > 99
+                    num_of_civilian_factories > 3
+                    then      
+                        if
+                            has_country_flag = has_minigame
+                            then
+                                #do nothing cuz you cant open 2 games at once
+                        else
+                            add_political_power = -100
+                            add_timed_idea = {
+                                idea = "premium_action"
+                                days = 60
+                            }
+                            set_variable = { button_action = 2 }
+                            open_random_minigame = yes
+                            
+    #  PRICES PP
+    text
+        static tooltip "political power cost"
+        text price_button_premium_pp
+        font "hoi_36header"
+        position x280 y238
+        max size x50 y36
+    icon
+        static tooltip "political power cost"
+        sprite "GFX_pol_power_icon"
+        position x250 y242
+    #  PRICES CIVS
+    text
+        static tooltip "civilian factories cost"
+        text price_button_premium_eco
+        font "hoi_36header"
+        position x280 y270
+        max size x50 y36
+    icon
+        static tooltip "civilian factories cost"
+        sprite "GFX_industrial_capacity_icon"
+        position x245 y274
+    # ==========================================
+    # --- OFFENCE (RIGHT PANEL) ---
+    # ==========================================
+    icon
+        sprite "GFX_tiled_window_transparent"
+        position x470 y70
+
+    text
+        text "§ROFFENCE SYSTEMS§"
+        font "hoi_36header"
+        position x490 y80
+        max size x300 y30
+
+
+# offence progress bar
+    icon
+        sprite "GFX_pol_goal_progress_frame"
+        position x490 y182 
+
+    horizontal bar with 100 steps
+        #full bar sprite "gfx/interface/pol_goal_progress.dds"
+        #empty bar sprite "gfx/interface/pol_goal_progress_bg.dds"
+        unprogressed color 0.3 0.0 0.0 # Dark Red
+        progressed color 0.6 0.3 0.0 # Amber/Orange
+        var "offense_bar"
+        position x492 y183   
+        size x235 y4
+
+# --- OFFENCE ACTIONS (MODIFIED) ---
+    button
+        sprite "GFX_button_123x34"
+        position x470 y200
+        text "Traffic Analysis" 
+        font "hoi_16mbs"
+        on click        
+            if
+                has_political_power > 49
+                num_of_civilian_factories > 1
+                then     
+                    if
+                        has_country_flag = has_minigame
+                        then
+                            #do nothing cuz you cant open 2 games at once
+                    else
+                        add_political_power = -50
+                        add_timed_idea = {
+                            idea = "basic_action"
+                            days = 60
+                        }
+                        set_variable = { button_action = 3 }
+                        open_random_minigame = yes
+                        
+    #  PRICES PP
+    text
+        static tooltip "political power cost"
+        text price_button_basic_pp
+        font "hoi_36header"
+        position x525 y238
+        max size x50 y36
+    icon
+        static tooltip "political power cost"
+        sprite "GFX_pol_power_icon"
+        position x495 y242
+    #  PRICES CIVS
+    text
+        static tooltip "civilian factories cost"
+        text price_button_basic_eco
+        font "hoi_36header"
+        position x525 y270
+        max size x50 y36
+    icon
+        static tooltip "civilian factories cost"
+        sprite "GFX_industrial_capacity_icon"
+        position x490 y274
+    button
+        sprite "GFX_button_123x34"
+        position x640 y200 
+        text "Protocol Exploitation" 
+        font "hoi_16mbs"
+        on click    
+            if
+                has_political_power > 99
+                num_of_civilian_factories > 3
+                then         
+                    if
+                        has_country_flag = has_minigame
+                        then
+                            #do nothing cuz you cant open 2 games at once
+                    else
+                        add_political_power = -100
+                        add_timed_idea = {
+                            idea = "premium_action"
+                            days = 60
+                        }
+                        set_variable = { button_action = 4 }
+                        open_random_minigame = yes
+                        
+    #  PRICES PP
+    text
+        static tooltip "political power cost"
+        text price_button_premium_pp
+        font "hoi_36header"
+        position x695 y238
+        max size x50 y36
+    icon
+        static tooltip "political power cost"
+        sprite "GFX_pol_power_icon"
+        position x665 y242
+    #  PRICES CIVS
+    text
+        static tooltip "civilian factories cost"
+        text price_button_premium_eco
+        font "hoi_36header"
+        position x695 y270
+        max size x50 y36
+    icon
+        static tooltip "civilian factories cost"
+        sprite "GFX_industrial_capacity_icon"
+        position x660 y274
+define text price_button_basic_pp
+    if
+        has_political_power > 49
+        then
+            text "§G50§"
+    else
+        text "§R50§"
+
+define text price_button_premium_pp
+    if
+        has_political_power > 99
+        then
+            text "§G100§"
+    else
+        text "§R100§"
+
+define text price_button_basic_eco
+    if
+        num_of_civilian_factories > 1
+        then
+            text "§G2§"
+    else
+        text "§R2§"
+
+define text price_button_premium_eco
+    if
+        num_of_civilian_factories > 3
+        then
+            text "§G4§"
+    else
+        text "§R4§"

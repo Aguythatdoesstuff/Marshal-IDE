@@ -1,0 +1,72 @@
+scripted effect smart_random_civil_war
+
+scripted effect set_politics_to_popular_ideology
+
+scripted effect switch_tag_to_revolutionary_side
+
+
+scripted effect monthly_instability_check
+    every_country = {
+        limit = {
+            is_ai = yes
+            has_stability < 0.05
+            has_civil_war = no
+        }
+        random_civil_war = yes
+        news_event = { id = stability_spiral.2 }
+    }
+    every_country = {
+        limit = {
+            is_ai = no
+            has_stability < 0.05
+            has_civil_war = no
+        }
+        country_event = { id = stability_spiral.1 }
+    }
+
+scripted effect random_civil_war
+    random_list = {
+        # --- FASCIST OPTIONS ---
+        10 = { 
+            start_civil_war = { ideology = fascism size = 0.2 army_ratio = 0.4 navy_ratio = 0.1 air_ratio = 0.5 } 
+        }
+        10 = { 
+            start_civil_war = { ideology = fascism size = 0.4 army_ratio = 0.6 navy_ratio = 0.2 air_ratio = 0.8 } 
+        }
+        5 = { 
+            start_civil_war = { ideology = fascism size = 0.6 army_ratio = 0.7 navy_ratio = 0.3 air_ratio = 1.0 } 
+        }
+
+        # --- DEMOCRATIC OPTIONS ---
+        10 = { 
+            start_civil_war = { ideology = democratic size = 0.2 army_ratio = 0.4 navy_ratio = 0.1 air_ratio = 0.5 } 
+        }
+        10 = { 
+            start_civil_war = { ideology = democratic size = 0.4 army_ratio = 0.5 navy_ratio = 0.2 air_ratio = 0.7 } 
+        }
+        5 = { 
+            start_civil_war = { ideology = democratic size = 0.5 army_ratio = 0.6 navy_ratio = 0.2 air_ratio = 1.0 } 
+        }
+
+        # --- COMMUNIST OPTIONS ---
+        10 = { 
+            start_civil_war = { ideology = communism size = 0.2 army_ratio = 0.5 navy_ratio = 0.1 air_ratio = 0.5 } 
+        }
+        10 = { 
+            start_civil_war = { ideology = communism size = 0.4 army_ratio = 0.6 navy_ratio = 0.2 air_ratio = 0.8 } 
+        }
+        5 = { 
+            start_civil_war = { ideology = communism size = 0.6 army_ratio = 0.8 navy_ratio = 0.3 air_ratio = 1.0 } 
+        }
+
+        # --- NEUTRALITY OPTIONS ---
+        10 = { 
+            start_civil_war = { ideology = neutrality size = 0.2 army_ratio = 0.4 navy_ratio = 0.1 air_ratio = 0.5 } 
+        }
+        10 = { 
+            start_civil_war = { ideology = neutrality size = 0.3 army_ratio = 0.5 navy_ratio = 0.1 air_ratio = 0.6 } 
+        }
+        5 = { 
+            start_civil_war = { ideology = neutrality size = 0.5 army_ratio = 0.6 navy_ratio = 0.2 air_ratio = 0.9 } 
+        }
+    }

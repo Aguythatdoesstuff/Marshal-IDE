@@ -1,0 +1,85 @@
+MARSHAL IDE SOFTWARE LICENSE AGREEMENT (EULA)
+Version 1.0 | Effective Date: January 19, 2026
+
+IMPORTANT: PLEASE READ THIS AGREEMENT CAREFULLY. THIS SOFTWARE IS PROVIDED FREE OF CHARGE FOR PERSONAL AND EDUCATIONAL USE. ANY USE FOR PROFIT OR COMMERCIAL PURPOSES REQUIRES A PAID LICENSE.
+
+This End User License Agreement ("Agreement") is a legal contract between Kacper Jakub Kocemba ("Licensor") and the individual or entity practicing the rights granted herein ("Licensee").
+
+1. Grant of License
+The Licensor grants you a free, non-exclusive, non-transferable, revocable, royalty-free license to use Marshal IDE and Marshal Script for personal, non-commercial development and educational purposes. This license is subject to the Commercial Use Exceptions outlined in Section 3 (including permitted YouTube/streaming content). You MAY study the source code for learning purposes; however, this does not grant any right to create Derivative Works. A "Derivative Work" includes any software that incorporates any portion of the source code or mimics the Software’s unique API structure, internal logic, or workflow. You SHALL NOT compile or execute any version except the official binary provided by the installer.
+
+2. Mandatory Restrictions
+You SHALL NOT, without explicit prior written permission:
+
+2.1 Distribution: Copy, upload, mirror, or redistribute the Software.
+
+2.2 Modification: Modify, decompile, or reverse engineer the Software, except to the extent that such restriction is prohibited by applicable law for interoperability. Information obtained through such activities may not be used to create a competing product or disclosed to third parties.
+
+2.3 Workspace Management: You may sync your own script files via Git, but you SHALL NOT modify or share files within the Software's core installation directory.
+
+3. Commercial Use and Exceptions
+Commercial use of the Software is strictly prohibited without a separate paid written agreement. Any use of the Software to generate revenue, directly or indirectly, constitutes Commercial Use.
+
+3.1 Paid License Requirement: If the Licensee intends to use the Software for profit-generating activities (including but not limited to: freelance work, corporate development, or paid services), the Licensee must contact the Licensor at marshal.ide.legal@gmail.com or via the channels in Section 15 to negotiate a Commercial License.
+
+3.2 Content Creation Exception: Notwithstanding the above, you ARE PERMITTED to use the Software to create video content, streams, and tutorials (e.g., on YouTube, Twitch, or similar platforms). Monetization of this content—including ad revenue, platform partner programs, and viewer donations—is expressly permitted and does not require a paid license.
+
+3.3 No Paywalls: While ad revenue is permitted, you SHALL NOT place the Software’s core functionality or primary tutorials behind a "hard" paywall (e.g., charging a direct fee to view a basic setup guide) without prior written consent.
+
+3.4 No Derivative IDEs: The Licensee is strictly prohibited from using the Software, its source code, or its internal design to develop a competing Integrated Development Environment (IDE), compiler, or script editor.
+
+3.5 Anti-Circumvention (Content Creation): The exception in Section 3.2 is intended for genuine public-facing content. You SHALL NOT use "streaming" or "recording" as a pretext to circumvent commercial licensing restrictions. If the primary purpose of the use is commercial development rather than public education or entertainment, a Commercial License is required.
+
+4. Ownership and Indemnification
+You own the Marshal Script code you create. You agree to indemnify, defend, and hold harmless the Licensor from any claims, damages, or losses arising from your use of the Software or violation of this Agreement.
+
+5. Source Code and Trade Secrets
+The compiler logic, proprietary algorithms, and internal architecture are Trade Secrets. Licensee acknowledges that the Software contains valuable confidential information and agrees to take all reasonable steps to ensure it is not disclosed or distributed in violation of this Agreement.
+
+6. Disclaimer of Warranties
+THE SOFTWARE IS PROVIDED "AS IS" AND "WITH ALL FAULTS." TO THE MAXIMUM EXTENT PERMITTED BY LAW, LICENSOR DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. LICENSOR DOES NOT WARRANT THAT THE SOFTWARE WILL BE ERROR-FREE OR UNINTERRUPTED.
+
+7. Limitation of Liability
+IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING WITHOUT LIMITATION LOSS OF PROFITS, DATA, OR USE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. LICENSOR’S AGGREGATE LIABILITY FOR ALL CLAIMS ARISING OUT OF THIS AGREEMENT SHALL NOT EXCEED THE AMOUNT PAID BY LICENSEE FOR THE SOFTWARE (IF ANY).
+
+8. Intellectual Property and Branding
+All logos and branding are the property of the Licensor. Template images are free for use within mods created with this software; Licensee SHALL NOT claim copyright over these assets.
+
+9. Privacy and Diagnostic Data
+9.1 Transparency: Technical diagnostic logs are stored locally and are fully visible to the Licensee.
+
+9.2 No Automatic Collection: The Software does not automatically transmit personal data. Data sharing for support must be initiated manually by the Licensee.
+
+9.3 Third-Party Connectivity: The Software may connect to external services (e.g., GitHub, Tailwind CSS, or CDNs) to check for updates or retrieve necessary CSS/web assets.
+
+10. License Integrity and Anti-Tampering
+You SHALL NOT manually edit, tamper with, or bypass the License Manager or license.json. Any unauthorized modification is a material breach resulting in immediate termination.
+
+11. Updates and Maintenance
+The Licensor is under no obligation to provide maintenance, technical support, or updates.
+
+12. License Amendment
+The Licensor reserves the right to update these terms. Continued use after an in-app prompt constitutes acceptance of the new terms.
+
+13. Termination and Survival
+13.1 Automated Termination: This License terminates automatically if you violate any terms. Upon termination, you must cease all use and destroy all copies of the Software.
+
+13.2 Survival: Sections 3, 4, 5, 7, and 14 shall survive the termination of this Agreement.
+
+14. Legal Provisions
+14.1 Governing Law: Governed by the laws of The Netherlands. Exclusive venue: ’s-Hertogenbosch.
+
+14.2 Severability: If any part of this Agreement is held invalid or unenforceable, the remaining portions remain in full force and effect.
+
+14.3 Entire Agreement: This is the entire agreement between Licensor and Licensee, superseding all prior communications or advertisements.
+
+14.4 No Assignment: Licensee may not assign or transfer their rights under this license to any third party.
+
+15. Contact Information
+For commercial licensing and official inquiries:
+
+Email: marshal.ide.legal@gmail.com
+
+Support/Socials: Refer to the official GitHub repository where this Software was obtained
+
+END OF AGREEMENT

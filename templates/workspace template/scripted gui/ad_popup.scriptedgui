@@ -1,0 +1,154 @@
+define sprite get_random_image_loc
+    if
+        check_variable = { random_img_var = 1 }
+        then
+            sprite GFX_AD1
+    else if
+        check_variable = { random_img_var = 2 }
+        then
+            sprite GFX_AD2
+    else if
+        check_variable = { random_img_var = 3 }
+        then
+            sprite GFX_AD3
+    else if
+        check_variable = { random_img_var = 4 }
+        then
+            sprite GFX_AD4
+    else if
+        check_variable = { random_img_var = 5 }
+        then
+            sprite GFX_AD5
+    else if
+        check_variable = { random_img_var = 6 }
+        then
+            sprite GFX_AD6
+    else if
+        check_variable = { random_img_var = 7 }
+        then
+            sprite GFX_AD7
+    else if
+        check_variable = { random_img_var = 8 }
+        then
+            sprite GFX_AD8
+    else if
+        check_variable = { random_img_var = 9 }
+        then
+            sprite GFX_AD9
+    else if
+        check_variable = { random_img_var = 10 }
+        then
+            sprite GFX_AD10
+    else if
+        check_variable = { random_img_var = 11 }
+        then
+            sprite GFX_AD11
+    else if
+        check_variable = { random_img_var = 12 }
+        then
+            sprite GFX_AD12
+    else if
+        check_variable = { random_img_var = 13 }
+        then
+            sprite GFX_AD13
+    else if
+        check_variable = { random_img_var = 14 }
+        then
+            sprite GFX_AD14
+    else if
+        check_variable = { random_img_var = 15 }
+        then
+            sprite GFX_AD15
+    else if
+        check_variable = { random_img_var = 16 }
+        then
+            sprite GFX_AD16
+    else if
+        check_variable = { random_img_var = 17 }
+        then
+            sprite GFX_AD17
+    else if
+        check_variable = { random_img_var = 18 }
+        then
+            sprite GFX_AD18
+    else if
+        check_variable = { random_img_var = 19 }
+        then
+            sprite GFX_AD19
+    else if
+        check_variable = { random_img_var = 20 }
+        then
+            sprite GFX_AD20
+    else if
+        check_variable = { random_img_var = 21 }
+        then
+            sprite GFX_AD21
+    else if
+        check_variable = { random_img_var = 22 }
+        then
+            sprite GFX_AD22
+    else if
+        check_variable = { random_img_var = 23 }
+        then
+            sprite GFX_AD23
+    else if
+        check_variable = { random_img_var = 24 }
+        then
+            sprite GFX_AD24
+    else if
+        check_variable = { random_img_var = 25 }
+        then
+            sprite GFX_AD25
+    else if
+        check_variable = { random_img_var = 26 }
+        then
+            sprite GFX_AD26
+    else if
+        check_variable = { random_img_var = 27 }
+        then
+            sprite GFX_AD27
+    else if
+        check_variable = { random_img_var = 28 }
+        then
+            sprite GFX_AD28
+    else if
+        check_variable = { random_img_var = 29 }
+        then
+            sprite GFX_AD29
+    else if
+        check_variable = { random_img_var = 30 }
+        then
+            sprite GFX_AD30
+    else if
+        check_variable = { random_img_var = 31 }
+        then
+            sprite GFX_AD31
+    else if
+        check_variable = { random_img_var = 32 }
+        then
+            sprite GFX_AD32
+    else
+        sprite GFX_AD1 
+        # Fallback for safety, because if the games all the other checks fails and we dont add this the game will not be happy and either crash or show the GFX not found doggo
+draggable window "ad_manager_gui"
+    size x1573 y900
+    position x130 y85     
+    sprite "GFX_tiled_window"
+    visible
+        has_country_flag = open_ad1
+    icon
+        sprite get_random_image_loc
+        position x18 y18
+        size 80%
+    button
+        sprite "GFX_closebutton"
+        position x1537 y2 
+        on click
+            clr_country_flag = open_ad1
+    button
+        sprite "GFX_button_clickme"
+        position x520 y738
+        size 120% 
+        on click
+            click_me_button_ad_effects = yes
+            

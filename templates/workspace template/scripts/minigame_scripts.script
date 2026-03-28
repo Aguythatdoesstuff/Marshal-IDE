@@ -1,0 +1,114 @@
+
+scripted effect won_minigame
+    if
+        check_variable = { button_action = 1 }    # fix vulnerability
+        then
+            add_to_variable = { breach_progress = -4 }
+    else if
+        check_variable = { button_action = 2 }    # restore Backup
+        then
+            add_to_variable = { breach_progress = -8 }
+    else if
+        check_variable = { button_action = 3 }    # Traffic Analysis
+        then
+            add_to_variable = { offense_bar = 4 }
+    else if
+        check_variable = { button_action = 4 }    # Protocol Exploitation
+        then
+            add_to_variable = { offense_bar = 8 }
+    set_variable = { button_action = 0 }
+    country_event = { id = game_result.1 }
+
+scripted effect lost_minigame
+    if
+        check_variable = { button_action = 1 }    # fix vulnerability
+        then
+            add_to_variable = { breach_progress = 4 }
+    else if
+        check_variable = { button_action = 2 }    # restore Backup
+        then
+            add_to_variable = { breach_progress = 8 }
+    else if
+        check_variable = { button_action = 3 }    # Traffic Analysis
+        then
+            add_to_variable = { offense_bar = -4 }
+    else if
+        check_variable = { button_action = 4 }    # Protocol Exploitation
+        then
+            add_to_variable = { offense_bar = -8 }
+    set_variable = { button_action = 0 }
+    country_event = { id = game_result.2 }
+
+
+scripted effect disable_random_minigame_button
+    random_list = {
+        8 = { set_variable = { button1_enabled = 0 } }
+        8 = { set_variable = { button2_enabled = 0 } }
+        8 = { set_variable = { button3_enabled = 0 } }
+        8 = { set_variable = { button4_enabled = 0 } }
+        8 = { set_variable = { button5_enabled = 0 } }
+        8 = { set_variable = { button6_enabled = 0 } }
+        8 = { set_variable = { button7_enabled = 0 } }
+        8 = { set_variable = { button8_enabled = 0 } }
+        8 = { set_variable = { button9_enabled = 0 } }
+        8 = { set_variable = { button10_enabled = 0 } }
+        8 = { set_variable = { button11_enabled = 0 } }
+        8 = { set_variable = { button12_enabled = 0 } }
+    }
+    random_list = {
+        10 = {
+            open_random_ad = yes
+        }
+        90 = { 
+            # do nothing
+        }
+    }
+
+scripted effect update_progress_bars
+    if
+        check_variable = { time_left < 1 }
+        then
+            clr_country_flag = open_minigame_1
+            clr_country_flag = has_minigame
+            set_variable = { time_left = 100 }
+            set_variable = { done_in = 0 }
+            lost_minigame = yes
+            
+    else if
+        check_variable = { done_in > 79 }
+        then
+            clr_country_flag = open_minigame_1
+            clr_country_flag = has_minigame
+            set_variable = { time_left = 100 }
+            set_variable = { done_in = 0 }
+            won_minigame = yes
+    if
+        check_variable = { button1_enabled = 1 }
+        check_variable = { button2_enabled = 1 }
+        check_variable = { button3_enabled = 1 }
+        check_variable = { button4_enabled = 1 }
+        check_variable = { button5_enabled = 1 }
+        check_variable = { button6_enabled = 1 }
+        check_variable = { button7_enabled = 1 }
+        check_variable = { button8_enabled = 1 }
+        check_variable = { button9_enabled = 1 }
+        check_variable = { button10_enabled = 1 }
+        check_variable = { button11_enabled = 1 }
+        check_variable = { button12_enabled = 1 }
+        then
+            add_to_variable = { done_in = 2 }
+    add_to_variable = { time_left = -1 }
+
+scripted effect update_minigames
+    if
+        has_country_flag = open_minigame_1
+        then
+            update_progress_bars = yes
+            random_list = {
+                60 = { 
+                    disable_random_minigame_button = yes 
+                }
+                40 = { 
+                    # do nothing cuz you lucky
+                }
+            }

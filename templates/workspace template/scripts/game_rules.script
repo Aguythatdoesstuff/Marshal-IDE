@@ -1,0 +1,8 @@
+game rule enable_france
+    name "enable fr*nce"
+    group "misc"
+    default option "enable"
+    option "disable"
+        fra = {
+            set_owner = 64
+        }

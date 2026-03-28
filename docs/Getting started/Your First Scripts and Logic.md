@@ -1,0 +1,79 @@
+# Scripts and Logic
+
+The **Scripts** category is the "engine room" of your mod. It combines Game Rules, On Actions, Scripted Effects, and Scripted Triggers into a single, unified syntax. Instead of hunting through four different folders in vanilla HOI4, you can manage your global logic right here.
+
+---
+
+### 1. Scripted Effects
+Scripted effects are reusable blocks of code. Once defined, you can call them from events, decisions, or focuses just by typing their id. (example of how to call a scripted effect: click_me_button_ad_effects = yes)
+
+```marshal
+scripted effect click_me_button_ad_effects
+    clr_country_flag = open_ad1
+    random_list = {
+        1 = { country_event = { id = response.1 } }
+        1 = { country_event = { id = response.2 } }
+        1 = { country_event = { id = response.3 } }
+        1 = { country_event = { id = response.4 } }
+        1 = { country_event = { id = response.5 } }
+    }
+```
+
+### 2. On Actions
+On Actions allow you to "hook" your code into the game engine's heartbeat (e.g., every day, every month, or when a state is occupied).
+```
+on action
+    on_monthly = {
+        effect = {
+            # Loop through everyone once per month
+            every_country = {
+                limit = {
+                    has_stability < 0.05
+                    has_civil_war = no
+                }
+                
+                # Use Marshal's if/then/else or standard vanilla limits
+                if = {
+                    limit = { is_ai = yes }
+                    random_civil_war = yes
+                    news_event = { id = stability_spiral.2 }
+                }
+                
+                if = {
+                    limit = { is_ai = no }
+                    country_event = { id = stability_spiral.1 }
+                }
+            }
+        }
+    }
+```
+
+### 3. Scripted Triggers
+Triggers are boolean (true/false) checks used to simplify complex requirements(used inside if else statements).
+```
+scripted trigger is_germany
+    tag = GER
+```
+
+### 4. Game Rules
+Game rules allow players to customize their experience in the pre-game lobby. Marshal simplifies the multi-file process of defining the rule, the group, and the localization.
+
+```
+game rule enable_france
+    name "Enable France"
+    group "Custom Rules"
+    
+    default option "enable"
+        # Logic for enabled state
+        
+    option "disable"
+        # Logic for disabled state
+        FRA = {
+            set_owner = 64 # Give to someone else
+        }
+```
+
+### 5. Why Use Marshal for Scripts?
+Centralized Logic: Keep your global triggers and effects organized without jumping between deep folder structures.
+
+Simplified Game Rules: Defining a game rule in vanilla usually requires a rule file and a localization file. Marshal handles the strings and the functional logic in one block.
