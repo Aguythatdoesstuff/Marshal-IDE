@@ -182,16 +182,6 @@ function setupAutoUpdater() {
 
     autoUpdater.on('update-available', async (info) => {
         appLogger?.info(`Update found: v${info.version}. Starting silent download...`);
-
-        // We still check for targeted updates in case we need to FORCE a restart later
-        const incomingHash = info.targetedHash; 
-        if (incomingHash) {
-            const isMatch = await isTargetedUpdate(incomingHash);
-            if (isMatch) {
-                appLogger?.info("REQUIRED TARGETED UPDATE detected. Will force install after download.");
-                pendingUpdateInfo = { forced: true, version: info.version };
-            }
-        }
         
     });
 

@@ -74,8 +74,9 @@
       "uninstallerIcon": "build/icon.ico"
     },
     "publish": {
-      "provider": "generic",
-      "url": "https://your-update-server.com/updates"
+      "provider": "github",
+      "owner": "Aguythatdoesstuff",
+      "repo": "Marshal-IDE"
     },
     "extraResources": [
       {
