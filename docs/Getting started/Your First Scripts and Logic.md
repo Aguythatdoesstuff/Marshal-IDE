@@ -56,21 +56,41 @@ scripted trigger is_germany
 ```
 
 ### 4. Game Rules
-Game rules allow players to customize their experience in the pre-game lobby. Marshal simplifies the multi-file process of defining the rule, the group, and the localization.
+Game rules allow players to customize their experience in the pre-game lobby. Marshal simplifies the multi-file process of defining the rule, the group, and the localization into a single block.
+
+#### Defining the Rule
+In your Marshal file, you define the visual toggle for the lobby. Note that the rule block itself does **not** contain the logic for what happens in-game; it only defines the available choices.
 
 ```
 game rule enable_france
     name "Enable France"
     group "Custom Rules"
-    
+  
     default option "enable"
-        # Logic for enabled state
-        
+    
     option "disable"
-        # Logic for disabled state
-        FRA = {
-            set_owner = 64 # Give to someone else
+```
+### Implementing the Logic
+Because HoI4 treats game rules as global flags, you must check the state of the rule within an on_action (like on_startup), a national focus, or an event. You do this using the has_game_rule trigger.
+
+Example: Applying the rule on game start
+In your logic files, you would check the player's selection like this:
+```
+on action
+    on_startup = {
+        effect = {
+            if {
+                limit { 
+                    has_game_rule = { 
+                        rule = enable_france 
+                        option = disable 
+                    } 
+                }
+                # The actual logic goes here
+                FRA = { set_cosmetic_tag = FRA_DISABLED_TAG }
+            }
         }
+    }
 ```
 
 ### 5. Why Use Marshal for Scripts?

@@ -482,10 +482,11 @@ function setupAutoUpdater() {
 	    }
 
 	    const watcherPayload = JSON.stringify({
-		input_dir: path.resolve(INPUT_DIR), 
-		output_dir: path.resolve(OUTPUT_DIR), 
-		project_root: currentProjectConfig.project_root,
-		mod_name: projectName
+			input_dir: path.resolve(INPUT_DIR), 
+			output_dir: path.resolve(OUTPUT_DIR), 
+			project_root: currentProjectConfig.project_root,
+			compilers: globalCompilers,
+			mod_name: projectName
 	    });
 	    
 	    watcherProcess = fork(WATCHER_SCRIPT_PATH, [watcherPayload], { 
