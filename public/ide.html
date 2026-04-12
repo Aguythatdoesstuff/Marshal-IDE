@@ -21,7 +21,17 @@
     box-sizing: border-box; 
     border-bottom: 1px solid #2d2d30;
     }
+body.resizing {
+    cursor: col-resize !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
 
+#editor-container {
+    position: relative;
+    /* Forces Monaco to stay within its bounds during the flex-grow shift */
+    overflow: hidden; 
+}
     /* New class to handle centering without affecting the titlebar */
     .main-container {
         display: flex;

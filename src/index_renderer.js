@@ -209,6 +209,7 @@ function validateCreateForm() {
 async function createNewMod() {
     const projectName = document.getElementById('mod-name-input').value.trim();
     const outputDir = MODAL_ELEMENTS.outputDirInput.value.trim();
+    const includeTemplates = document.getElementById('include-templates-checkbox').checked;
 
     if (!projectName || !outputDir) return;
 
@@ -218,7 +219,8 @@ async function createNewMod() {
     try {
         const result = await window.api.invoke('create-project', { 
             projectName, 
-            outputDir 
+            outputDir,
+            includeTemplates 
         });
 
         if (result.success) {

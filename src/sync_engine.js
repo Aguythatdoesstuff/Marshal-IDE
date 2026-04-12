@@ -33,8 +33,31 @@ export class SyncEngine {
         }
 
         // 1. Load the "JSON Truth" from last session
-        const oldManifest = await fs.readJson(this.manifestPath);
-        logToMain('info', `Manifest loaded. Previous session had ${oldManifest.files.length} files.`, SOURCE);
+        let oldManifest;
+        try {
+            oldManifest = await fs.readJson(this.manifestPath);
+            
+            if (!oldManifest || !Array.isArray(oldManifest.files)) {
+                throw new Error("Manifest is missing the 'files' array structure.");
+            }
+            
+            logToMain('info', `Manifest loaded. Previous session had ${oldManifest.files.length} files.`, SOURCE);
+            
+        } catch (error) {
+            logToMain('error', `CRITICAL: Manifest JSON is corrupted or unreadable. Error: ${error.message}`, SOURCE);
+            
+            // Since this runs in a forked Node process, we use IPC to trigger the Electron dialog in main.js
+            if (process.send) {
+                process.send({
+                    action: 'show-warning-dialog',
+                    title: 'Manifest Corruption Detected',
+                    message: 'The output may contain ghost files due to the manifest being broken. We cannot validate if there were any file deletions in the input after the last time the project was open.'
+                });
+            }
+            
+            // Fallback: treat as if no previous files existed so the sync engine doesn't crash
+            oldManifest = { files: [] };
+        }
         
         // 2. Perform a single directory scan
         const diskFiles = await this.scanDir(this.inputDir);
@@ -93,9 +116,12 @@ export class SyncEngine {
 
     async save() {
         try {
-            await fs.writeJson(this.manifestPath, this.manifest, { spaces: 4 });
+            // ATOMIC WRITE: Write to a .tmp file first, then forcefully move/overwrite the real one
+            const tempPath = `${this.manifestPath}.tmp`;
+            await fs.writeJson(tempPath, this.manifest, { spaces: 4 });
+            await fs.move(tempPath, this.manifestPath, { overwrite: true });
         } catch (error) {
-            logToMain('error', `Failed to save manifest: ${error.message}`, SOURCE);
+            logToMain('error', `Failed to save manifest atomically: ${error.message}`, SOURCE);
         }
     }
 

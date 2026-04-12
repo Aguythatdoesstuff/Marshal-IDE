@@ -367,7 +367,7 @@ function setupAutoUpdater() {
 		
 		await fs.mkdir(inputPath, { recursive: true });
 		await fs.mkdir(metaPath, { recursive: true }); 
-		await copyDir(TEMPLATE_DIR, inputPath);
+		await copyDir(TEMPLATE_DIR, inputPath, data.includeTemplates);
 
 		// Created metadata with Project Name
 		const metaInfo = {
@@ -440,14 +440,17 @@ function setupAutoUpdater() {
 	// --- HELPER FUNCTIONS ---
 	// ========================================================
 
-	async function copyDir(src, dest) {
-	    await fs.mkdir(dest, { recursive: true });
+	async function copyDir(src, dest, includeFiles = true) {
+	    await fs.mkdir(dest, { recursive: true }); 
 	    const entries = await fs.readdir(src, { withFileTypes: true });
 	    for (const entry of entries) {
 		const srcPath = path.join(src, entry.name);
 		const destPath = path.join(dest, entry.name);
-		if (entry.isDirectory()) await copyDir(srcPath, destPath);
-		else await fs.copyFile(srcPath, destPath);
+		if (entry.isDirectory()) {
+		    await copyDir(srcPath, destPath, includeFiles);
+		} else if (includeFiles) {
+		    await fs.copyFile(srcPath, destPath);
+		}
 	    }
 	}
 
@@ -494,7 +497,16 @@ function setupAutoUpdater() {
 		execArgv: ['--enable-source-maps'] 
 	    });
 	    watcherProcess.on('message', (logData) => {
-		logToSystem(logData);
+			if (logData && logData.action === 'show-warning-dialog') {
+				dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
+					type: 'warning',
+					title: logData.title,
+					message: logData.title,
+					detail: logData.message,
+					buttons: ['OK']
+				});
+			}
+			logToSystem(logData);
 	    });
 	    
 	    watcherProcess.on('error', (err) => {

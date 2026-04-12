@@ -202,9 +202,12 @@ function initMonaco() {
             value: 'Select a file to begin editing.',
             language: 'plaintext', 
             theme: 'myDslTheme', 
+            fixedOverflowWidgets: true,
             automaticLayout: true, 
             minimap: { enabled: false },
             readOnly: true, 
+            links: false,
+            overviewRerenderLanes: 0,
         });
         STATE.MONACO_EDITOR.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
             triggerSaveShortcut();
@@ -944,6 +947,7 @@ function attachEventListeners() {
         resizeType = type;
         document.body.style.cursor = type === 'v' ? 'col-resize' : 'row-resize';
         document.body.style.userSelect = 'none';
+        document.body.classList.add('resizing');
     };
 
     const stopResizing = () => {
@@ -952,6 +956,7 @@ function attachEventListeners() {
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
             resizeType = null;
+            document.body.classList.remove('resizing'); // Add this line
             if (STATE.MONACO_EDITOR) {
                  STATE.MONACO_EDITOR.layout();
             }
@@ -971,7 +976,7 @@ function attachEventListeners() {
         } 
 
         if (STATE.MONACO_EDITOR) {
-            STATE.MONACO_EDITOR.layout();
+            requestAnimationFrame(() => STATE.MONACO_EDITOR.layout());
         }
     };
 
