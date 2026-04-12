@@ -970,8 +970,11 @@ function setupAutoUpdater() {
 			});
 			}
 		});
-
-	    setupAutoUpdater();
+		if (app.isPackaged) { 
+	    	setupAutoUpdater();
+		}else {
+			appLogger?.info(`Skipping setupAutoUpdater, Running in DEV.`, { source: 'Main-Init' })
+		}
 		ipcMain.handle('export-project', async (event, projectName) => {
 			try {
 				const safeName = projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
