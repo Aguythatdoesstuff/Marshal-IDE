@@ -1,0 +1,18 @@
+category  "trigger_event_category"
+    name "trigger event"
+    desc "trigger event"
+    sprite "GFX_RAJ_decision_investment_mils_icon"
+    priority 100000000000000
+    allowed
+        always = yes
+    
+    decision "trigger_event"
+        name "trigger event"
+        desc "trigger event"
+        sprite "GFX_RAJ_decision_investment_civs_icon"
+        cost 69
+        available
+            not
+                country = GER
+        on click
+            trigger_event = yes

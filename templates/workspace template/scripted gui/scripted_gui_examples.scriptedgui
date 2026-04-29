@@ -1,0 +1,203 @@
+draggable window "info_window"
+    size x700 y600 
+    position x430 y270
+    sprite "GFX_tiled_window"
+    visible
+        has_country_flag = open_info_panel
+
+    text
+        text "§HYabadabadoo§"
+        font "hoi_36header"
+        position x200 y10
+        max size x400 y30
+
+    button
+        sprite "GFX_closebutton"
+        position x665 y2 
+        on click
+            set_country_flag = open_confirmation_popup
+
+    text
+        text "§BUsefull information, blah blah blah, blah blah.§"
+        font "hoi_20b"
+        position x270 y50
+
+
+draggable window "confirmation_popup"             
+    size x400 y200 
+    position x550 y350                
+    sprite "GFX_tiled_window"                
+    visible                
+        has_country_flag = open_confirmation_popup                
+
+                      
+    text                
+        text "§HAre you sure?§"                
+        font "hoi_36header"                
+        position x90 y15                
+        max size x600 y30                
+
+    text
+        text "Closing now will do something thats for sure!"
+        font "hoi_16mbs"
+        position x30 y60
+        max size x340 y100
+
+    button                
+        sprite "GFX_closebutton"                
+        position x365 y2  
+        on click                
+            clr_country_flag = open_confirmation_popup                
+
+    button                
+        text "Yes"                
+        font "hoi_16mbs"                
+        sprite "GFX_button_94x31"                
+        position x70 y140 
+        on click              
+            if
+                has_country_flag = open_info_panel           
+                then   
+                    clr_country_flag = open_info_panel 
+            else if
+                has_country_flag = open_main_window           
+                then   
+                    clr_country_flag = open_main_window 
+            clr_country_flag = open_confirmation_popup
+    
+    button                
+        text "No"                
+        font "hoi_16mbs"                
+        sprite "GFX_button_94x31"                
+        position x230 y140 
+        on click                
+            clr_country_flag = open_confirmation_popup
+
+
+
+draggable window "main_window"
+    size x700 y600
+    position x430 y270
+    sprite "GFX_tiled_window"
+    visible
+        has_country_flag = open_main_window
+
+    text
+        text "§HYabadabadoo§"
+        font "hoi_36header"
+        position x200 y10
+        max size x400 y30
+
+    button
+        sprite "GFX_closebutton"
+        position x665 y2 
+        on click
+            set_country_flag = open_confirmation_popup
+
+    button
+        sprite "GFX_help_button"
+        position x0 y2
+        size 120%
+        on click
+            set_country_flag = open_info_panel
+
+    text
+        text "§Bhorizontal bar§"
+        font "hoi_20b"
+        position x320 y50
+
+    icon
+        sprite "GFX_pol_goal_progress_frame"
+        position x233 y75 
+        size 100%
+
+    horizontal bar with 70 steps
+        # due to progress bars being really old you have to manually point to the exact sprite it has to use with path and all instead of GFX_pol_goal_progress_frame
+        #full bar sprite "gfx/interface/pol_goal_progress.dds"
+        #empty bar sprite "gfx/interface/pol_goal_progress_bg.dds"
+        unprogressed color 0.0 0.0 0.3
+        progressed color 0.0 0.0 0.7
+        var "horizontal_bar"
+        position x235 y76   
+        size x235 y4
+        
+    text
+        text "§Gvertical bar§"
+        font "hoi_20b"
+        position x320 y90
+
+    vertical bar with 80 steps
+        # due to progress bars being really old you have to manually point to the exact sprite it has to use with path and all instead of GFX_pol_goal_progress_frame
+        #full bar sprite "gfx/interface/pol_goal_progress.dds"
+        #empty bar sprite "gfx/interface/pol_goal_progress_bg.dds"
+        unprogressed color 0.0 0.3 0.0
+        progressed color 0.0 0.7 0.0
+        var "vertical_bar"
+        position x335 y116   
+        size x4 y235
+
+
+    text
+        text button1_text
+        font "hoi_20b"
+        position x127 y175
+    icon
+        sprite button1_gfx
+        position x110 y200 
+
+    button
+        text enable_or_disable_button1
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x110 y200 
+        on click
+            if
+                check_variable = { button1_enabled = 1 }
+                then
+                    set_variable = {button1_enabled = 0}
+            else
+                set_variable = {button1_enabled = 1}
+
+
+    button
+        text "Decrese Progress bars"
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x190 y250 
+        on click
+            add_to_variable = { horizontal_bar = -1 }
+            add_to_variable = { vertical_bar = -1 }
+
+    button
+        text "Increase Progress bars"
+        font "hoi_16mbs"
+        sprite "GFX_button_94x31"
+        position x450 y250 
+        on click
+            add_to_variable = { horizontal_bar = 1 }
+            add_to_variable = { vertical_bar = 1 }
+
+
+define sprite button1_gfx
+    if
+        check_variable = { button1_enabled = 1 }
+        then
+            sprite GFX_green_background_button
+    else
+        sprite GFX_red_background_button
+
+define text button1_text
+    if
+        check_variable = { button1_enabled = 1 }
+        then
+            text "§GGreen§"
+    else
+        text "§RRed§"
+        
+define text enable_or_disable_button1
+    if
+        check_variable = { button1_enabled = 1 }
+        then
+            text "§GEnabled§"
+    else
+        text "§REnable§"

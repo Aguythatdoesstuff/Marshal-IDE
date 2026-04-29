@@ -164,16 +164,10 @@ export function convertLogicBlock(logicLines, startIndent) {
 export function getHoi4Cost(days) {
     // HOI4 calculates focus progress as: 1 cost unit = 7 days.
     const exactCost = days / 7;
-    /**
-     * UI SYNCHRONIZATION ADJUSTMENT:
-     * While 'days / 7' is mathematically perfect for the backend, the HOI4 UI is 
-     * notoriously clunky. Without this adjustment, if a user inputs "5 days", 
-     * the game UI would actually display "6 days" or "4 days" remaining. 
-     * * We subtract a tiny epsilon (0.0001) to force the UI to align with the 
-     * user's expected input. This prevents "incorrect day count" bug reports 
-     * by ensuring the visual countdown matches the intended duration.
-     */
-    const safeCost = exactCost - 0.0001; 
+
+    // we have to add a small value so that if you input 5 days it actually displays 5 days ingame
+    // due to a game UI quirk
+    const safeCost = exactCost + 0.001; 
     
     return parseFloat(safeCost.toFixed(3));
 }

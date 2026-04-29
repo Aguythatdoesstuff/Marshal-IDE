@@ -3,6 +3,3 @@ game rule enable_france
     group "misc"
     default option "enable"
     option "disable"
-        fra = {
-            set_owner = 64
-        }

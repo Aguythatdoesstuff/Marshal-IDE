@@ -1,0 +1,9 @@
+scripted effect trigger_event
+    random_list = {
+        50 = { 
+            country_event = { id = country_event.1 }
+        }
+        50 = { 
+            news_event = { id = news_event.1 }
+        }
+    }

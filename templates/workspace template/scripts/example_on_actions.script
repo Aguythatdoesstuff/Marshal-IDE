@@ -1,0 +1,16 @@
+on action
+    on_monthly = {
+        effect = {
+            # do something
+        }
+    }
+    on_daily = {
+        effect = {
+            # do something
+        }
+    }
+    on_startup = {
+        effect = {
+            trigger_event = yes # check: example_scripted_effects.script
+        }
+    }

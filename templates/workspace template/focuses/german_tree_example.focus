@@ -1,0 +1,14 @@
+tree german_tree for GER
+    reset_on_civilwar = no
+    initial_show_position = {
+        focus = other_political_effort
+    }
+
+
+    focus other_political_effort takes 10 days
+        name "EIN REICH!!"
+        desc "Our nation stands at a crossroads. We must choose a direction."
+        sprite "GFX_goal_generic_political_pressure"
+        position x14 y0
+        on complete
+            add_political_power = 50

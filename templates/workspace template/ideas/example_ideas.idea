@@ -1,0 +1,9 @@
+country idea leader_dumbass
+    name "Leader is DUMBASS"
+    desc "OUR 'GREAT' LEADER WAS CAUGHT BEING SCAMMED!!!"
+    sprite "AFG_parliament_building"
+    modifier = {
+        stability_factor = -0.2
+        stability_weekly = -0.01
+        political_power_cost = 1
+    }

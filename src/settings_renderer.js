@@ -67,31 +67,37 @@ function switchTab(tabName) {
 
 
 /**
- * Loads Logger settings from the main process on page load.
+ * Initializes Logger settings from your userdata logger_settings.json
  */
 async function loadGlobalSettings() {
-    window.api.log.info('Requesting global logger settings.', 'Renderer-Settings-IPC');
+    window.api.log.info('Fetching logger settings from main process...', 'Renderer-Settings-UI');
+    
     try {
+        // Call the handler you ALREADY have in main.js
         const result = await window.api.invoke('load-all-global-settings');
         
-        if (result.success) {
-            window.api.log.info('Successfully loaded global settings.', 'Renderer-Settings-IPC');
-            
-            // Store the initial state for change detection
-            initialSettingsData = result.settings;
-            
-            // Populate Logger Settings
-            ELEMENTS.maxLogSizeInput.value = initialSettingsData.logger.max_archived_mb;
-
-            setUnsavedChanges(false); // Set initial state to "saved"
+        if (result.success && result.settings.logger) {
+            // Merge saved data with your defaults (so you don't lose MIN_LOG_SIZE)
+            initialSettingsData = {
+                logger: {
+                    ...DEFAULT_SETTINGS.logger,
+                    max_archived_mb: result.settings.logger.max_archived_mb || DEFAULT_SETTINGS.logger.max_archived_mb
+                }
+            };
         } else {
-            window.api.log.error(`[ERROR] Failed to load global settings: ${result.message}`, 'Renderer-Settings-IPC');
-            alert(`Error: Could not load settings. ${result.message}`);
+            // Fallback if the file doesn't exist yet
+            initialSettingsData = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
         }
     } catch (error) {
-        window.api.log.error(`[ERROR] IPC call 'load-all-global-settings' failed: ${error.message}`, 'Renderer-Settings-IPC');
-        alert(`Critical Error: Failed to contact main process. ${error.message}`);
+        window.api.log.error(`[ERROR] Load failed: ${error.message}`, 'Renderer-Settings-UI');
+        initialSettingsData = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
     }
+
+    // Populate the Input field with the REAL saved data
+    ELEMENTS.maxLogSizeInput.value = initialSettingsData.logger.max_archived_mb;
+
+    // Ensure the save button doesn't show "unsaved" on fresh load
+    setUnsavedChanges(false); 
 }
 
 
@@ -364,7 +370,7 @@ function handleCloseClick() {
 
 // --- Initialization ---
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
     
     initializeInputListeners(); 
 
@@ -388,7 +394,7 @@ window.addEventListener('load', () => {
         window.api.log.info('User canceled close action, staying on settings page.', 'Renderer-Navigation');
     });
     
-    loadGlobalSettings();
+    await loadGlobalSettings();
     
     switchTab('workspace');
 });

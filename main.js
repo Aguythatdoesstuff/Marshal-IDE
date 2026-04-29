@@ -221,9 +221,8 @@ function setupAutoUpdater() {
 	// --- Settings IPC ---
 	ipcMain.handle('load-all-global-settings', async () => {
 	    try {
-		const loggerSettings = await readSettingsFile(LOGGER_SETTINGS_PATH, DEFAULT_LOGGER_SETTINGS_PATH);
-		const compilerSettings = await readSettingsFile(COMPILER_SETTINGS_PATH, DEFAULT_COMPILER_SETTINGS_PATH);
-		return { success: true, settings: { logger: loggerSettings, compiler: compilerSettings } };
+		const loggerSettings = await readSettingsFile(LOGGER_SETTINGS_PATH);
+		return { success: true, settings: { logger: loggerSettings } };
 	    } catch (error) {
 		return { success: false, message: error.message };
 	    }
@@ -471,18 +470,6 @@ function setupAutoUpdater() {
 		watcherProcess = null;
 	    }
 
-	    // --- NEW: Load Compiler Settings for Marker ---
-	    let compilerSettings = {};
-	    try {
-		// Try reading user settings, fallback to default if needed (logic similar to readSettingsFile but inline or reused)
-		const settingsRaw = await fs.readFile(COMPILER_SETTINGS_PATH, 'utf8').catch(async () => {
-		    // If user settings don't exist, try defaults or empty
-		    return await fs.readFile(DEFAULT_COMPILER_SETTINGS_PATH, 'utf8').catch(() => "{}");
-		});
-		compilerSettings = JSON.parse(settingsRaw);
-	    } catch (e) {
-		appLogger?.warn(`Could not load compiler settings for watcher: ${e.message}`, { source: 'Main-Watcher' });
-	    }
 
 	    const watcherPayload = JSON.stringify({
 			input_dir: path.resolve(INPUT_DIR), 

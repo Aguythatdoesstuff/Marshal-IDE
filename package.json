@@ -1,17 +1,16 @@
 {
   "name": "marshal-ide",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "productName": "Marshal IDE",
   "description": "Marshal IDE + MarshalScript Editor",
   "type": "module",
   "main": "./out/main/index.cjs",
-  "author": "Your Name <your.email@example.com>",
-  "homepage": "https://your-website-or-repo.com",
+  "author": "Kacper Kocemba",
+  "homepage": "https://github.com/Aguythatdoesstuff/Marshal-IDE",
   "license": "SEE LICENSE IN LICENSE.txt",
   "scripts": {
     "license-gen": "generate-license-file --input package.json --output licenses/THIRD-PARTY-LICENSES.txt --overwrite",
     "start": "bash -c 'electron-vite build && electron . 2> >(grep -vE \"gfx1201|bailing out\" >&2)'", 
-    "watcher": "node watcher_workspace.js",
     "dist": "electron-vite build && electron-builder",
     "dist:win": "electron-vite build && electron-builder --win",
     "dist:linux": "electron-vite build && electron-builder --linux",
@@ -61,7 +60,7 @@
         "AppImage",
         "deb"
       ],
-      "maintainer": "Your Name <your.email@example.com>",
+      "maintainer": "Kacper Kocemba",
       "category": "Development",
       "icon": "build"
     },

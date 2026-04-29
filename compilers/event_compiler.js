@@ -5,7 +5,7 @@ import { getPathConfig, getOutputFilePath } from './compiler_helpers.js';
 export function compile(ideContent, config, inputPath) {
     try {
         const cleanedLines = cleanLinesFromComments(ideContent);
-        let allHoi4Blocks = [];
+		let allHoi4Blocks = [];
         let allLocalizationData = {};
         let currentEventLines = [];
         let eventId = '';

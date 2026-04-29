@@ -1,0 +1,16 @@
+# top center of the screen, inbetween notifications and officer corp top bar button
+window "open_main_window"
+    size x50 y50
+    position x93 y8     
+    visible
+        is_ai = no
+    button
+        sprite "GFX_mod_menu_button"
+        position x570 y32
+        on click
+            if
+                has_country_flag = open_main_window
+                then
+                    clr_country_flag = open_main_window
+            else
+                set_country_flag = open_main_window
