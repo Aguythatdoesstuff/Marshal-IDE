@@ -648,7 +648,7 @@ function showActionModal(actionType, path, isDir) {
         case 'new-file':
             const parentPath = isDir ? path : path.substring(0, path.lastIndexOf('/'));
             const folderName = parentPath.split('/').pop().toLowerCase();
-            const forcedExtension = FILE_EXTENSION_MAP[folderName] || '.event'; 
+            const forcedExtension = FILE_EXTENSION_MAP[folderName] || '.unkown'; 
             
             STATE.pendingAction.currentPath = parentPath;
             STATE.pendingAction.forcedExtension = forcedExtension; 
