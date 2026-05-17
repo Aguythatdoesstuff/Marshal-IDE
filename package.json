@@ -4,13 +4,13 @@
   "productName": "Marshal IDE",
   "description": "Marshal IDE + MarshalScript Editor",
   "type": "module",
-  "main": "./out/main/index.cjs",
+  "main": "./build/vite/main/index.cjs",
   "author": "Kacper Kocemba",
   "homepage": "https://github.com/Aguythatdoesstuff/Marshal-IDE",
   "license": "SEE LICENSE IN LICENSE.txt",
   "scripts": {
     "license-gen": "generate-license-file --input package.json --output licenses/THIRD-PARTY-LICENSES.txt --overwrite",
-    "start": "bash -c 'electron-vite build && electron . 2> >(grep -vE \"gfx1201|bailing out\" >&2)'", 
+    "start": "bash -c 'electron-vite build && electron . 2> >(grep -vE \"gfx1201|bailing out\" >&2)'",
     "dist": "electron-vite build && electron-builder",
     "dist:win": "electron-vite build && electron-builder --win",
     "dist:linux": "electron-vite build && electron-builder --linux",
@@ -31,10 +31,12 @@
     "winston": "^3.18.3"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.7",
     "electron": "^39.0.0",
     "electron-builder": "^24.0.0",
     "electron-vite": "^2.0.0",
     "generate-license-file": "^4.1.1",
+    "sass": "^1.99.0",
     "vite-plugin-static-copy": "^3.1.4"
   },
   "build": {
@@ -45,9 +47,11 @@
       "buildResources": "build"
     },
     "files": [
-      "out/**/*",
+      "build/vite/**/*",
       "package.json",
-      "compilers/**/*"
+      "compilers/**/*",
+      "docs/**/*",
+      "templates/**/*"
     ],
     "win": {
       "target": [

@@ -17,6 +17,4 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
     - **Simplified Progress Bars**: Simplified `horizontal bar` instead of around 4 files with different syntax just do it in 1 clean one!.
 - **Instant GFX Importer**: One-click `.dds` integration. The IDE automatically generates `spriteTypes` and handles pathing logic—just inside youre code just type in `GFX_` image name and go!.
 - **Integrated Console**: Real-time logs from the compiler and IDE runtime. 
-
-### Changed
 - **UI Refresh**: Implemented a "Clean UI" philosophy to maximize screen real estate for code.

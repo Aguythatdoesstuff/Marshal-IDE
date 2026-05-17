@@ -1,0 +1,530 @@
+/* --- SASS Variables --- */
+$sidebar-bg: #252526;
+$editor-bg: #1e1e1e;
+$card-bg: #2d2d30;
+$text-color: #cccccc;
+$primary-blue: #007acc;
+$border-color: #2d2d30;
+$text-muted: #858585;
+
+/* --- Global Layout Resets & Normalizations --- */
+#eula-wrapper {
+  font-family: 'Inter', sans-serif;
+  background-color: $sidebar-bg;
+  color: $text-color;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 0 0 2rem 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Scoped wrapper for the new Workspace/Dashboard screens to prevent bleeding */
+.workspace-wrapper {
+  font-family: 'Inter', sans-serif;
+  background-color: $sidebar-bg;
+  color: $text-color;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* --- Required Electron Custom Titlebar Spec --- */
+.titlebar {
+  height: 32px;
+  background-color: $editor-bg; 
+  color: $text-muted;
+  display: flex;
+  justify-content: center; 
+  align-items: center;
+  -webkit-app-region: drag; /* Required to drag app window */
+  
+  width: 100%;           
+  flex-shrink: 0;        
+  box-sizing: border-box; 
+  border-bottom: 1px solid $border-color;
+  margin-bottom: 38px;
+
+  .titlebar-text {
+    font-size: 0.75rem; 
+    font-weight: 500;   
+    opacity: 0.8;
+  }
+}
+
+/* --- Main Structure Rules --- */
+.main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex-grow: 1;
+  box-sizing: border-box;
+  
+  /* Layout adjustments when inside workspace view */
+  .workspace-wrapper & {
+    align-items: stretch;
+    max-width: 56rem; /* max-w-4xl */
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+}
+
+.header-section {
+  text-align: center;
+  margin-bottom: 1.5rem; 
+
+  .title {
+    font-size: 1.5rem; 
+    font-weight: 700;   
+    color: #ffffff;
+    margin: 0;
+    
+    /* Responsive larger title for standard dashboard workspace views */
+    .workspace-wrapper & {
+      font-size: 2.25rem; /* text-4xl */
+      font-weight: 800;
+    }
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: #9ca3af;
+    margin-top: 0.5rem;
+  }
+
+  .status-badge {
+    font-size: 0.75rem; 
+    color: #60a5fa;     
+    text-transform: uppercase;
+    letter-spacing: 0.1em; 
+    margin-top: 0.25rem; 
+  }
+}
+
+/* --- Workspace Layout Grid & Project Cards --- */
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #ffffff;
+  }
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.card {
+  background-color: $card-bg;
+  border: 1px solid #37373d;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* --- EULA Frame Layout --- */
+#eula-content {
+  flex-grow: 1;
+  background-color: $editor-bg;
+  border: 1px solid #333;
+  padding: 2rem;
+  overflow-y: auto;
+  font-family: 'Consolas', monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  margin: 0 5rem 1.5rem 5rem;
+  color: #d4d4d4;
+  border-radius: 4px;
+  width: calc(100% - 10rem); 
+  box-sizing: border-box;
+}
+
+/* --- Buttons & UI Elements --- */
+.button-group {
+  display: flex;
+  justify-content: center; /* Maintained layout centering for EULA Screen */
+  gap: 1.5rem; 
+  margin-bottom: 1rem; 
+  
+  /* Alternate button row alignments inside flexible layout dashboards */
+  &.workspace-actions {
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-bottom: 0;
+  }
+}
+
+.btn {
+  padding: 0.5rem 2.5rem; /* Retained original EULA specific size bounds */
+  border-radius: 0.25rem; 
+  font-size: 0.875rem;     
+  transition: background-color 0.2s, cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* --- Core Theme Variants for IDE and Action Actions --- */
+  &.btn-primary {
+    background-color: $primary-blue;
+    color: #ffffff;
+    padding: 0.5rem 1rem; /* Compact layout sizing for UI actions */
+    font-weight: 600;
+    gap: 0.5rem;
+    
+    &:hover:not(:disabled) {
+      background-color: #006bbd;
+    }
+  }
+
+  &.btn-secondary {
+    background-color: #374151; /* gray-700 */
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    gap: 0.5rem;
+    
+    &:hover:not(:disabled) {
+      background-color: #1f2937; /* gray-800 */
+    }
+  }
+
+  &.btn-neutral {
+    background-color: #4b5563; /* gray-600 */
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    gap: 0.5rem;
+    
+    &:hover:not(:disabled) {
+      background-color: #374151; /* gray-700 */
+    }
+  }
+
+  &.btn-danger {
+    background-color: #dc2626;
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    gap: 0.5rem;
+    
+    &:hover:not(:disabled) {
+      background-color: #b91c1c;
+    }
+  }
+
+  /* --- Dedicated Backward-Compatible EULA Themes --- */
+  &.btn-decline {
+    background-color: #374151; 
+    font-weight: 600;          
+    color: #ffffff;
+    padding: 0.5rem 2.5rem;
+
+    &:hover {
+      background-color: #4b5563; 
+    }
+  }
+
+  &.btn-accept {
+    background-color: $primary-blue;
+    font-weight: 700; 
+    color: #ffffff;
+    padding: 0.5rem 2.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+
+    &:hover {
+      background-color: #2563eb; 
+    }
+  }
+}
+
+.footer-link-container {
+  text-align: center;
+
+  .modal-trigger-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 10px; 
+    color: #6b7280;   
+    text-decoration: underline;
+    text-transform: uppercase;
+    letter-spacing: 0.05em; 
+    transition: color 0.2s;
+
+    &:hover {
+      color: #ffffff;
+    }
+  }
+}
+
+/* --- License Input Code Modal Styling --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.8); 
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .modal-card {
+    background-color: #2d2d2d;
+    padding: 1.5rem; 
+    border-radius: 0.25rem;
+    border: 1px solid #444;
+    max-width: 28rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
+    width: 20rem; 
+    box-sizing: border-box;
+
+    /* Responsive scaling bounds for rich form-based workflows */
+    &.max-w-md { width: 100%; max-w: 28rem; border-radius: 8px; background-color: $card-bg; }
+    &.max-w-sm { width: 100%; max-w: 24rem; border-radius: 8px; background-color: $card-bg; }
+  }
+
+  .modal-title {
+    color: #ffffff;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    margin-top: 0;
+    
+    &.font-medium { font-size: 1.25rem; }
+  }
+
+  /* Supports both EULA subtitle descriptors and new configurations */
+  .modal-description, .modal-subtitle {
+    font-size: 10px;
+    color: #9ca3af; 
+    margin-bottom: 1rem;
+    margin-top: 0;
+  }
+  
+  .modal-description {
+    font-size: 0.875rem;
+  }
+
+  .modal-input {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    background-color: $editor-bg;
+    border: 1px solid #555;
+    color: #ffffff;
+    font-size: 0.875rem;
+    outline: none;
+    border-radius: 0.25rem;
+    box-sizing: border-box;
+
+    &:focus {
+      border-color: $primary-blue;
+    }
+  }
+
+  /* --- Form Inputs Layout Modifiers --- */
+  .form-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    
+    .form-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #9ca3af;
+      margin-bottom: 0.25rem;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 0.5rem;
+      background-color: #374151;
+      border: 1px solid #4b5563;
+      color: #ffffff;
+      font-size: 0.875rem;
+      outline: none;
+      border-radius: 4px;
+      box-sizing: border-box;
+
+      &:focus {
+        border-color: $primary-blue;
+      }
+    }
+  }
+
+  .input-inline-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  /* --- Interactive Selection Lists --- */
+  .modal-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .option-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    
+    &:hover:not(.disabled) {
+      background-color: #4b5563;
+      border-color: $primary-blue;
+    }
+    
+    &.disabled {
+      background-color: #1f2937;
+      opacity: 0.5;
+      cursor: not-allowed;
+      border-color: transparent;
+    }
+  }
+
+  .option-icon-frame {
+    padding: 0.5rem;
+    background-color: #1f2937;
+    border-radius: 4px;
+    margin-right: 1rem;
+    color: #ffffff;
+  }
+
+  .option-heading {
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .option-subtext {
+    font-size: 0.75rem;
+    color: #9ca3af;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem; 
+
+    .btn-modal-cancel {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      transition: color 0.2s;
+
+      &:hover {
+        color: #ffffff;
+      }
+    }
+
+    .btn-modal-apply {
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem 1rem;
+      background-color: $primary-blue;
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 0.25rem;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #2563eb;
+      }
+    }
+  }
+}
+
+nav.shrink-0 {
+  background-color: #0d0d0d !important;
+}
+
+/* --- Shared Layout & Element Micro-Utilities --- */
+.flex-space-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-column-stack { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
+.flex-grow { flex-grow: 1; }
+.w-full { width: 100%; }
+
+.badge {
+  font-size: 10px;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  
+  &.badge-incoming {
+    background-color: #1e3a8a;
+    color: #bfdbfe;
+  }
+}
+
+.btn-text-link {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding-top: 0.5rem;
+  text-align: center;
+  &:hover { color: #ffffff; }
+}
+
+/* --- Standardized Webkit Custom Scrollbars --- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+  
+  &:hover {
+    background: #444;
+  }
+}

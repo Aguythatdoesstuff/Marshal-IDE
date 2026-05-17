@@ -25,14 +25,8 @@ if (!gotTheLock) {
     // Listen for when someone tries to open a second instance:
     app.on('second-instance', (event, commandLine, workingDirectory) => {
         // Someone tried to run a second instance, we should focus our main window.
-        if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
-            mainWindow.focus();
-        } else if (splashWindow) {
-            // If the app is still on the splash screen, focus that instead
-            if (splashWindow.isMinimized()) splashWindow.restore();
-            splashWindow.focus();
-        }
+		if (mainWindow.isMinimized()) mainWindow.restore();
+		mainWindow.focus();
     });
 
 	// SYSTEM PATHS (Persistent User Data - OS safe storage)
@@ -58,7 +52,6 @@ if (!gotTheLock) {
 	let OUTPUT_DIR = null;
 	let watcherProcess = null; 
 	let mainWindow = null; 
-	let splashWindow = null;
 	let appLogger = null; 
 	let isArchivingAndQuitting = false;
 	let LogBroadcaster = null; 
@@ -618,7 +611,6 @@ function setupAutoUpdater() {
 
 	/**
 	 * READ FILE (In-App)
-	 * Reads the markdown from your app's internal /docs folder.
 	 */
 	ipcMain.handle('read-doc-file', async (event, relativePath) => {
 	    try {
@@ -814,30 +806,6 @@ function setupAutoUpdater() {
 
 
 
-	async function loadingWindow() {
-	    if (app.isPackaged) {
-		Menu.setApplicationMenu(null);
-	    }
-	    splashWindow = new BrowserWindow({
-		width: 1200, 
-		height: 800,
-		titleBarStyle: 'hidden',
-		icon: path.join(__dirname, 'build', 'icon.png'), 
-		webPreferences: {
-		    contextIsolation: true,
-		    devTools: !app.isPackaged 
-		}
-
-	    });
-	    // Force show when the window is ready, regardless of what page is loaded
-	    splashWindow.once('ready-to-show', () => {
-		splashWindow.show();
-		console.log("loading screen loaded.");
-	    });
-	    await splashWindow.loadFile(path.join(__dirname, '..', 'renderer', 'loading.html'));
-	}
-
-
 	async function createWindow() {
 	    if (app.isPackaged) {
 		Menu.setApplicationMenu(null);
@@ -863,44 +831,38 @@ function setupAutoUpdater() {
 		}
 	    });
 
-	    const managerPath = path.join(__dirname, 'eula_manager.js');
-	    const { checkEulaStatus, setupEulaHandlers } = require(managerPath);
-	    
-	    const eula = await checkEulaStatus(appLogger);
+		const managerPath = path.join(__dirname, 'eula_manager.js');
+		const { checkEulaStatus, setupEulaHandlers } = require(managerPath);
+		const eula = await checkEulaStatus(appLogger);
 
-	    // Force show when the window is ready, regardless of what page is loaded
-	    mainWindow.once('ready-to-show', () => {
-		mainWindow.show();
-		appLogger?.info("Main window is now visible.");
-		// Kill the loading window
-		if (splashWindow && !splashWindow.isDestroyed()) {
-		    splashWindow.close(); 
-		    splashWindow = null; // Clean up memory
-		}
-	    });
-	    mainWindow.webContents.on('did-finish-load', () => {
-		if (pendingUpdateInfo) {
-		    appLogger?.info("Page reloaded/switched. Re-sending pending update UI.");
-		    mainWindow.webContents.send('show-update-ui', pendingUpdateInfo);
+		ipcMain.handle('get-boot-state', async () => {
+			return {
+				enforceEula: !eula.valid,
+			};
+		});
 
+		if (!eula.valid) {
+			setupEulaHandlers(mainWindow, async () => {
+				mainWindow.webContents.send('eula-accepted-success');
+			}, appLogger);
 		}
-	    });
-	    if (eula.valid) {
-		appLogger?.info("EULA valid, loading index.");
+
+		mainWindow.webContents.on('did-finish-load', () => {
+			if (pendingUpdateInfo) {
+				appLogger?.info("Page reloaded/switched. Re-sending pending update UI.");
+				mainWindow.webContents.send('show-update-ui', pendingUpdateInfo);
+			}
+		});
+
 		await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-	    } else {
-		appLogger?.info("EULA required, loading eula page.");
-		setupEulaHandlers(mainWindow, async () => {
-		    // This callback runs after the user clicks "Accept" in the EULA window
-		    await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-		}, appLogger);
-		
-		await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'eula.html'));
-	    }
+
+		mainWindow.once('ready-to-show', () => {
+			mainWindow.show();
+			appLogger?.info("Main window shell is now visible showing Splash state.");
+		});
 	}
 
 	app.whenReady().then(async () => {
-	loadingWindow();
 	    const systemInfo = { 
 			platform: process.platform, 
 			arch: process.arch, 

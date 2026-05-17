@@ -1,4 +1,5 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 
@@ -16,6 +17,8 @@ export default defineConfig({
               '!./out',
               '!./node_modules',
               '!./public',
+              '!./build',
+              '!./build/**/*',
               '!./electron.vite.config.js'
             ],
             dest: '.' 
@@ -24,6 +27,7 @@ export default defineConfig({
       })
     ],
     build: {
+      outDir: resolve(__dirname, 'build/vite/main'),
       bytecode: true,
       lib: { entry: resolve(__dirname, 'main.js') },
       rollupOptions: {
@@ -48,17 +52,13 @@ export default defineConfig({
     }
   },
   renderer: {
-    root: resolve(__dirname, 'public'),
+    root: resolve(__dirname, 'src/renderer'),
+    plugins: [vue()],
     build: {
-      outDir: resolve(__dirname, 'out/renderer'),
+      outDir: resolve(__dirname, 'build/vite/renderer'),
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'public/index.html'),
-          eula: resolve(__dirname, 'public/eula.html'),
-          ide: resolve(__dirname, 'public/ide.html'),
-          settings: resolve(__dirname, 'public/settings.html'),
-          wiki: resolve(__dirname, 'public/wiki.html'),
-          loading: resolve(__dirname, 'public/loading.html')
+          index: resolve(__dirname, 'src/renderer/index.html'),
         }
       }
     }
