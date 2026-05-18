@@ -35,6 +35,10 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ---    
     
 ## 🛠 v1.2.0 – Expansion Update
+### Compiler refractor
+- Refractoring the compilers will be done into a faster language making the compilers faster
+- Syntax error checking to as much as possible
+- Easier to maintain and expand
 ### DSL Expansions
 - **MIO Support**: Dedicated DSL for Military Industrial Organizations.
 - **Country Definitions**: Streamlined syntax for defining new nations and tags.
