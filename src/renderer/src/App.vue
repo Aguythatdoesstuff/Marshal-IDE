@@ -2,7 +2,7 @@
   <div id="app-wrapper">
     <div v-if="currentScreen === 'SPLASH'" class="splash-layer">
       <div class="container">
-        <div class="logo"></div>
+        <div class="logo" :style="{ backgroundImage: `url(${logoUrl})` }"></div>
         <div class="dots">
           <div class="dot"></div>
           <div class="dot"></div>
@@ -23,19 +23,22 @@
 </template>
 
 <script>
+// Remove the ?inline suffix so Vite uses standard asset tracking
+import logoIcon from '../../../build/icon.png'
 import Eula from './Eula.vue'
 import WorkspaceSelection from './WorkspaceSelection.vue'
 
 export default {
   name: 'App',
   components: {
-    Eula, // Register the component so Vue can render it
+    Eula, 
     WorkspaceSelection
   },
   data() {
     return {
       currentScreen: 'SPLASH',
-      statusText: 'Starting Marshal IDE'
+      statusText: 'Starting Marshal IDE',
+      logoUrl: logoIcon // FIX: Registered here so the template can read it!
     }
   },
   async mounted() {
@@ -66,7 +69,6 @@ export default {
 </script>
 
 <style lang="scss">
-/* Global resetting to ensure window-wide styling works perfectly */
 body, html {
   margin: 0;
   padding: 0;
@@ -82,14 +84,13 @@ body, html {
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
-/* SPLASH VIEW STYLING */
 .splash-layer {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  -webkit-app-region: drag; /* Allows dragging the window via splash background */
+  -webkit-app-region: drag;
 
   .container {
     display: flex;
@@ -101,7 +102,10 @@ body, html {
   .logo {
     width: 240px;  
     height: 240px;
-    background: url('../../../build/icon.png') no-repeat center center; 
+    
+    /* FIX: Explicitly separated layout properties */
+    background-repeat: no-repeat;
+    background-position: center center;
     background-size: contain;
     
     will-change: transform;
@@ -114,7 +118,7 @@ body, html {
   .dots {
     display: flex;
     gap: 15px;
-    -webkit-app-region: no-drag; /* Prevents dots from blocking drag controls */
+    -webkit-app-region: no-drag;
   }
 
   .dot {
@@ -140,7 +144,6 @@ body, html {
   }
 }
 
-/* ANIMATION KEYFRAMES */
 @keyframes heartbeat-star {
   0% {
     transform: scale(1) translateZ(0);

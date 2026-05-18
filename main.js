@@ -805,7 +805,6 @@ function setupAutoUpdater() {
 	ipcMain.on('renderer-log', (e, data) => logToSystem(data));
 
 
-
 async function createWindow() {
     if (app.isPackaged) {
         Menu.setApplicationMenu(null);
@@ -814,6 +813,7 @@ async function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200, 
         height: 800,
+		backgroundColor: '#1e1e1e',
         titleBarStyle: 'hidden',
         ...(process.platform !== 'darwin' ? {
             titleBarOverlay: {
@@ -824,7 +824,6 @@ async function createWindow() {
         } : {}),
         show: false, // Keeping it false to prevent flicker
         
-        // FIX: Go up 3 levels out of 'build/vite/main' to reach the root build folder
         icon: path.join(__dirname, '..', '..', '..', 'build', 'icon.png'), 
         
         webPreferences: {
@@ -835,23 +834,17 @@ async function createWindow() {
         }
     });
 
-    // NOTE: If eula_manager.js is in your root folder, make sure it's being 
-    // copied to build/vite/main/, or adjust this path out to root like the icon.
     const managerPath = path.join(__dirname, 'eula_manager.js');
     const { checkEulaStatus, setupEulaHandlers } = require(managerPath);
-    const eula = await checkEulaStatus(appLogger);
+    const eulaPromise = checkEulaStatus(appLogger);
 
     ipcMain.handle('get-boot-state', async () => {
+		
+        const eula = await eulaPromise;
         return {
             enforceEula: !eula.valid,
         };
     });
-
-    if (!eula.valid) {
-        setupEulaHandlers(mainWindow, async () => {
-            mainWindow.webContents.send('eula-accepted-success');
-        }, appLogger);
-    }
 
     mainWindow.webContents.on('did-finish-load', () => {
         if (pendingUpdateInfo) {
@@ -866,10 +859,17 @@ async function createWindow() {
     });
 
     await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+
+    const eula = await eulaPromise;
+    if (!eula.valid) {
+        setupEulaHandlers(mainWindow, async () => {
+            mainWindow.webContents.send('eula-accepted-success');
+        }, appLogger);
+    }
 }
 
 	app.whenReady().then(async () => {
-		// loading screen should start here
+		createWindow();
 
 	    const systemInfo = { 
 			platform: process.platform, 
@@ -914,7 +914,6 @@ async function createWindow() {
 	    appLogger?.error(`Failed to load LogBroadcaster module: ${e.message}`, { source: 'Main-Init' });
 	}
 	    
-	    createWindow(); 
 
 		ipcMain.on('switch-page', (e, pageName) => {
 			const targetPath = path.join(__dirname, '..', 'renderer', `${pageName}.html`);
