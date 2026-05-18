@@ -19,7 +19,10 @@ export default defineConfig({
               '!./public',
               '!./build',
               '!./build/**/*',
-              '!./electron.vite.config.js'
+              '!./electron.vite.config.js',
+              '!./VS',           
+              '!./**/.*',         
+              '!./**/.vs/**/*'  
             ],
             dest: '.' 
           }
@@ -41,6 +44,7 @@ export default defineConfig({
   preload: {
     plugins: [externalizeDepsPlugin()],
     build: {
+      outDir: resolve(__dirname, 'build/vite/preload'),
       bytecode: true,
       lib: { entry: resolve(__dirname, 'src/preload.js') },
       rollupOptions: {

@@ -806,63 +806,71 @@ function setupAutoUpdater() {
 
 
 
-	async function createWindow() {
-	    if (app.isPackaged) {
-		Menu.setApplicationMenu(null);
-	    }
-	    mainWindow = new BrowserWindow({
-		width: 1200, 
-		height: 800,
-		titleBarStyle: 'hidden',
-	...(process.platform !== 'darwin' ? {
-		titleBarOverlay: {
-		    color: '#1e1e1e',       // Background of the button area (Matches your new titlebar)
-		    symbolColor: '#858585', // Color of the X, _, and [] symbols
-		    height: 32              // Match the height of your .titlebar in CSS
-		}
-	    } : {}),
-		show: false, // IMPORTANT: Keep this false to prevent flickering!!!
-		icon: path.join(__dirname, 'build', 'icon.png'), 
-		webPreferences: {
-		    preload: path.join(__dirname, '..', 'preload', 'index.cjs'), 
-		    nodeIntegration: false, 
-		    contextIsolation: true,
-		    devTools: !app.isPackaged 
-		}
-	    });
+async function createWindow() {
+    if (app.isPackaged) {
+        Menu.setApplicationMenu(null);
+    }
+    
+    mainWindow = new BrowserWindow({
+        width: 1200, 
+        height: 800,
+        titleBarStyle: 'hidden',
+        ...(process.platform !== 'darwin' ? {
+            titleBarOverlay: {
+                color: '#1e1e1e',      
+                symbolColor: '#858585', 
+                height: 32              
+            }
+        } : {}),
+        show: false, // Keeping it false to prevent flicker
+        
+        // FIX: Go up 3 levels out of 'build/vite/main' to reach the root build folder
+        icon: path.join(__dirname, '..', '..', '..', 'build', 'icon.png'), 
+        
+        webPreferences: {
+            preload: path.join(__dirname, '..', 'preload', 'index.cjs'), 
+            nodeIntegration: false, 
+            contextIsolation: true,
+            devTools: !app.isPackaged 
+        }
+    });
 
-		const managerPath = path.join(__dirname, 'eula_manager.js');
-		const { checkEulaStatus, setupEulaHandlers } = require(managerPath);
-		const eula = await checkEulaStatus(appLogger);
+    // NOTE: If eula_manager.js is in your root folder, make sure it's being 
+    // copied to build/vite/main/, or adjust this path out to root like the icon.
+    const managerPath = path.join(__dirname, 'eula_manager.js');
+    const { checkEulaStatus, setupEulaHandlers } = require(managerPath);
+    const eula = await checkEulaStatus(appLogger);
 
-		ipcMain.handle('get-boot-state', async () => {
-			return {
-				enforceEula: !eula.valid,
-			};
-		});
+    ipcMain.handle('get-boot-state', async () => {
+        return {
+            enforceEula: !eula.valid,
+        };
+    });
 
-		if (!eula.valid) {
-			setupEulaHandlers(mainWindow, async () => {
-				mainWindow.webContents.send('eula-accepted-success');
-			}, appLogger);
-		}
+    if (!eula.valid) {
+        setupEulaHandlers(mainWindow, async () => {
+            mainWindow.webContents.send('eula-accepted-success');
+        }, appLogger);
+    }
 
-		mainWindow.webContents.on('did-finish-load', () => {
-			if (pendingUpdateInfo) {
-				appLogger?.info("Page reloaded/switched. Re-sending pending update UI.");
-				mainWindow.webContents.send('show-update-ui', pendingUpdateInfo);
-			}
-		});
+    mainWindow.webContents.on('did-finish-load', () => {
+        if (pendingUpdateInfo) {
+            appLogger?.info("Page reloaded/switched. Re-sending pending update UI.");
+            mainWindow.webContents.send('show-update-ui', pendingUpdateInfo);
+        }
+    });
 
-		await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
+        appLogger?.info("Main window shell is now visible showing Splash state.");
+    });
 
-		mainWindow.once('ready-to-show', () => {
-			mainWindow.show();
-			appLogger?.info("Main window shell is now visible showing Splash state.");
-		});
-	}
+    await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+}
 
 	app.whenReady().then(async () => {
+		// loading screen should start here
+
 	    const systemInfo = { 
 			platform: process.platform, 
 			arch: process.arch, 
