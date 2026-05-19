@@ -14,11 +14,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 - **Syntax Highlighting Isolation**: Move massive Regex-based syntax highlight definitions (currently 300+ lines) into standalone file or module files to keep the renderer focused purely on the UI state.
 - **Provider Modularization**: Separate and improve Autocomplete and Suggestion providers into a `providers/` directory to ensure `ide_renderer.js` remains maintainable as DSL complexity grows.
 
-### Back end DSL Improvements
-- **Unified Compiler Bootstrapping**: Implement a standardized initialization function across all compilers to eliminate redundant code for startup sequences and environment 
-- **Centralized Import Logic**: Refactor the compiler core to use a single, shared module for handling imports, ensuring consistency and reducing maintenance overhead.
-- **Architectural Refactoring**: Streamline the back-end by consolidating recurring compiler patterns into a reusable, DRY (Don't Repeat Yourself) framework.
-
 ### User Notifications & Changelog
 - **Version-Linked Update Modals**: Implement a "What's New" modal that automatically triggers upon the first launch of a new version to highlight key changes.
 - **Lazy-User Accessibility**: Bridge the gap between the `CHANGELOG.md` and the end-user by surfacing the most relevant updates directly in the IDE UI.
