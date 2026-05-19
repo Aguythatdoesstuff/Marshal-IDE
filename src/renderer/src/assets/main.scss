@@ -1,3 +1,5 @@
+@use "sass:color";
+
 /* --- SASS Variables --- */
 $sidebar-bg: #252526;
 $editor-bg: #1e1e1e;
@@ -21,7 +23,7 @@ $text-muted: #858585;
   box-sizing: border-box;
 }
 
-/* Scoped wrapper for the new Workspace/Dashboard screens to prevent bleeding */
+/* Scoped wrapper for the Workspace/Dashboard screens to prevent bleeding */
 .workspace-wrapper {
   font-family: 'Inter', sans-serif;
   background-color: $sidebar-bg;
@@ -170,11 +172,10 @@ $text-muted: #858585;
 /* --- Buttons & UI Elements --- */
 .button-group {
   display: flex;
-  justify-content: center; /* Maintained layout centering for EULA Screen */
+  justify-content: center; 
   gap: 1.5rem; 
   margin-bottom: 1rem; 
   
-  /* Alternate button row alignments inside flexible layout dashboards */
   &.workspace-actions {
     justify-content: flex-end;
     gap: 0.75rem;
@@ -183,7 +184,7 @@ $text-muted: #858585;
 }
 
 .btn {
-  padding: 0.5rem 2.5rem; /* Retained original EULA specific size bounds */
+  padding: 0.5rem 2.5rem; 
   border-radius: 0.25rem; 
   font-size: 0.875rem;     
   transition: background-color 0.2s, cubic-bezier(0.4, 0, 0.2, 1);
@@ -198,11 +199,10 @@ $text-muted: #858585;
     cursor: not-allowed;
   }
 
-  /* --- Core Theme Variants for IDE and Action Actions --- */
   &.btn-primary {
     background-color: $primary-blue;
     color: #ffffff;
-    padding: 0.5rem 1rem; /* Compact layout sizing for UI actions */
+    padding: 0.5rem 1rem; 
     font-weight: 600;
     gap: 0.5rem;
     
@@ -212,26 +212,26 @@ $text-muted: #858585;
   }
 
   &.btn-secondary {
-    background-color: #374151; /* gray-700 */
+    background-color: #374151; 
     color: #ffffff;
     padding: 0.5rem 1rem;
     font-weight: 600;
     gap: 0.5rem;
     
     &:hover:not(:disabled) {
-      background-color: #1f2937; /* gray-800 */
+      background-color: #1f2937; 
     }
   }
 
   &.btn-neutral {
-    background-color: #4b5563; /* gray-600 */
+    background-color: #4b5563; 
     color: #ffffff;
     padding: 0.5rem 1rem;
     font-weight: 600;
     gap: 0.5rem;
     
     &:hover:not(:disabled) {
-      background-color: #374151; /* gray-700 */
+      background-color: #374151; 
     }
   }
 
@@ -247,7 +247,6 @@ $text-muted: #858585;
     }
   }
 
-  /* --- Dedicated Backward-Compatible EULA Themes --- */
   &.btn-decline {
     background-color: #374151; 
     font-weight: 600;          
@@ -312,7 +311,6 @@ $text-muted: #858585;
     width: 20rem; 
     box-sizing: border-box;
 
-    /* Responsive scaling bounds for rich form-based workflows */
     &.max-w-md { width: 100%; max-w: 28rem; border-radius: 8px; background-color: $card-bg; }
     &.max-w-sm { width: 100%; max-w: 24rem; border-radius: 8px; background-color: $card-bg; }
   }
@@ -326,7 +324,6 @@ $text-muted: #858585;
     &.font-medium { font-size: 1.25rem; }
   }
 
-  /* Supports both EULA subtitle descriptors and new configurations */
   .modal-description, .modal-subtitle {
     font-size: 10px;
     color: #9ca3af; 
@@ -355,7 +352,6 @@ $text-muted: #858585;
     }
   }
 
-  /* --- Form Inputs Layout Modifiers --- */
   .form-layout {
     display: flex;
     flex-direction: column;
@@ -395,7 +391,6 @@ $text-muted: #858585;
     gap: 0.5rem;
   }
 
-  /* --- Interactive Selection Lists --- */
   .modal-options-list {
     display: flex;
     flex-direction: column;
@@ -496,8 +491,6 @@ nav.shrink-0 {
   font-size: 10px;
   padding: 0.125rem 0.5rem;
   border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   
   &.badge-incoming {
     background-color: #1e3a8a;
@@ -526,5 +519,262 @@ nav.shrink-0 {
   
   &:hover {
     background: #444;
+  }
+}
+
+/* =======================================================
+   --- EXTRACTED COMPONENT STYLES: WIKI SYSTEM --- 
+   ======================================================= */
+.wiki-wrapper {
+  height: 100vh;
+  overflow: hidden;
+  
+  .titlebar { margin-bottom: 0 !important; } 
+
+  .app-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 32px); 
+  }
+
+  /* --- Sidebar Frame Configuration --- */
+  .sidebar {
+    width: 20rem; 
+    background-color: $sidebar-bg;
+    border-right: 1px solid $border-color;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+
+    .sidebar-header {
+      padding: 1rem;
+      border-bottom: 1px solid $border-color;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+      }
+
+      .back-btn {
+        background: none;
+        border: none;
+        color: $text-muted;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        
+        &:hover { color: #ffffff; }
+      }
+    }
+
+    .search-box {
+      padding: 0.75rem;
+      background-color: color.adjust($sidebar-bg, $lightness: -3%);
+      
+      .search-input {
+        margin-bottom: 0 !important; 
+        background-color: $editor-bg;
+        border: 1px solid #3c3c3c; /* Modern, low-contrast flat border */
+        border-radius: 4px;        /* Smooth, subtle rounding */
+        padding: 0.5rem 0.75rem;   /* Better text breathing room */
+        color: #ffffff;
+        font-size: 0.85rem;
+        outline: none;
+        box-sizing: border-box;
+        width: 100%;
+        transition: all 0.2s ease;
+        
+        &::placeholder {
+          color: #626262;          /* Subtle placeholder text */
+        }
+        
+        &:focus {
+          border-color: $primary-blue;
+          box-shadow: 0 0 0 1px $primary-blue; /* Flat accent ring instead of default glow */
+        }
+      }
+    }
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      .status-text {
+        padding: 1rem;
+        color: $text-muted;
+        font-size: 0.75rem;
+
+        &.error { color: #ef4444; font-style: italic; }
+      }
+
+      .tree-node { margin-bottom: 0.5rem; }
+
+      .folder-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.625rem; 
+        font-weight: 700;
+        color: $text-muted;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: color 0.2s;
+
+        .icon {
+          margin-right: 0.5rem;
+          opacity: 0.5;
+          transition: transform 0.2s ease;
+          &.open { opacity: 0.8; }
+        }
+
+        &:hover { color: #d4d4d4; }
+      }
+
+      .folder-content {
+        margin-left: 0.75rem;
+        border-left: 1px solid $border-color;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-top: 0.25rem;
+      }
+
+      .file-btn {
+        width: 100%;
+        text-align: left;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        color: $text-muted;
+        background: transparent;
+        border: none;
+        border-left: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &.root-file { margin-bottom: 0.25rem; }
+
+        &:hover {
+          background-color: color.adjust($sidebar-bg, $lightness: 5%);
+          color: color.adjust($primary-blue, $lightness: 10%);
+        }
+
+        &.active-file {
+          background-color: color.adjust($sidebar-bg, $lightness: 4%);
+          color: $primary-blue;
+          border-left-color: $primary-blue;
+          border-radius: 0 4px 4px 0;
+        }
+      }
+    }
+
+    .mode-tag {
+      padding: 0.5rem;
+      font-size: 0.625rem; 
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      text-align: center;
+      border-top: 1px solid $border-color;
+      color: $text-muted;
+      background-color: $sidebar-bg;
+    }
+  }
+
+  /* --- Main Viewport Canvas --- */
+  .main-content {
+    flex: 1;
+    overflow-y: auto;
+    background-color: $editor-bg;
+    
+    .document-area {
+      max-width: 56rem; 
+      margin: 0 auto;
+      padding: 3rem 2.5rem;
+      color: #d1d5db;
+    }
+
+    .welcome-screen {
+      h1 { color: #ffffff; }
+      .tip-box {
+        margin-top: 2rem;
+        padding: 1rem;
+        background-color: rgba($primary-blue, 0.1);
+        border: 1px solid rgba($primary-blue, 0.3);
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        color: color.adjust($primary-blue, $lightness: 20%);
+      }
+    }
+
+    .blue-glow { color: $primary-blue; }
+  }
+
+  /* --- Document Text Engine Typography --- */
+  .prose-content {
+    line-height: 1.6;
+    font-size: 1rem;
+    color: $text-color;
+
+    h1, h2, h3, h4 { color: #ffffff; margin-top: 2em; margin-bottom: 1em; font-weight: 600; }
+    h1 { font-size: 2.25em; margin-top: 0; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid $border-color; padding-bottom: 0.3em; }
+    p, ul, ol { margin-bottom: 1.25em; }
+    ul { list-style-type: disc; padding-left: 1.5em; }
+    a { color: $primary-blue; text-decoration: none; &:hover { text-decoration: underline; } }
+    
+    pre {
+      background-color: $sidebar-bg;
+      border: 1px solid $border-color;
+      border-radius: 0.375rem;
+      padding: 1rem;
+      overflow-x: auto;
+      margin-bottom: 1.5em;
+
+      code {
+        background: transparent;
+        color: #d4d4d4;
+        padding: 0;
+        border-radius: 0;
+        font-size: 0.875em;
+      }
+    }
+
+    code {
+      color: color.adjust($primary-blue, $lightness: 15%);
+      background-color: rgba(0, 0, 0, 0.2);
+      padding: 0.2em 0.4em;
+      border-radius: 0.25rem;
+      font-size: 0.875em;
+      font-family: 'Consolas', monospace;
+    }
+    
+    blockquote {
+      border-left: 4px solid $border-color;
+      padding-left: 1rem;
+      color: $text-muted;
+      font-style: italic;
+    }
+  }
+
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
   }
 }

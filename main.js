@@ -586,7 +586,7 @@ function setupAutoUpdater() {
 
 	/**
 	 * LIVE STRUCTURE (In-App)
-	 * Scans your /docs folder.
+	 * Scans your /docs folder and includes content for live searching.
 	 */
 	ipcMain.handle('get-docs-structure', async () => {
 	    const docsPath = path.join(__dirname, 'docs');
@@ -599,7 +599,13 @@ function setupAutoUpdater() {
 		        if (entry.isDirectory()) {
 		            return { name: entry.name, type: 'folder', children: await scan(fullPath) };
 		        } else if (entry.name.endsWith('.md')) {
-		            return { name: entry.name.replace('.md', ''), type: 'file', path: relativePath };
+		            const content = await fs.readFile(fullPath, 'utf-8');
+		            return { 
+		                name: entry.name.replace('.md', ''), 
+		                type: 'file', 
+		                path: relativePath,
+		                content: content 
+		            };
 		        }
 		        return null;
 		    }));
@@ -640,54 +646,114 @@ function setupAutoUpdater() {
 		callback();
 	    }
 	}
-	/**
+/**
 	 * BROWSER EXPORT (In-Browser)
-	 * Creates the snapshot in userData/wiki_metadata to avoid read-only errors.
+	 * Creates a fully self-contained HTML snapshot with inlined CSS/JS
+	 * to bypass browser CORS / Origin restrictions.
 	 */
 	ipcMain.handle('open-wiki-external', async () => {
-	    // Correct paths for the bundled environment
-	    const docsPath = path.join(__dirname, 'docs');
-	    
-	    const templatePath = path.join(__dirname, '..', 'renderer', 'wiki.html'); 
-	    
-	    // Set up the writeable path in UserData
-	    const userDataPath = app.getPath('userData');
-	    const metadataDir = path.join(userDataPath, 'wiki_metadata');
-	    const outputPath = path.join(metadataDir, 'wiki_browser.html');
-
-	    // Deep scan to package content into the JSON
-	    async function packageDocs(dir) {
-		const entries = await fs.readdir(dir, { withFileTypes: true });
-		const parts = await Promise.all(entries.map(async (entry) => {
-		    const fullPath = path.join(dir, entry.name);
-		    const relativePath = path.relative(docsPath, fullPath);
-		    if (entry.isDirectory()) {
-		        return { name: entry.name, type: 'folder', children: await packageDocs(fullPath) };
-		    } else if (entry.name.endsWith('.md')) {
-		        const content = await fs.readFile(fullPath, 'utf-8');
-		        return { name: entry.name.replace('.md', ''), type: 'file', content: content };
-		    }
-		    return null;
-		}));
-		return parts.filter(Boolean);
-	    }
-
-	    try {
-		await fs.mkdir(metadataDir, { recursive: true });
-		const fullData = await packageDocs(docsPath);
-		let htmlContent = await fs.readFile(templatePath, 'utf-8');
-		const dataInjection = `<script>window.BROWSER_WIKI_DATA = ${JSON.stringify(fullData)};</script>`;
-		htmlContent = htmlContent.replace('<head>', `<head>\n    ${dataInjection}`);
-		await fs.writeFile(outputPath, htmlContent);
-
-		const openFunc = open.default || open;
-		await openFunc(`file://${outputPath}`);
+		const appRoot = app.getAppPath();
 		
-		return { success: true };
-	    } catch (err) {
-		console.error("Failed to generate wiki in userData:", err);
-		return { success: false, message: err.message };
-	    }
+		// Setup documentation paths
+		const docsPath = app.isPackaged 
+			? path.join(process.resourcesPath, 'docs') 
+			: path.join(appRoot, 'docs');
+		
+		// Find Vite's build directories
+		const rendererBuildDir = app.isPackaged
+			? path.join(__dirname, '..', 'renderer')
+			: path.join(__dirname, '..', 'renderer'); 
+		
+		const templatePath = path.join(rendererBuildDir, 'index.html');
+		
+		// User Data Output targets
+		const userDataPath = app.getPath('userData');
+		const metadataDir = path.join(userDataPath, 'wiki_metadata');
+		const outputPath = path.join(metadataDir, 'wiki_browser.html');
+
+		// Recursive scanner to parse documentation files into a clean data tree
+		async function packageDocs(dir) {
+			if (!(await fs.pathExists(dir))) return [];
+			const entries = await fs.readdir(dir, { withFileTypes: true });
+			const parts = await Promise.all(entries.map(async (entry) => {
+				const fullPath = path.join(dir, entry.name);
+				if (entry.isDirectory()) {
+					return { name: entry.name, type: 'folder', children: await packageDocs(fullPath) };
+				} else if (entry.name.endsWith('.md')) {
+					const content = await fs.readFile(fullPath, 'utf-8');
+					return { name: entry.name.replace('.md', ''), type: 'file', content: content };
+				}
+				return null;
+			}));
+			return parts.filter(Boolean);
+		}
+
+		try {
+			await fs.mkdir(metadataDir, { recursive: true });
+			const fullData = await packageDocs(docsPath);
+			
+			if (!(await fs.pathExists(templatePath))) {
+				throw new Error(`Compiled template bundle not found at: ${templatePath}`);
+			}
+
+			let htmlContent = await fs.readFile(templatePath, 'utf-8');
+			
+			// --- STEP 1: Inline the Assets to Banish CORS/Origin Blocks ---
+			const assetsDir = path.join(rendererBuildDir, 'assets');
+			
+			if (await fs.pathExists(assetsDir)) {
+				const assetFiles = await fs.readdir(assetsDir);
+				
+				let inlinedCss = '';
+				let inlinedJs = '';
+
+				for (const file of assetFiles) {
+					const filePath = path.join(assetsDir, file);
+					if (file.endsWith('.css')) {
+						const cssContent = await fs.readFile(filePath, 'utf-8');
+						inlinedCss += `\n/* Inlined: ${file} */\n${cssContent}\n`;
+					} else if (file.endsWith('.js')) {
+						const jsContent = await fs.readFile(filePath, 'utf-8');
+						inlinedJs += `\n// Inlined: ${file}\n${jsContent}\n`;
+					}
+				}
+
+				// Remove the original external link tags so the browser doesn't try to fetch them via file://
+				htmlContent = htmlContent.replace(/<link[^>]*href=[^>]*assets\/[^>]*>/gi, '');
+				htmlContent = htmlContent.replace(/<script[^>]*src=[^>]*assets\/[^>]*>[^<]*<\/script>/gi, '');
+
+				// Inject our compiled, pre-baked blocks right before the closing head tag
+				const assetInjections = `
+	<style>
+	${inlinedCss}
+	</style>
+	<script type="module">
+	${inlinedJs}
+	</script>`;
+				
+				htmlContent = htmlContent.replace('</head>', `${assetInjections}\n</head>`);
+			}
+
+			// --- STEP 2: Inject Wiki Metadata payload and Routing hooks ---
+			const dataInjection = `
+	<script>
+		window.BROWSER_WIKI_DATA = ${JSON.stringify(fullData)};
+		localStorage.setItem('FORCE_SCREEN', 'WIKI');
+	</script>`;
+			
+			htmlContent = htmlContent.replace('<head>', `<head>\n    ${dataInjection}`);
+			
+			// --- STEP 3: Write out final monolithic document ---
+			await fs.writeFile(outputPath, htmlContent, 'utf-8');
+
+			const openFunc = open.default || open;
+			await openFunc(`file://${outputPath}`);
+			
+			return { success: true };
+		} catch (err) {
+			console.error("Failed to generate wiki in userData:", err);
+			return { success: false, message: err.message };
+		}
 	});
 	ipcMain.handle('open-path', async (e, { path: p }) => {
 	    try {
@@ -916,14 +982,9 @@ async function createWindow() {
 	    
 
 		ipcMain.on('switch-page', (e, pageName) => {
-			const targetPath = path.join(__dirname, '..', 'renderer', `${pageName}.html`);
-			
-			// Use the focused window to load the new file
-			const win = BrowserWindow.getFocusedWindow();
-			if (win) {
-			win.loadFile(targetPath).catch(err => {
-				appLogger?.error(`Failed to switch to page ${pageName}: ${err.message}`);
-			});
+			if (mainWindow) {
+				const targetScreen = pageName === 'index' ? 'WORKSPACE' : pageName.toUpperCase();
+				mainWindow.webContents.send('navigate-to', targetScreen);
 			}
 		});
 		if (app.isPackaged) { 

@@ -19,20 +19,25 @@
     <div v-else-if="currentScreen === 'WORKSPACE'" class="workspace-layer">
       <WorkspaceSelection />
     </div>
+
+    <div v-else-if="currentScreen === 'WIKI'" class="wiki-layer">
+      <Wiki />
+    </div>
   </div>
 </template>
 
 <script>
-// Remove the ?inline suffix so Vite uses standard asset tracking
 import logoIcon from '../../../build/icon.png'
 import Eula from './Eula.vue'
 import WorkspaceSelection from './WorkspaceSelection.vue'
+import Wiki from './wiki.vue'
 
 export default {
   name: 'App',
   components: {
     Eula, 
-    WorkspaceSelection
+    WorkspaceSelection,
+    Wiki
   },
   data() {
     return {
@@ -42,6 +47,12 @@ export default {
     }
   },
   async mounted() {
+    // Check if loading a standalone browser-exported snapshot layout
+    if (localStorage.getItem('FORCE_SCREEN') === 'WIKI') {
+      this.currentScreen = 'WIKI';
+      localStorage.removeItem('FORCE_SCREEN'); // Clear flag cleanly
+      return;
+    }
     if (!window.api || !window.api.invoke) {
       console.error("Electron IPC bridge is not available.");
       this.currentScreen = 'EULA';
@@ -63,6 +74,12 @@ export default {
 
     window.api.on('eula-accepted-success', () => {
       this.currentScreen = 'WORKSPACE';
+    });
+
+    window.api.on('navigate-to', (targetScreen) => {
+      if (targetScreen) {
+        this.currentScreen = targetScreen; 
+      }
     });
   }
 }
