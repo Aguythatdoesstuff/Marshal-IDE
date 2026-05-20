@@ -27,6 +27,10 @@
     <div v-else-if="currentScreen === 'SETTINGS'" class="settings-layer">
       <Settings />
     </div>
+
+    <div v-else-if="currentScreen === 'IDE'" class="ide-layer">
+      <Ide />
+    </div>
   </div>
 </template>
 
@@ -36,6 +40,7 @@ import Eula from './Eula.vue'
 import WorkspaceSelection from './WorkspaceSelection.vue'
 import Wiki from './wiki.vue'
 import Settings from './settings.vue'
+import Ide from './ide.vue'
 
 export default {
   name: 'App',
@@ -43,7 +48,8 @@ export default {
     Eula, 
     WorkspaceSelection,
     Wiki,
-    Settings
+    Settings,
+    Ide
   },
   data() {
     return {
