@@ -152,16 +152,39 @@ if (!gotTheLock) {
 	}
 
 	/**
-	 * Loads the global compilers from the app root (static JSON).
+	 * provides the global compilers from the app root (static JSON).
 	 */
-	async function loadGlobalCompilers() {
-	    try {
-		const data = await fs.readFile(GLOBAL_COMPILERS_PATH, 'utf8');
-		return JSON.parse(data);
-	    } catch (error) {
-		appLogger?.error(`Failed to load global_compilers.json: ${error.message}`, { source: 'Main-Config' });
-		return {}; 
-	    }
+	function getGlobalCompilers() {
+		return {
+			"event": {
+				"ext": ".event",
+				"processor": "../compilers/event_compiler.js"
+			},
+			"decision": {
+				"ext": ".decision",
+				"processor": "../compilers/decision_compiler.js"
+			},
+			"scripted gui": {
+				"ext": ".scriptedgui",
+				"processor": "../compilers/scripted_gui_compiler.js"
+			},
+			"script": {
+				"ext": ".script",
+				"processor": "../compilers/scripts_compiler.js"
+			},
+			"idea": {
+				"ext": ".idea",
+				"processor": "../compilers/idea_compiler.js"
+			},
+			"focus": {
+				"ext": ".focus",
+				"processor": "../compilers/focus_compiler.js"
+			},
+			"image": {
+				"ext": ".dds",
+				"processor": "../compilers/gfx_compiler.js"
+			}
+		};
 	}
 
 
@@ -326,7 +349,7 @@ function setupAutoUpdater() {
 		    appLogger?.warn(`Could not update metadata for ${projectName}: ${metaErr.message}`, { source: 'Main-Config' });
 		}
 
-		globalCompilers = await loadGlobalCompilers();
+		globalCompilers = getGlobalCompilers();
 		INPUT_DIR = currentProjectConfig.input_dir;
 		OUTPUT_DIR = currentProjectConfig.output_dir;
 

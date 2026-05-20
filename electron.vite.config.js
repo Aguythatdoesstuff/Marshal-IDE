@@ -55,8 +55,21 @@ export default defineConfig({
       }
     }
   },
-  renderer: {
+renderer: {
     root: resolve(__dirname, 'src/renderer'),
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, 'src/renderer/src')
+      }
+    },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: 'modern-compiler',
+          additionalData: `@use "@/assets/_variables" as *;\n`
+        }
+      }
+    },
     plugins: [vue()],
     build: {
       outDir: resolve(__dirname, 'build/vite/renderer'),

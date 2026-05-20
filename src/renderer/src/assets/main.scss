@@ -1,15 +1,42 @@
-@use "sass:color";
+/* ==========================================================================
+   GLOBAL CONFIGURATION & DYNAMIC VARIABLES
+   ========================================================================== */
 
-/* --- SASS Variables --- */
-$sidebar-bg: #252526;
-$editor-bg: #1e1e1e;
-$card-bg: #2d2d30;
-$text-color: #cccccc;
-$primary-blue: #007acc;
-$border-color: #2d2d30;
-$text-muted: #858585;
+// Native CSS Custom Properties (Accessible via JS for runtime user-customization)
+:root {
+  --sidebar-bg: #252526;
+  --editor-bg: #1e1e1e;
+  --card-bg: #2d2d30;
+  --text-color: #cccccc;
+  --primary-blue: #007acc;
+  --border-color: #2d2d30;
+  --text-muted: #858585;
+}
 
-/* --- Global Layout Resets & Normalizations --- */
+// SCSS Alias mapping (Allows you to safely use $variable inside your local styles)
+$sidebar-bg: var(--sidebar-bg);
+$editor-bg: var(--editor-bg);
+$card-bg: var(--card-bg);
+$text-color: var(--text-color);
+$primary-blue: var(--primary-blue);
+$border-color: var(--border-color);
+$text-muted: var(--text-muted);
+
+
+/* ==========================================================================
+   GLOBAL LAYOUT RESETS & NORMALIZATIONS
+   ========================================================================== */
+
+body, html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
 #eula-wrapper {
   font-family: 'Inter', sans-serif;
   background-color: $sidebar-bg;
@@ -20,10 +47,8 @@ $text-muted: #858585;
   height: 100vh;
   padding: 0 0 2rem 0;
   overflow: hidden;
-  box-sizing: border-box;
 }
 
-/* Scoped wrapper for the Workspace/Dashboard screens to prevent bleeding */
 .workspace-wrapper {
   font-family: 'Inter', sans-serif;
   background-color: $sidebar-bg;
@@ -32,10 +57,17 @@ $text-muted: #858585;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  box-sizing: border-box;
 }
 
-/* --- Required Electron Custom Titlebar Spec --- */
+nav.shrink-0 {
+  background-color: #0d0d0d !important;
+}
+
+
+/* ==========================================================================
+   REQUIRED ELECTRON CUSTOM TITLEBAR SPEC
+   ========================================================================== */
+
 .titlebar {
   height: 32px;
   background-color: $editor-bg; 
@@ -43,11 +75,10 @@ $text-muted: #858585;
   display: flex;
   justify-content: center; 
   align-items: center;
-  -webkit-app-region: drag; /* Required to drag app window */
+  -webkit-app-region: drag; /* Crucial: Allows window dragging in Electron */
   
   width: 100%;           
   flex-shrink: 0;        
-  box-sizing: border-box; 
   border-bottom: 1px solid $border-color;
   margin-bottom: 38px;
 
@@ -58,723 +89,36 @@ $text-muted: #858585;
   }
 }
 
-/* --- Main Structure Rules --- */
-.main-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  flex-grow: 1;
-  box-sizing: border-box;
-  
-  /* Layout adjustments when inside workspace view */
-  .workspace-wrapper & {
-    align-items: stretch;
-    max-width: 56rem; /* max-w-4xl */
-    margin: 0 auto;
-    padding: 0 1rem;
-  }
-}
 
-.header-section {
-  text-align: center;
-  margin-bottom: 1.5rem; 
+/* ==========================================================================
+   STANDARDIZED WEBKIT SCROLLBAR OVERRIDES (Persistent UI Theme)
+   ========================================================================== */
 
-  .title {
-    font-size: 1.5rem; 
-    font-weight: 700;   
-    color: #ffffff;
-    margin: 0;
-    
-    /* Responsive larger title for standard dashboard workspace views */
-    .workspace-wrapper & {
-      font-size: 2.25rem; /* text-4xl */
-      font-weight: 800;
-    }
-  }
-
-  .subtitle {
-    font-size: 1rem;
-    color: #9ca3af;
-    margin-top: 0.5rem;
-  }
-
-  .status-badge {
-    font-size: 0.75rem; 
-    color: #60a5fa;     
-    text-transform: uppercase;
-    letter-spacing: 0.1em; 
-    margin-top: 0.25rem; 
-  }
-}
-
-/* --- Workspace Layout Grid & Project Cards --- */
-.action-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-
-  .section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #ffffff;
-  }
-}
-
-.workspace-grid {
-  display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 1.5rem;
-  width: 100%;
-
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.card {
-  background-color: $card-bg;
-  border: 1px solid #37373d;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  }
-}
-
-/* --- EULA Frame Layout --- */
-#eula-content {
-  flex-grow: 1;
-  background-color: $editor-bg;
-  border: 1px solid #333;
-  padding: 2rem;
-  overflow-y: auto;
-  font-family: 'Consolas', monospace;
-  font-size: 0.85rem;
-  white-space: pre-wrap;
-  margin: 0 5rem 1.5rem 5rem;
-  color: #d4d4d4;
-  border-radius: 4px;
-  width: calc(100% - 10rem); 
-  box-sizing: border-box;
-}
-
-/* --- Buttons & UI Elements --- */
-.button-group {
-  display: flex;
-  justify-content: center; 
-  gap: 1.5rem; 
-  margin-bottom: 1rem; 
-  
-  &.workspace-actions {
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-bottom: 0;
-  }
-}
-
-.btn {
-  padding: 0.5rem 2.5rem; 
-  border-radius: 0.25rem; 
-  font-size: 0.875rem;     
-  transition: background-color 0.2s, cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &.btn-primary {
-    background-color: $primary-blue;
-    color: #ffffff;
-    padding: 0.5rem 1rem; 
-    font-weight: 600;
-    gap: 0.5rem;
-    
-    &:hover:not(:disabled) {
-      background-color: #006bbd;
-    }
-  }
-
-  &.btn-secondary {
-    background-color: #374151; 
-    color: #ffffff;
-    padding: 0.5rem 1rem;
-    font-weight: 600;
-    gap: 0.5rem;
-    
-    &:hover:not(:disabled) {
-      background-color: #1f2937; 
-    }
-  }
-
-  &.btn-neutral {
-    background-color: #4b5563; 
-    color: #ffffff;
-    padding: 0.5rem 1rem;
-    font-weight: 600;
-    gap: 0.5rem;
-    
-    &:hover:not(:disabled) {
-      background-color: #374151; 
-    }
-  }
-
-  &.btn-danger {
-    background-color: #dc2626;
-    color: #ffffff;
-    padding: 0.5rem 1rem;
-    font-weight: 600;
-    gap: 0.5rem;
-    
-    &:hover:not(:disabled) {
-      background-color: #b91c1c;
-    }
-  }
-
-  &.btn-decline {
-    background-color: #374151; 
-    font-weight: 600;          
-    color: #ffffff;
-    padding: 0.5rem 2.5rem;
-
-    &:hover {
-      background-color: #4b5563; 
-    }
-  }
-
-  &.btn-accept {
-    background-color: $primary-blue;
-    font-weight: 700; 
-    color: #ffffff;
-    padding: 0.5rem 2.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
-
-    &:hover {
-      background-color: #2563eb; 
-    }
-  }
-}
-
-.footer-link-container {
-  text-align: center;
-
-  .modal-trigger-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 10px; 
-    color: #6b7280;   
-    text-decoration: underline;
-    text-transform: uppercase;
-    letter-spacing: 0.05em; 
-    transition: color 0.2s;
-
-    &:hover {
-      color: #ffffff;
-    }
-  }
-}
-
-/* --- License Input Code Modal Styling --- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.8); 
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  .modal-card {
-    background-color: #2d2d2d;
-    padding: 1.5rem; 
-    border-radius: 0.25rem;
-    border: 1px solid #444;
-    max-width: 28rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
-    width: 20rem; 
-    box-sizing: border-box;
-
-    &.max-w-md { width: 100%; max-w: 28rem; border-radius: 8px; background-color: $card-bg; }
-    &.max-w-sm { width: 100%; max-w: 24rem; border-radius: 8px; background-color: $card-bg; }
-  }
-
-  .modal-title {
-    color: #ffffff;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    margin-top: 0;
-    
-    &.font-medium { font-size: 1.25rem; }
-  }
-
-  .modal-description, .modal-subtitle {
-    font-size: 10px;
-    color: #9ca3af; 
-    margin-bottom: 1rem;
-    margin-top: 0;
-  }
-  
-  .modal-description {
-    font-size: 0.875rem;
-  }
-
-  .modal-input {
-    width: 100%;
-    padding: 0.5rem;
-    margin-bottom: 1rem;
-    background-color: $editor-bg;
-    border: 1px solid #555;
-    color: #ffffff;
-    font-size: 0.875rem;
-    outline: none;
-    border-radius: 0.25rem;
-    box-sizing: border-box;
-
-    &:focus {
-      border-color: $primary-blue;
-    }
-  }
-
-  .form-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    
-    .form-label {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #9ca3af;
-      margin-bottom: 0.25rem;
-    }
-    
-    .form-input {
-      width: 100%;
-      padding: 0.5rem;
-      background-color: #374151;
-      border: 1px solid #4b5563;
-      color: #ffffff;
-      font-size: 0.875rem;
-      outline: none;
-      border-radius: 4px;
-      box-sizing: border-box;
-
-      &:focus {
-        border-color: $primary-blue;
-      }
-    }
-  }
-
-  .input-inline-group {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .modal-options-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .option-row {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    background-color: #374151;
-    border: 1px solid #4b5563;
-    border-radius: 4px;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    
-    &:hover:not(.disabled) {
-      background-color: #4b5563;
-      border-color: $primary-blue;
-    }
-    
-    &.disabled {
-      background-color: #1f2937;
-      opacity: 0.5;
-      cursor: not-allowed;
-      border-color: transparent;
-    }
-  }
-
-  .option-icon-frame {
-    padding: 0.5rem;
-    background-color: #1f2937;
-    border-radius: 4px;
-    margin-right: 1rem;
-    color: #ffffff;
-  }
-
-  .option-heading {
-    font-weight: 700;
-    color: #ffffff;
-  }
-
-  .option-subtext {
-    font-size: 0.75rem;
-    color: #9ca3af;
-  }
-
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem; 
-
-    .btn-modal-cancel {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem 0.75rem;
-      font-size: 0.75rem;
-      color: #9ca3af;
-      transition: color 0.2s;
-
-      &:hover {
-        color: #ffffff;
-      }
-    }
-
-    .btn-modal-apply {
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem 1rem;
-      background-color: $primary-blue;
-      color: #ffffff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      border-radius: 0.25rem;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background-color: #2563eb;
-      }
-    }
-  }
-}
-
-nav.shrink-0 {
-  background-color: #0d0d0d !important;
-}
-
-/* --- Shared Layout & Element Micro-Utilities --- */
-.flex-space-between { display: flex; justify-content: space-between; align-items: center; }
-.flex-column-stack { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
-.flex-grow { flex-grow: 1; }
-.w-full { width: 100%; }
-
-.badge {
-  font-size: 10px;
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-  
-  &.badge-incoming {
-    background-color: #1e3a8a;
-    color: #bfdbfe;
-  }
-}
-
-.btn-text-link {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  padding-top: 0.5rem;
-  text-align: center;
-  &:hover { color: #ffffff; }
-}
-
-/* --- Standardized Webkit Custom Scrollbars --- */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
+::-webkit-scrollbar-track {
+  background: $editor-bg; /* Prevents white browser flash on track elements */
+}
+
 ::-webkit-scrollbar-thumb {
   background: #333;
   border-radius: 4px;
+  border: 1px solid transparent; /* Gives micro-spacing structure */
   
   &:hover {
     background: #444;
   }
 }
 
-/* =======================================================
-   --- EXTRACTED COMPONENT STYLES: WIKI SYSTEM --- 
-   ======================================================= */
-.wiki-wrapper {
-  height: 100vh;
-  overflow: hidden;
-  
-  .titlebar { margin-bottom: 0 !important; } 
 
-  .app-container {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    height: calc(100vh - 32px); 
-  }
+/* ==========================================================================
+   MICRO LAYOUT UTILITIES
+   ========================================================================== */
 
-  /* --- Sidebar Frame Configuration --- */
-  .sidebar {
-    width: 20rem; 
-    background-color: $sidebar-bg;
-    border-right: 1px solid $border-color;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-
-    .sidebar-header {
-      padding: 1rem;
-      border-bottom: 1px solid $border-color;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-
-      .title {
-        font-size: 1.125rem;
-        font-weight: 700;
-        color: #ffffff;
-        margin: 0;
-      }
-
-      .back-btn {
-        background: none;
-        border: none;
-        color: $text-muted;
-        cursor: pointer;
-        padding: 0;
-        display: flex;
-        
-        &:hover { color: #ffffff; }
-      }
-    }
-
-    .search-box {
-      padding: 0.75rem;
-      background-color: color.adjust($sidebar-bg, $lightness: -3%);
-      
-      .search-input {
-        margin-bottom: 0 !important; 
-        background-color: $editor-bg;
-        border: 1px solid #3c3c3c; /* Modern, low-contrast flat border */
-        border-radius: 4px;        /* Smooth, subtle rounding */
-        padding: 0.5rem 0.75rem;   /* Better text breathing room */
-        color: #ffffff;
-        font-size: 0.85rem;
-        outline: none;
-        box-sizing: border-box;
-        width: 100%;
-        transition: all 0.2s ease;
-        
-        &::placeholder {
-          color: #626262;          /* Subtle placeholder text */
-        }
-        
-        &:focus {
-          border-color: $primary-blue;
-          box-shadow: 0 0 0 1px $primary-blue; /* Flat accent ring instead of default glow */
-        }
-      }
-    }
-    .sidebar-nav {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-
-      .status-text {
-        padding: 1rem;
-        color: $text-muted;
-        font-size: 0.75rem;
-
-        &.error { color: #ef4444; font-style: italic; }
-      }
-
-      .tree-node { margin-bottom: 0.5rem; }
-
-      .folder-btn {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.625rem; 
-        font-weight: 700;
-        color: $text-muted;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        background: none;
-        border: none;
-        cursor: pointer;
-        transition: color 0.2s;
-
-        .icon {
-          margin-right: 0.5rem;
-          opacity: 0.5;
-          transition: transform 0.2s ease;
-          &.open { opacity: 0.8; }
-        }
-
-        &:hover { color: #d4d4d4; }
-      }
-
-      .folder-content {
-        margin-left: 0.75rem;
-        border-left: 1px solid $border-color;
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-        margin-top: 0.25rem;
-      }
-
-      .file-btn {
-        width: 100%;
-        text-align: left;
-        padding: 0.375rem 0.75rem;
-        border-radius: 0.25rem;
-        font-size: 0.875rem;
-        color: $text-muted;
-        background: transparent;
-        border: none;
-        border-left: 2px solid transparent;
-        cursor: pointer;
-        transition: all 0.2s;
-
-        &.root-file { margin-bottom: 0.25rem; }
-
-        &:hover {
-          background-color: color.adjust($sidebar-bg, $lightness: 5%);
-          color: color.adjust($primary-blue, $lightness: 10%);
-        }
-
-        &.active-file {
-          background-color: color.adjust($sidebar-bg, $lightness: 4%);
-          color: $primary-blue;
-          border-left-color: $primary-blue;
-          border-radius: 0 4px 4px 0;
-        }
-      }
-    }
-
-    .mode-tag {
-      padding: 0.5rem;
-      font-size: 0.625rem; 
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      text-align: center;
-      border-top: 1px solid $border-color;
-      color: $text-muted;
-      background-color: $sidebar-bg;
-    }
-  }
-
-  /* --- Main Viewport Canvas --- */
-  .main-content {
-    flex: 1;
-    overflow-y: auto;
-    background-color: $editor-bg;
-    
-    .document-area {
-      max-width: 56rem; 
-      margin: 0 auto;
-      padding: 3rem 2.5rem;
-      color: #d1d5db;
-    }
-
-    .welcome-screen {
-      h1 { color: #ffffff; }
-      .tip-box {
-        margin-top: 2rem;
-        padding: 1rem;
-        background-color: rgba($primary-blue, 0.1);
-        border: 1px solid rgba($primary-blue, 0.3);
-        border-radius: 0.25rem;
-        font-size: 0.875rem;
-        color: color.adjust($primary-blue, $lightness: 20%);
-      }
-    }
-
-    .blue-glow { color: $primary-blue; }
-  }
-
-  /* --- Document Text Engine Typography --- */
-  .prose-content {
-    line-height: 1.6;
-    font-size: 1rem;
-    color: $text-color;
-
-    h1, h2, h3, h4 { color: #ffffff; margin-top: 2em; margin-bottom: 1em; font-weight: 600; }
-    h1 { font-size: 2.25em; margin-top: 0; }
-    h2 { font-size: 1.5em; border-bottom: 1px solid $border-color; padding-bottom: 0.3em; }
-    p, ul, ol { margin-bottom: 1.25em; }
-    ul { list-style-type: disc; padding-left: 1.5em; }
-    a { color: $primary-blue; text-decoration: none; &:hover { text-decoration: underline; } }
-    
-    pre {
-      background-color: $sidebar-bg;
-      border: 1px solid $border-color;
-      border-radius: 0.375rem;
-      padding: 1rem;
-      overflow-x: auto;
-      margin-bottom: 1.5em;
-
-      code {
-        background: transparent;
-        color: #d4d4d4;
-        padding: 0;
-        border-radius: 0;
-        font-size: 0.875em;
-      }
-    }
-
-    code {
-      color: color.adjust($primary-blue, $lightness: 15%);
-      background-color: rgba(0, 0, 0, 0.2);
-      padding: 0.2em 0.4em;
-      border-radius: 0.25rem;
-      font-size: 0.875em;
-      font-family: 'Consolas', monospace;
-    }
-    
-    blockquote {
-      border-left: 4px solid $border-color;
-      padding-left: 1rem;
-      color: $text-muted;
-      font-style: italic;
-    }
-  }
-
-  .animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .5; }
-  }
-}
+.flex-space-between  { display: flex; justify-content: space-between; align-items: center; }
+.flex-column-stack   { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
+.flex-grow           { flex-grow: 1; }
+.w-full              { width: 100%; }

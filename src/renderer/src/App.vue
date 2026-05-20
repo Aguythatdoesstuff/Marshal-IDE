@@ -23,6 +23,10 @@
     <div v-else-if="currentScreen === 'WIKI'" class="wiki-layer">
       <Wiki />
     </div>
+
+    <div v-else-if="currentScreen === 'SETTINGS'" class="settings-layer">
+      <Settings />
+    </div>
   </div>
 </template>
 
@@ -31,33 +35,36 @@ import logoIcon from '../../../build/icon.png'
 import Eula from './Eula.vue'
 import WorkspaceSelection from './WorkspaceSelection.vue'
 import Wiki from './wiki.vue'
+import Settings from './settings.vue'
 
 export default {
   name: 'App',
   components: {
     Eula, 
     WorkspaceSelection,
-    Wiki
+    Wiki,
+    Settings
   },
   data() {
     return {
       currentScreen: 'SPLASH',
       statusText: 'Starting Marshal IDE',
-      logoUrl: logoIcon // FIX: Registered here so the template can read it!
+      logoUrl: logoIcon 
     }
   },
   async mounted() {
-    // Check if loading a standalone browser-exported snapshot layout
     if (localStorage.getItem('FORCE_SCREEN') === 'WIKI') {
       this.currentScreen = 'WIKI';
-      localStorage.removeItem('FORCE_SCREEN'); // Clear flag cleanly
+      localStorage.removeItem('FORCE_SCREEN');
       return;
     }
+    
     if (!window.api || !window.api.invoke) {
       console.error("Electron IPC bridge is not available.");
       this.currentScreen = 'EULA';
       return;
     }
+
     try {
       const bootState = await window.api.invoke('get-boot-state');
       this.statusText = 'Loading Environment...';
@@ -76,9 +83,10 @@ export default {
       this.currentScreen = 'WORKSPACE';
     });
 
+    // FIX: Automatically sanitize incoming router payloads to uppercase
     window.api.on('navigate-to', (targetScreen) => {
       if (targetScreen) {
-        this.currentScreen = targetScreen; 
+        this.currentScreen = targetScreen.toUpperCase(); 
       }
     });
   }
@@ -86,18 +94,27 @@ export default {
 </script>
 
 <style lang="scss">
+/* ==========================================================================
+   GLOBAL APP WINDOW LAYER (Unscoped)
+   Forces the Electron shell window to adopt the user's theme color instantly
+   ========================================================================== */
 body, html {
   margin: 0;
   padding: 0;
   height: 100vh;
   overflow: hidden;
-  background-color: #1e1e1e;
+  background-color: var(--editor-bg); /* Uses dynamic user custom theme */
 }
+</style>
 
+<style scoped lang="scss">
+/* ==========================================================================
+   SPLASH SCREEN & APP SHELL VIEW (Scoped)
+   ========================================================================== */
 #app-wrapper {
   height: 100vh;
   width: 100vw;
-  color: #cccccc;
+  color: $text-color; /* Linked to theme token */
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
@@ -107,7 +124,7 @@ body, html {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  -webkit-app-region: drag;
+  -webkit-app-region: drag; /* Allows window dragging on the splash screen background */
 
   .container {
     display: flex;
@@ -119,8 +136,6 @@ body, html {
   .logo {
     width: 240px;  
     height: 240px;
-    
-    /* FIX: Explicitly separated layout properties */
     background-repeat: no-repeat;
     background-position: center center;
     background-size: contain;
@@ -135,13 +150,13 @@ body, html {
   .dots {
     display: flex;
     gap: 15px;
-    -webkit-app-region: no-drag;
+    -webkit-app-region: no-drag; /* Prevents dragging from locking up dot interactions */
   }
 
   .dot {
     width: 14px;  
     height: 14px; 
-    background-color: #444;
+    background-color: #444; /* Standard static off-state dark neutral */
     border-radius: 50%;
     animation: dotFade 1.6s infinite;
 
@@ -154,13 +169,16 @@ body, html {
     font-weight: 600;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: #858585;
+    color: $text-muted; /* Linked to theme token */
     opacity: 0.8;
     user-select: none; 
     -webkit-user-select: none;
   }
 }
 
+/* ==========================================================================
+   ANIMATIONS & KEYFRAMES
+   ========================================================================== */
 @keyframes heartbeat-star {
   0% {
     transform: scale(1) translateZ(0);
@@ -192,7 +210,7 @@ body, html {
   50% { 
     opacity: 1; 
     transform: scale(1.3); 
-    background-color: #007acc; 
+    background-color: $primary-blue; /* Pulse flash matches custom primary brand accent */
   }
 }
 </style>
