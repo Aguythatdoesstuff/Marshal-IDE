@@ -9,11 +9,11 @@
       <div class="meta-section">
         <h1 class="brand-title">Marshal IDE</h1>
         <div class="vertical-divider"></div>
-        <span class="active-project-tag">Project Node: <span class="highlight">Active_Mod</span></span>
+        <span class="active-project-tag">Project: <span class="highlight">{{ activeProjectName }}</span></span>
       </div>
       
       <div class="controls-section">
-        <button class="ui-btn primary-action">
+        <button class="ui-btn primary-action" @click="saveActiveFile" :disabled="!activeTabPath">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5C3.89 3 3 3.89 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
           Save
         </button>
@@ -23,26 +23,36 @@
 
     <main class="workspace-viewport" id="app-workspace-split-root">
       
-      <aside class="sidebar-column" :style="{ width: sidebarWidth + 'px' }">
-        <div class="column-header">
-          <span class="header-label">Project Files</span>
-          <button class="header-action-btn" title="Import Asset Bundle">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          </button>
-        </div>
-        
-        <div id="file-tree-container" class="tree-inner-scroller">
-        </div>
-      </aside>
+      <FileTreePanel 
+        ref="fileTreeRef"
+        :sidebar-width="sidebarWidth"
+        :active-path="activeTabPath"
+        @file-selected="handleFileSelection"
+        @node-contextmenu="openContextMenu"
+        @trigger-create="triggerCreateModal"
+      />
       
       <div class="pane-divider-v" @mousedown="startWorkspaceResize"></div>
 
       <section class="main-editor-console-hub">
         
         <div class="editor-subview-frame">
+          <div class="editor-tabs-bar" v-if="openTabs.length > 0">
+            <div 
+              v-for="tab in openTabs" 
+              :key="tab.path" 
+              :class="['editor-tab-item', { 'is-active': activeTabPath === tab.path }]"
+              @click="setActiveTab(tab.path)"
+            >
+              <span class="tab-title-text">{{ tab.name }}</span>
+              <span v-if="tab.isDirty" class="dirty-indicator-dot">●</span>
+              <span class="tab-close-icon-btn" @click.stop="closeTab(tab.path)">×</span>
+            </div>
+          </div>
+
           <div id="editor-container" class="monaco-mount-target">
-            <div class="placeholder-screen">
-              <p>Select a file within the file browser to start.</p>
+            <div v-if="openTabs.length === 0" class="placeholder-screen">
+              <p>Select a structural project file asset from the tree browser configuration map to begin code composition.</p>
             </div>
           </div>
         </div>
@@ -60,26 +70,30 @@
       </section>
     </main>
 
-    <div class="floating-popover-menu" :style="{ top: '120px', left: '280px', display: 'none' }">
-      <div class="popover-row">New Script Element File...</div>
-      <div class="popover-row">Force Reload Tree Directory</div>
+    <div 
+      class="floating-popover-menu" 
+      v-if="contextMenu.visible" 
+      :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px', display: 'block' }"
+      v-click-outside="closeContextMenu"
+    >
+      <div class="popover-row" @click="triggerCreateModal(contextMenu.targetNode?.isDir ? contextMenu.targetNode.path : contextMenu.targetNode?.path.substring(0, contextMenu.targetNode.path.lastIndexOf('/')))">New System Asset Element...</div>
+      <div class="popover-row" @click="triggerRenameModal(contextMenu.targetNode)">Rename Selected Reference Path...</div>
       <div class="popover-divider"></div>
-      <div class="popover-row">Rename Structural Path...</div>
-      <div class="popover-row alert-action">Delete Permanently</div>
+      <div class="popover-row alert-action" @click="triggerDeleteAction(contextMenu.targetNode)">Delete Component File Permanently</div>
     </div>
 
-    <div class="modal-system-dimmer" v-if="false">
+    <div class="modal-system-dimmer" v-if="modal.visible">
       <div class="modal-window-card">
-        <h3 class="modal-heading">Modal Dialog Title</h3>
-        <p class="modal-body">Are you sure you want to run this structural system action?</p>
+        <h3 class="modal-heading">{{ modal.title }}</h3>
+        <p class="modal-body">{{ modal.body }}</p>
         
-        <div class="modal-input-container">
-          <input type="text" class="modal-text-field" placeholder="Target designation parameter..." />
+        <div class="modal-input-container" v-if="modal.mode !== 'confirm'">
+          <input type="text" v-model="modal.inputValue" class="modal-text-field" :placeholder="modal.placeholder" @keyup.enter="commitModalAction" />
         </div>
         
         <div class="modal-actions-row">
-          <button class="ui-btn standard-action">Abort</button>
-          <button class="ui-btn primary-action">Commit Action</button>
+          <button class="ui-btn standard-action" @click="modal.visible = false">Abort</button>
+          <button class="ui-btn primary-action" @click="commitModalAction">Commit Action</button>
         </div>
       </div>
     </div>
@@ -88,8 +102,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import ConsolePanel from './Console.vue'; // <-- EXPLICIT SYSTEM REGISTRATION
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import ConsolePanel from '../ide/Console.vue';
+import FileTreePanel from '../ide/FileTree.vue';
+
+const activeProjectName = ref('Loading...');
+
+onMounted(() => {
+  // Sync the UI header text to match the project loaded via localStorage
+  activeProjectName.value = localStorage.getItem('marshal_project_to_load') || 'No Active Project';
+});
 
 // Isolated layout states
 const sidebarWidth = ref(260);
@@ -97,10 +119,192 @@ const consoleHeight = ref(240);
 const isConsoleMinimized = ref(false);
 const isResizing = ref(false);
 
+// Active Tab and Editor Instance Registries
+const fileTreeRef = ref(null);
+const openTabs = ref([]);
+const activeTabPath = ref(null);
+let editorInstance = null;
+let isUpdatingModelFromState = false;
+
+// Overlays Context System State Management
+const contextMenu = ref({ visible: false, x: 0, y: 0, targetNode: null });
+const modal = ref({ visible: false, title: '', body: '', placeholder: '', inputValue: '', mode: '', targetNode: null });
+
+// Direct access custom click directive
+const vClickOutside = {
+  mounted(el, binding) {
+    el.clickOutsideEvent = (event) => {
+      if (!(el === event.target || el.contains(event.target))) {
+        binding.value(event);
+      }
+    };
+    document.addEventListener('mousedown', el.clickOutsideEvent);
+  },
+  unmounted(el) {
+    document.removeEventListener('mousedown', el.clickOutsideEvent);
+  }
+};
+
+// Monaco Setup Framework Lifecycle Bindings
+const initializeMonacoEditor = () => {
+  if (!window.monaco) {
+    setTimeout(initializeMonacoEditor, 100);
+    return;
+  }
+  const container = document.getElementById('editor-container');
+  if (!container) return;
+
+  editorInstance = window.monaco.editor.create(container, {
+    theme: 'vs-dark',
+    automaticLayout: false, // Turned off to prevent resizing thread collisions
+    minimap: { enabled: true },
+    fontSize: 13,
+    fontFamily: "'Fira Code', 'Cascadia Code', monospace"
+  });
+
+  editorInstance.onDidChangeModelContent(() => {
+    if (isUpdatingModelFromState) return;
+    const currentTab = openTabs.value.find(t => t.path === activeTabPath.value);
+    if (currentTab && !currentTab.isDirty) currentTab.isDirty = true;
+  });
+};
+
+const handleFileSelection = async (node) => {
+  const existingTab = openTabs.value.find(t => t.path === node.path);
+  if (!existingTab) {
+    const result = await window.api.invoke('get-file-content', { filePath: node.path });
+    if (result && result.success) {
+      openTabs.value.push({ name: node.name, path: node.path, content: result.content, isDirty: false });
+    } else return;
+  }
+  await setActiveTab(node.path);
+};
+
+const setActiveTab = async (path) => {
+  activeTabPath.value = path;
+  const targetTab = openTabs.value.find(t => t.path === path);
+  if (!targetTab) return;
+
+  await nextTick();
+  if (!editorInstance) initializeMonacoEditor();
+
+  if (editorInstance) {
+    isUpdatingModelFromState = true;
+    const ext = '.' + path.split('.').pop().toLowerCase();
+    let language = 'text';
+    if (['.js', '.json'].includes(ext)) language = 'javascript';
+    else if (['.event', '.script', '.properties'].includes(ext)) language = 'properties';
+
+    const currentModel = window.monaco.editor.getModel(window.monaco.Uri.file(path));
+    if (currentModel) {
+      editorInstance.setModel(currentModel);
+    } else {
+      const newModel = window.monaco.editor.createModel(targetTab.content, language, window.monaco.Uri.file(path));
+      editorInstance.setModel(newModel);
+    }
+    isUpdatingModelFromState = false;
+    editorInstance.focus();
+  }
+};
+
+const closeTab = (path) => {
+  const tabIndex = openTabs.value.findIndex(t => t.path === path);
+  if (tabIndex === -1) return;
+
+  const model = window.monaco.editor.getModel(window.monaco.Uri.file(path));
+  if (model) model.dispose();
+
+  openTabs.value.splice(tabIndex, 1);
+  if (activeTabPath.value === path) {
+    if (openTabs.value.length > 0) setActiveTab(openTabs.value[Math.max(0, tabIndex - 1)].path);
+    else { activeTabPath.value = null; if (editorInstance) editorInstance.setModel(null); }
+  }
+};
+
+const saveActiveFile = async () => {
+  if (!activeTabPath.value || !editorInstance) return;
+  const currentTab = openTabs.value.find(t => t.path === activeTabPath.value);
+  if (!currentTab) return;
+
+  const codePayload = editorInstance.getValue();
+  const response = await window.api.invoke('save-file', { filePath: currentTab.path, content: codePayload });
+  if (response && response.success) {
+    currentTab.content = codePayload;
+    currentTab.isDirty = false;
+  }
+};
+
+// Global Hotkey Interception Hook (Preventing Save Fighting)
+const handleGlobalShortcuts = (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    saveActiveFile();
+  }
+};
+
+// Context Overlay Hooks
+const openContextMenu = (e, node) => {
+  contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, targetNode: node };
+};
+const closeContextMenu = () => { contextMenu.value.visible = false; };
+
+const triggerCreateModal = (parentPath = '') => {
+  closeContextMenu();
+  modal.value = { visible: true, title: 'Create File Asset', body: `Add asset link inside directory path: /Root ${parentPath}`, placeholder: 'filename.script', inputValue: '', mode: 'create', targetNode: parentPath };
+};
+
+const triggerRenameModal = (node) => {
+  closeContextMenu();
+  modal.value = { visible: true, title: 'Rename Asset Reference', body: `Provide target handle key for: ${node.name}`, placeholder: node.name, inputValue: node.name, mode: 'rename', targetNode: node };
+};
+
+const triggerDeleteAction = (node) => {
+  closeContextMenu();
+  modal.value = { visible: true, title: 'Confirm Component Purge', body: `Permanently delete "${node.name}" from storage array?`, placeholder: '', inputValue: '', mode: 'confirm', targetNode: node };
+};
+
+const commitModalAction = async () => {
+  const { mode, targetNode, inputValue } = modal.value;
+  const input = inputValue.trim();
+
+  if (mode === 'create' && input) {
+    const finalPath = targetNode ? `${targetNode}/${input}` : input;
+    const res = await window.api.invoke('create-file', { filePath: finalPath });
+    if (res && res.success) fileTreeRef.value?.refreshTree();
+  } else if (mode === 'rename' && input && targetNode) {
+    const lastSlash = targetNode.path.lastIndexOf('/');
+    const parent = lastSlash !== -1 ? targetNode.path.substring(0, lastSlash + 1) : '';
+    const newPath = `${parent}${input}`;
+    const res = await window.api.invoke('rename-file', { oldFilePath: targetNode.path, newFilePath: newPath });
+    if (res && res.success) {
+      const tab = openTabs.value.find(t => t.path === targetNode.path);
+      if (tab) { tab.name = input; tab.path = newPath; }
+      if (activeTabPath.value === targetNode.path) activeTabPath.value = newPath;
+      fileTreeRef.value?.refreshTree();
+    }
+  } else if (mode === 'confirm' && targetNode) {
+    const res = await window.api.invoke('delete-file-or-dir', { path: targetNode.path });
+    if (res && res.success) { closeTab(targetNode.path); fileTreeRef.value?.refreshTree(); }
+  }
+  modal.value.visible = false;
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalShortcuts);
+  window.addEventListener('resize', () => editorInstance?.layout());
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalShortcuts);
+  window.removeEventListener('resize', () => editorInstance?.layout());
+  if (editorInstance) editorInstance.dispose();
+});
+
+
 const startWorkspaceResize = (e) => {
   isResizing.value = true;
   const processMouseMove = (moveEvent) => {
     sidebarWidth.value = Math.min(Math.max(moveEvent.clientX, 180), window.innerWidth * 0.6);
+    editorInstance?.layout(); // Forces canvas updates in unison with sizing handles
   };
   const processMouseUp = () => {
     isResizing.value = false;
@@ -167,6 +371,27 @@ $text-muted: var(--text-muted);
   &.layout-resizing {
     cursor: col-resize !important;
     user-select: none !important;
+
+    // Neutralizes Monaco's canvas tracking logic to prevent mouse frame freezing during drags
+    .monaco-mount-target {
+      pointer-events: none !important;
+    }
+  }
+}
+
+// Interactive Tab Line SASS Stylings
+.editor-tabs-bar {
+  display: flex; height: 35px; background-color: rgba(0, 0, 0, 0.15); border-bottom: 1px solid $border-color; overflow-x: auto; overflow-y: hidden;
+  &::-webkit-scrollbar { height: 3px; }
+  &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
+
+  .editor-tab-item {
+    display: inline-flex; align-items: center; height: 100%; padding: 0 14px; border-right: 1px solid $border-color; background-color: rgba(0, 0, 0, 0.1); font-size: 12px; color: $text-muted; cursor: pointer; user-select: none; transition: background-color 0.1s, color 0.1s;
+    &:hover { background-color: rgba(255, 255, 255, 0.02); color: $text-color; }
+    &.is-active { background-color: $editor-bg; color: #ffffff; border-top: 2px solid $primary-blue; font-weight: 500; }
+    .tab-title-text { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dirty-indicator-dot { margin-left: 6px; color: #e11d48; font-size: 10px; }
+    .tab-close-icon-btn { margin-left: 8px; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 14px; &:hover { background-color: rgba(255, 255, 255, 0.1); color: #ffffff; } }
   }
 }
 

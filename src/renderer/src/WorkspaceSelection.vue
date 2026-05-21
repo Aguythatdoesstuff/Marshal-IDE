@@ -271,9 +271,23 @@ onMounted(() => {
   loadProjectsGrid();
 });
 
-const openMod = (projectName) => {
-  localStorage.setItem('marshal_project_to_load', projectName);
-  window.api.send('switch-page', 'ide');
+const openMod = async (projectName) => {
+  errorMessage.value = '';
+  try {
+    // Invoke your existing main.js IPC handler directly
+    const result = await window.api.invoke('load-project', projectName);
+    
+    if (result.success) {
+      // Save name for presentation inside the IDE header
+      localStorage.setItem('marshal_project_to_load', projectName);
+      // Safely switch pages now that INPUT_DIR is established
+      window.api.send('switch-page', 'ide');
+    } else {
+      errorMessage.value = `Failed to load project: ${result.message}`;
+    }
+  } catch (error) {
+    errorMessage.value = `IPC Navigation Error: ${error.message}`;
+  }
 };
 
 const openLogsDirectory = async () => {

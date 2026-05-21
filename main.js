@@ -810,10 +810,19 @@ function setupAutoUpdater() {
 	    return { success: false, message: errorMessage };
 	});
 
-	ipcMain.handle('list-directory-contents', async (event, { dirPath }) => {
-	    const relativePath = dirPath === INPUT_DIR ? '' : dirPath;
-	    const absolutePath = path.join(INPUT_DIR, relativePath);
-	    const contents = [];
+	ipcMain.handle('list-directory-contents', async (event, args) => {
+		// Guard Clause: If no project is active yet, return cleanly instead of crashing path.join!
+		if (!INPUT_DIR) {
+			return { success: false, contents: [], error: "No active project loaded." };
+		}
+
+        // 1. Safely extract dirPath, ensuring it defaults to an empty string if null/undefined is passed
+        const dirPath = args && typeof args.dirPath === 'string' ? args.dirPath : '';
+        
+        // 2. Prevent path collisions if INPUT_DIR is inadvertently re-sent as an absolute target
+        const relativePath = dirPath === INPUT_DIR ? '' : dirPath;
+        const absolutePath = path.join(INPUT_DIR, relativePath);
+        const contents = [];
 	    try {
 		const dirents = await fs.readdir(absolutePath, { withFileTypes: true });
 		for (const dirent of dirents) {
