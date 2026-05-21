@@ -89,7 +89,7 @@ export default {
       this.currentScreen = 'WORKSPACE';
     });
 
-    // FIX: Automatically sanitize incoming router payloads to uppercase
+    // Automatically sanitize incoming router payloads to uppercase
     window.api.on('navigate-to', (targetScreen) => {
       if (targetScreen) {
         this.currentScreen = targetScreen.toUpperCase(); 

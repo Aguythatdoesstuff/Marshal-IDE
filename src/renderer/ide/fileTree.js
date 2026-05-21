@@ -228,3 +228,15 @@ export async function refreshFolder(dirPath) {
         window.api.log.error(`[ERROR] IPC Error refreshing folder: ${error.message}`, 'ide-Renderer');
     }
 }
+
+
+
+export const triggerAction = (action) => {
+  contextMenu.visible = false;
+  if (action === 'refresh') {
+    const target = contextMenu.isDir ? contextMenu.path : contextMenu.path.substring(0, contextMenu.path.lastIndexOf('/')) || projectName.value;
+    refreshFolder(target);
+  } else {
+    openActionModal(action, contextMenu.path, contextMenu.isDir);
+  }
+};

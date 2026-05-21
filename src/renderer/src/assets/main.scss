@@ -31,6 +31,8 @@ body, html {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  height: 100vh;
+  overflow: hidden;
 }
 
 *, *:before, *:after {
@@ -80,7 +82,9 @@ nav.shrink-0 {
   width: 100%;           
   flex-shrink: 0;        
   border-bottom: 1px solid $border-color;
-  margin-bottom: 38px;
+  
+  /* FIXED: Removed the 38px margin that caused the blank splitting void */
+  margin-bottom: 0;
 
   .titlebar-text {
     font-size: 0.75rem; 
