@@ -443,6 +443,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
     font-weight: 800;
     color: #ffffff;
     margin: 0;
+    margin-top: 15px;
   }
 
   .subtitle {

@@ -883,15 +883,18 @@ function setupAutoUpdater() {
 	       return { success: true };
 	    } catch (e) { return { success: false, message: e.message }; }
 	});
-	ipcMain.handle('get-log-broadcaster-methods', () => LogBroadcaster ? { success: true } : { success: false });
-	ipcMain.on('log-broadcaster-renderer-subscribe', (event) => {
-	    if (LogBroadcaster && !LogBroadcaster._isRendererSubscribed) {
-		LogBroadcaster.addListener('log', (msg) => event.sender.send('log-broadcaster-update', msg));
-		LogBroadcaster._isRendererSubscribed = true;
-	    }
+	
+	ipcMain.handle('get-log-broadcaster-methods', () => {
+		return LogBroadcaster ? { success: true } : { success: false };
 	});
-	ipcMain.on('log-broadcaster-broadcast', (e, msg) => LogBroadcaster?.emit('log', msg));
-	ipcMain.on('renderer-log', (e, data) => logToSystem(data));
+
+	ipcMain.on('log-broadcaster-broadcast', (event, message) => {
+		LogBroadcaster?.emit('log', message);
+	});
+
+	ipcMain.on('renderer-log', (event, data) => {
+		logToSystem(data);
+	});
 
 
 async function createWindow() {
@@ -958,6 +961,21 @@ async function createWindow() {
 }
 
 	app.whenReady().then(async () => {
+	// 1. Load LogBroadcaster early to prevent preload script timing bugs
+    try {
+        const broadcasterPath = path.join(__dirname, 'LogBroadcaster.cjs');
+        LogBroadcaster = require(broadcasterPath);
+        
+        // 2. Set up a permanent data pipe directly to the browser window instance.
+        // This makes your UI logs immune to Vite frontend dev-server Hot Module Reloads!
+        LogBroadcaster.on('log', (msg) => {
+            if (mainWindow && !mainWindow.webContents.isDestroyed()) {
+                mainWindow.webContents.send('log-broadcaster-update', msg);
+            }
+        });
+    } catch (e) {
+        console.error(`Failed to load LogBroadcaster module early: ${e.message}`);
+    }
 		createWindow();
 
 	    const systemInfo = { 
@@ -995,13 +1013,7 @@ async function createWindow() {
 	    
 	    await initializeDirectories();
 	    
-	try {
-		const broadcasterPath = path.join(__dirname, 'LogBroadcaster.cjs');
-		LogBroadcaster = require(broadcasterPath);
-	    appLogger?.info("LogBroadcaster loaded successfully.");
-	} catch (e) { 
-	    appLogger?.error(`Failed to load LogBroadcaster module: ${e.message}`, { source: 'Main-Init' });
-	}
+
 	    
 
 		ipcMain.on('switch-page', (e, pageName) => {

@@ -43,7 +43,6 @@ defineProps({
 defineEmits(['toggle-minimize']);
 
 const consoleOutputElement = ref(null);
-
 const logs = ref([]);
 
 const clearLogs = () => {
@@ -65,12 +64,12 @@ const showConsoleMessage = (message, type = 'info-msg') => {
   });
 };
 
-// IPC / App Log Communication channel dispatcher
+// Maps raw stream structures into formatted UI components
 const handleIncomingLog = (logData) => {
   const level = logData.level ? logData.level.toLowerCase() : 'info';
   let determinedType = 'info-msg';
   
-  if (level === 'error') determinedType = 'error-msg';
+  if (level === 'error' || level === 'fatal') determinedType = 'error-msg';
   else if (level === 'warn' || level === 'warning') determinedType = 'warning-msg';
   else if (level === 'system') determinedType = 'system-msg';
 
@@ -78,9 +77,20 @@ const handleIncomingLog = (logData) => {
   showConsoleMessage(formattedMessage, determinedType);
 };
 
-// Expose handlers to window layout container context for easy global access from legacy files
+// Event wrapper function to handle the Vue main.js custom browser event
+const handleGlobalStreamEvent = (event) => {
+  if (event.detail) {
+    handleIncomingLog(event.detail);
+  }
+};
+
 onMounted(() => {
   console.log("[System] Workspace environment successfully loaded into memory layout grid.");
+  
+  // 1. Hook directly into our clean centralized Vue stream
+  window.addEventListener('marshal-runtime-log', handleGlobalStreamEvent);
+
+  // 2. Keep legacy fallback endpoints intact for backward compatibility
   window.MarshalConsole = {
     log: showConsoleMessage,
     handleLog: handleIncomingLog,
@@ -89,6 +99,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  // Clean up listener paths to prevent DOM memory leaks
+  window.removeEventListener('marshal-runtime-log', handleGlobalStreamEvent);
   if (window.MarshalConsole) delete window.MarshalConsole;
 });
 </script>
