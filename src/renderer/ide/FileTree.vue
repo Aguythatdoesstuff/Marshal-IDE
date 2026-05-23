@@ -47,6 +47,9 @@ const emit = defineEmits(['file-selected', 'node-contextmenu', 'trigger-create']
 
 const treeData = ref([]);
 
+// Track paths of folders that are manually opened by the user
+const openFoldersSet = ref(new Set());
+
 const loadDirectory = async (dirPath = '') => {
   if (!window.api || !window.api.invoke) return [];
   const cleanPath = typeof dirPath === 'string' ? dirPath : '';
@@ -64,14 +67,37 @@ const loadDirectory = async (dirPath = '') => {
 };
 
 const refreshTree = async () => {
+  // 1. Fetch the root directory items exactly like before
   const rootNodes = await loadDirectory('');
-  treeData.value = rootNodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));
+  const newTreeData = rootNodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));
+
+  // 2. Re-hydrate any folders that were previously open by splicing their contents back in
+  for (let i = 0; i < newTreeData.length; i++) {
+    const node = newTreeData[i];
+    
+    if (node.isDir && openFoldersSet.value.has(node.path)) {
+      node.isExpanded = true;
+      const childNodes = await loadDirectory(node.path);
+      childNodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));
+      
+      // Inject children into our building array
+      newTreeData.splice(i + 1, 0, ...childNodes);
+      // Advance loop index past the newly added children so we don't double-process them
+      i += childNodes.length;
+    }
+  }
+
+  // 3. Commit the structural state to the UI view model
+  treeData.value = newTreeData;
 };
 
 const handleNodeClick = async (node) => {
   if (node.isDir) {
     node.isExpanded = !node.isExpanded;
     if (node.isExpanded) {
+      // Remember that this folder is now open
+      openFoldersSet.value.add(node.path);
+
       const childNodes = await loadDirectory(node.path);
       childNodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));
       
@@ -80,6 +106,14 @@ const handleNodeClick = async (node) => {
         treeData.value.splice(targetIndex + 1, 0, ...childNodes);
       }
     } else {
+      // Forget this folder and clean up tracking for any nested subfolders inside it
+      openFoldersSet.value.delete(node.path);
+      for (const path of openFoldersSet.value) {
+        if (path.startsWith(node.path + '/') || path.startsWith(node.path + '\\')) {
+          openFoldersSet.value.delete(path);
+        }
+      }
+
       treeData.value = treeData.value.filter(n => !n.path.startsWith(node.path + '/') && !n.path.startsWith(node.path + '\\'));
     }
   } else {

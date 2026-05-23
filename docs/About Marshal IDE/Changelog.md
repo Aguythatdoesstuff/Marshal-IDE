@@ -18,3 +18,21 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Instant GFX Importer**: One-click `.dds` integration. The IDE automatically generates `spriteTypes` and handles pathing logic—just inside youre code just type in `GFX_` image name and go!.
 - **Integrated Console**: Real-time logs from the compiler and IDE runtime. 
 - **UI Refresh**: Implemented a "Clean UI" philosophy to maximize screen real estate for code.
+
+---
+
+## [1.1.0] - 2026-05-23
+
+### Added
+- **Tabbed Interface**: Added full support for multi-file workflows, allowing you to open, view, and switch between multiple scripts simultaneously.
+- **Smart File Creation Wizard**: Rewrote the "New File" workflow. Instead of forcing automatic extensions, the IDE now features an extension dropdown menu. 
+    - **Context-Aware Defaults**: Selecting a target folder automatically auto-selects the recommended compiler extension, safeguarding your build from syntax errors and preventing uncompilable "gibberish" output.
+
+### Changed
+- **Frontend Architecture Overhaul**: Fully refactored the frontend stack to use **Vue.js** and **sass**, paired with a comprehensive CSS audit and cleanup for drastically improved long-term codebase maintenance.
+- **Optimized Monaco Core**: Improved and streamlined the Monaco Editor initialization process for better overall editor stability.
+- **UX & Fluidity Enhancements**: Fine-tuned application responsiveness across the board to ensure animations, transitions, and interactions feel faster and more fluent.
+- **Console Performance & Controls**: 
+    - **Lag-Free Resizing**: Upgraded the console divider tracker; dragging the console height now matches your mouse movement instantly without stuttering.
+    - **Clearer Visibility Toggles**: Added highly visible buttons to hide and unhide the console panel, while preserving the intuitive "drag to bottom to minimize" gesture.
+- **Prominent Asset Importing**: Redesigned the "Import Img" placement and button to make core workspace importing actions instantly recognizable.

@@ -293,6 +293,38 @@ function setupAutoUpdater() {
 
 	// --- Project Management IPC ---
 
+	ipcMain.handle('unload-project', async () => {
+		try {
+			appLogger?.info('Initiating project unmount sequence...', { source: 'Main-Config' });
+			
+			// Kill the background watcher process using a termination signal so it cleans up sub-processes
+			if (typeof watcherProcess !== 'undefined' && watcherProcess) {
+				watcherProcess.kill('SIGTERM');
+				appLogger?.info('Sent SIGTERM to watcherProcess. Active file system watcher unmounted successfully.', { source: 'Main-Config' });
+			}
+			else {
+				appLogger?.warn('Watcher is already unnexpectedly inactive!', { source: 'Main-Config' });
+			}
+
+			// Clear memory state bindings
+			currentProjectConfig = null;
+			INPUT_DIR = null;
+			OUTPUT_DIR = null;
+
+			// Re-load the main manager menu view frame inside the window
+			if (mainWindow && !mainWindow.isDestroyed()) {
+				appLogger?.info('Re-loading main workspace matrix context shell inside BrowserWindow.', { source: 'Main-Config' });
+				await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+			}
+
+			return { success: true };
+		} catch (error) {
+			appLogger?.error(`Failed during project unload sequence: ${error.message}`, { source: 'Main-Config' });
+			return { success: false, message: error.message };
+		}
+	});
+
+
 	ipcMain.handle('list-projects', async () => {
 	    try {
 		const files = await fs.readdir(USER_PROJECTS_DIR);
@@ -906,68 +938,68 @@ function setupAutoUpdater() {
 	});
 
 
-async function createWindow() {
-    if (app.isPackaged) {
-        Menu.setApplicationMenu(null);
-    }
-    
-    mainWindow = new BrowserWindow({
-        width: 1200, 
-        height: 800,
-		backgroundColor: '#1e1e1e',
-        titleBarStyle: 'hidden',
-        ...(process.platform !== 'darwin' ? {
-            titleBarOverlay: {
-                color: '#1e1e1e',      
-                symbolColor: '#858585', 
-                height: 32              
-            }
-        } : {}),
-        show: false, // Keeping it false to prevent flicker
-        
-        icon: path.join(__dirname, '..', '..', '..', 'build', 'icon.png'), 
-        
-        webPreferences: {
-            preload: path.join(__dirname, '..', 'preload', 'index.cjs'), 
-            nodeIntegration: false, 
-            contextIsolation: true,
-            devTools: !app.isPackaged 
-        }
-    });
-
-    const managerPath = path.join(__dirname, 'eula_manager.js');
-    const { checkEulaStatus, setupEulaHandlers } = require(managerPath);
-    const eulaPromise = checkEulaStatus(appLogger);
-
-    ipcMain.handle('get-boot-state', async () => {
+	async function createWindow() {
+		if (app.isPackaged) {
+			Menu.setApplicationMenu(null);
+		}
 		
-        const eula = await eulaPromise;
-        return {
-            enforceEula: !eula.valid,
-        };
-    });
+		mainWindow = new BrowserWindow({
+			width: 1200, 
+			height: 800,
+			backgroundColor: '#1e1e1e',
+			titleBarStyle: 'hidden',
+			...(process.platform !== 'darwin' ? {
+				titleBarOverlay: {
+					color: '#1e1e1e',      
+					symbolColor: '#858585', 
+					height: 32              
+				}
+			} : {}),
+			show: false, // Keeping it false to prevent flicker
+			
+			icon: path.join(__dirname, '..', '..', '..', 'build', 'icon.png'), 
+			
+			webPreferences: {
+				preload: path.join(__dirname, '..', 'preload', 'index.cjs'), 
+				nodeIntegration: false, 
+				contextIsolation: true,
+				devTools: !app.isPackaged 
+			}
+		});
 
-    mainWindow.webContents.on('did-finish-load', () => {
-        if (pendingUpdateInfo) {
-            appLogger?.info("Page reloaded/switched. Re-sending pending update UI.");
-            mainWindow.webContents.send('show-update-ui', pendingUpdateInfo);
-        }
-    });
+		const managerPath = path.join(__dirname, 'eula_manager.js');
+		const { checkEulaStatus, setupEulaHandlers } = require(managerPath);
+		const eulaPromise = checkEulaStatus(appLogger);
 
-    mainWindow.once('ready-to-show', () => {
-        mainWindow.show();
-        appLogger?.info("Main window shell is now visible showing Splash state.");
-    });
+		ipcMain.handle('get-boot-state', async () => {
+			
+			const eula = await eulaPromise;
+			return {
+				enforceEula: !eula.valid,
+			};
+		});
 
-    await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+		mainWindow.webContents.on('did-finish-load', () => {
+			if (pendingUpdateInfo) {
+				appLogger?.info("Page reloaded/switched. Re-sending pending update UI.");
+				mainWindow.webContents.send('show-update-ui', pendingUpdateInfo);
+			}
+		});
 
-    const eula = await eulaPromise;
-    if (!eula.valid) {
-        setupEulaHandlers(mainWindow, async () => {
-            mainWindow.webContents.send('eula-accepted-success');
-        }, appLogger);
-    }
-}
+		mainWindow.once('ready-to-show', () => {
+			mainWindow.show();
+			appLogger?.info("Main window shell is now visible showing Splash state.");
+		});
+
+		await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+
+		const eula = await eulaPromise;
+		if (!eula.valid) {
+			setupEulaHandlers(mainWindow, async () => {
+				mainWindow.webContents.send('eula-accepted-success');
+			}, appLogger);
+		}
+	}
 
 	app.whenReady().then(async () => {
 	// 1. Load LogBroadcaster early to prevent preload script timing bugs
@@ -1076,57 +1108,66 @@ async function createWindow() {
 		});
 
 		ipcMain.handle('import-image', async (event, args) => {
-			if (!INPUT_DIR) return { success: false, message: "No project loaded." };
+            if (!INPUT_DIR) return { success: false, message: "No project loaded." };
 
-			try {
-				let sourcePath = args?.sourcePath;
-				let newFileName = args?.newFileName;
-				if (!sourcePath) {
-					const result = await dialog.showOpenDialog({
-						title: 'Select Image to Import',
-						properties: ['openFile'], // Required for Linux/GTK
-						filters: [
-							{ name: 'Images', extensions: ['dds', 'png', 'jpg', 'tga'] }
-						]
-					});
+            try {
+                let filePaths = [];
+                
+                // If specific targets are passed via programmatic drops/arguments
+                if (args?.sourcePath) {
+                    filePaths = Array.isArray(args.sourcePath) ? args.sourcePath : [args.sourcePath];
+                } else {
+                    // Open dialog layout restricted strictly to raw .dds assets
+                    const result = await dialog.showOpenDialog({
+                        title: 'Select Images to Import',
+                        properties: ['openFile', 'multiSelections'], 
+                        filters: [
+                            { name: 'DirectDraw Surface Images', extensions: ['dds'] }
+                        ]
+                    });
 
-					if (result.canceled || result.filePaths.length === 0) {
-						return { success: false, message: "Import cancelled by user." };
-					}
-					sourcePath = result.filePaths[0];
-					
-					// If newFileName wasn't passed from the modal yet, 
-					// generate a safe one from the selected file
-					if (!newFileName) {
-						newFileName = path.basename(sourcePath)
-							.replace(/\s+/g, '_') // Strip spaces
-							.replace(/\.[^/.]+$/, "") + ".dds"; // Force .dds
-					}
-				}
+                    if (result.canceled || result.filePaths.length === 0) {
+                        return { success: false, message: "Import cancelled by user." };
+                    }
+                    filePaths = result.filePaths;
+                }
 
-				const gfxDir = path.join(INPUT_DIR, 'GFX');
-				const destPath = path.join(gfxDir, newFileName);
+                const gfxDir = path.join(INPUT_DIR, 'GFX');
+                await fs.ensureDir(gfxDir);
 
-				await fs.ensureDir(gfxDir);
+                const importedFiles = [];
 
-				await fs.copy(sourcePath, destPath);
+                // Iterate over every file chosen in the native prompt selection matrix
+                for (const sourcePath of filePaths) {
+                    // Only apply a forced custom filename string argument if exactly 1 file was targeted
+                    let newFileName = (filePaths.length === 1 && args?.newFileName) ? args.newFileName : null;
+                    
+                    if (!newFileName) {
+                        newFileName = path.basename(sourcePath)
+                            .replace(/\s+/g, '_') 
+                            .replace(/\.[^/.]+$/, "") + ".dds"; 
+                    }
 
-				const relativePath = path.join('GFX', newFileName).replace(/\\/g, '/');
-				await updateManifest('add', relativePath);
+                    const destPath = path.join(gfxDir, newFileName);
+                    await fs.copy(sourcePath, destPath);
 
-				appLogger?.info(`Imported image: ${newFileName} to GFX folder`, { source: 'Main-Import' });
-				
-				return { 
-					success: true, 
-					path: destPath, 
-					fileName: newFileName 
-				};
+                    const relativePath = path.join('GFX', newFileName).replace(/\\/g, '/');
+                    await updateManifest('add', relativePath);
 
-			} catch (error) {
-				appLogger?.error(`Failed to import image: ${error.message}`, { source: 'Main-Import' });
-				return { success: false, message: error.message };
-			}
-		});
+                    appLogger?.info(`Imported image asset: ${newFileName} straight to GFX folder`, { source: 'Main-Import' });
+                    importedFiles.push({ path: destPath, fileName: newFileName });
+                }
+                
+                return { 
+                    success: true, 
+                    imported: importedFiles 
+                };
+
+            } catch (error) {
+                appLogger?.error(`Failed to process batch image import sequence: ${error.message}`, { source: 'Main-Import' });
+                return { success: false, message: error.message };
+            }
+        });
 		ipcMain.handle('import-project', async () => {
 			try {
 				const { filePaths } = await dialog.showOpenDialog({
@@ -1182,7 +1223,7 @@ async function createWindow() {
 	});
 
 	app.on('will-quit', async (event) => {
-		if (watcherProcess) watcherProcess.kill('SIGKILL');
+		if (watcherProcess) watcherProcess.kill('SIGTERM');
 		if (!isArchivingAndQuitting) {
 		isArchivingAndQuitting = true;
 		event.preventDefault();

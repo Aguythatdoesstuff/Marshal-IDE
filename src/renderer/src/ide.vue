@@ -13,11 +13,15 @@
       </div>
       
       <div class="controls-section">
+        <button class="ui-btn standard-action" @click="handleImportImage">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 5H5l3.5-4.5z"/></svg>
+          Import Img
+        </button>
         <button class="ui-btn primary-action" @click="saveActiveFile" :disabled="!activeTabPath">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5C3.89 3 3 3.89 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
           Save
         </button>
-        <button class="ui-btn standard-action">Exit Workspace</button>
+        <button class="ui-btn standard-action" @click="handleExitWorkspace">Exit Workspace</button>
       </div>
     </header>
 
@@ -30,6 +34,7 @@
         @file-selected="handleFileSelection"
         @node-contextmenu="openContextMenu"
         @trigger-create="triggerCreateModal"
+        @folder-toggled="handleFolderToggleState"
       />
       
       <div class="pane-divider-v" @mousedown="startWorkspaceResize"></div>
@@ -50,10 +55,10 @@
             </div>
           </div>
 
-          <div id="editor-container" class="monaco-mount-target">
-            <div v-if="openTabs.length === 0" class="placeholder-screen">
-              <p>Select a structural project file asset from the tree browser configuration map to begin code composition.</p>
-            </div>
+          <div id="editor-container" class="monaco-mount-target"></div>
+          
+          <div v-if="openTabs.length === 0" class="placeholder-screen">
+            <p>Select a structural project file asset from the tree browser configuration map to begin code composition.</p>
           </div>
         </div>
         
@@ -76,35 +81,195 @@
       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px', display: 'block' }"
       v-click-outside="closeContextMenu"
     >
-      <div class="popover-row" @click="triggerCreateModal(contextMenu.targetNode?.isDir ? contextMenu.targetNode.path : contextMenu.targetNode?.path.substring(0, contextMenu.targetNode.path.lastIndexOf('/')))">New System Asset Element...</div>
-      <div class="popover-row" @click="triggerRenameModal(contextMenu.targetNode)">Rename Selected Reference Path...</div>
-      <div class="popover-divider"></div>
-      <div class="popover-row alert-action" @click="triggerDeleteAction(contextMenu.targetNode)">Delete Component File Permanently</div>
+      <div class="popover-row" @click="triggerCreateModal(contextMenu.targetNode?.isDir ? contextMenu.targetNode.path : contextMenu.targetNode?.path.substring(0, contextMenu.targetNode.path.lastIndexOf('/')))">New File</div>
+      
+      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="popover-row" @click="triggerRenameModal(contextMenu.targetNode)">Rename</div>
+      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="popover-divider"></div>
+      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="popover-row alert-action" @click="triggerDeleteAction(contextMenu.targetNode)">Delete</div>
     </div>
 
-    <div class="modal-system-dimmer" v-if="modal.visible">
+    <div class="modal-system-dimmer" v-if="closeConfirmVisible" @keydown.esc="handleConfirmCloseCancel" tabindex="-1">
       <div class="modal-window-card">
-        <h3 class="modal-heading">{{ modal.title }}</h3>
-        <p class="modal-body">{{ modal.body }}</p>
-        
-        <div class="modal-input-container" v-if="modal.mode !== 'confirm'">
-          <input type="text" v-model="modal.inputValue" class="modal-text-field" :placeholder="modal.placeholder" @keyup.enter="commitModalAction" />
-        </div>
-        
-        <div class="modal-actions-row">
-          <button class="ui-btn standard-action" @click="modal.visible = false">Abort</button>
-          <button class="ui-btn primary-action" @click="commitModalAction">Commit Action</button>
+        <h3 class="modal-heading">Unsaved Document Changes</h3>
+        <p class="modal-body">
+          This file contains unsaved changes. Would you like to synchronize changes to disk storage before closing it?
+        </p>
+        <div class="modal-actions-row" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
+          <button class="ui-btn standard-action" @click="handleConfirmCloseCancel">Cancel</button>
+          <button class="ui-btn destructive-action" @click="handleConfirmCloseDiscard">Discard Changes</button>
+          <button class="ui-btn primary-action" @click="handleConfirmCloseSave">Save & Close</button>
         </div>
       </div>
     </div>
 
+    <div class="modal-system-dimmer" v-if="modal.visible" ref="modalDimmerRef" @keydown.capture="handleModalKeyDown" tabindex="-1">
+      <div class="modal-window-card">
+        <h3 class="modal-heading">{{ modal.title }}</h3>
+        <p class="modal-body">{{ modal.body }}</p>
+        
+        <div class="modal-input-container" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
+          <div v-if="modal.mode === 'create'" style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+            <label style="font-size: 11px; color: #aaaaaa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Target Folder Context</label>
+            <select v-model="modal.targetNode" @change="handleFolderChange" class="modal-text-field dark-forced-input">
+              <option disabled value="">-- Select Target Folder --</option>
+              <option v-for="folder in modal.availableFolders" :key="folder" :value="folder">{{ folder }}</option>
+            </select>
+          </div>
+
+          <div v-if="modal.mode !== 'confirm'" style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+            <label style="font-size: 11px; color: #aaaaaa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Name & Compiler Extension</label>
+            <div style="display: flex; gap: 8px; width: 100%;">
+              <input type="text" v-model="modal.inputValue" :placeholder="modal.placeholder" class="modal-text-field dark-forced-input" style="flex: 1;">
+              
+              <select v-model="modal.selectedExtension" class="modal-text-field dark-forced-input" style="width: 130px; font-family: monospace; font-weight: bold;">
+                <option v-for="ext in [...new Set(Object.values(FILE_EXTENSION_MAP))]" :key="ext" :value="ext">{{ ext }}</option>
+                <option value=".unknown">.unknown</option>
+              </select>
+            </div>
+          </div>
+      </div>
+      
+      <div class="modal-actions-row">
+        <button class="ui-btn standard-action" @click="modal.visible = false">Cancel</button>
+        <button class="ui-btn primary-action" @click="commitModalAction">Confirm</button>
+      </div>
+        
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick, onBeforeUnmount, markRaw, toRaw } from 'vue';
 import ConsolePanel from '../ide/Console.vue';
 import FileTreePanel from '../ide/FileTree.vue';
+import { FILE_EXTENSION_MAP } from '../ide/components/hoi4/hoi4Config.js';
+
+const modalDimmerRef = ref(null);
+
+// Active Monaco reference variable accessible anywhere in this script block
+let editorInstance = null;
+
+/**
+ * Maps a file path extension to your custom Monaco Language IDs
+ */
+const getMonacoLanguage = (pathStr) => {
+  if (!pathStr) return 'plaintext';
+  const extension = pathStr.substring(pathStr.lastIndexOf('.') + 1).toLowerCase();
+  switch (extension) {
+    case 'event':       return 'eventLang'; 
+    case 'decision':    return 'decisionLang'; 
+    case 'scriptedgui': return 'scriptedguiLang'; 
+    case 'script':      return 'scriptsLang'; 
+    case 'idea':        return 'ideaLang'; 
+    case 'focus':       return 'focusLang'; 
+    case 'json':        return 'json';
+    case 'xml':         return 'xml';
+    case 'js':          return 'javascript';
+    default:            return 'plaintext';
+  }
+};
+
+/**
+ * Registers your custom DSL text language tokenizers straight into the context
+ */
+const defineDslLanguages = (monacoInstance) => {
+  monacoInstance.editor.defineTheme('myDslTheme', {
+    base: 'vs-dark', 
+    inherit: true,
+    rules: [
+      { token: 'comment', foreground: '008000' },
+      { token: 'comment.block', foreground: '008000' },
+      { token: 'string.quote', foreground: 'CE9178' }, 
+      { token: 'string.content', foreground: 'CE9178' }, 
+      { token: 'number', foreground: 'B5CEA8' },
+      { token: 'constant.boolean', foreground: '569CD6' }, 
+      { token: 'constant.scope', foreground: '9CDCFE' }, 
+      { token: 'operator', foreground: 'DCDCAA' }, 
+      { token: 'brackets', foreground: 'DCDCAA' },
+      { token: 'id.embedded', foreground: 'DCDCAA' }, 
+      { token: 'primary.keyword', foreground: '569CD6' }, 
+      { token: 'control.keyword', foreground: 'C586C0' }, 
+      { token: 'id.special', foreground: 'FFD700' },     
+      { token: 'id.general', foreground: '9CDCFE' },    
+      { token: 'id.declaration', foreground: 'FFAC33' }, 
+    ],
+    colors: {}
+  });
+
+  const languageDef = {
+    primaryKeywords: [
+      'country', 'event', 'title', 'desc', 'option', 'namespace', 'text', 'define', 'window',
+      'size', 'position', 'visible', 'icon', 'static', 'tooltip', 'dynamic', 'font', 'checked', 'gridbox',
+      'slotsize', 'format', 'array', 'template', 'button', 'on', 'overlap', 'var', 'sprite', 'bar', 'checkbox', 
+      'click', 'scripted', 'effect', 'name', 'group', 'default', 'game', 'rule', 'trigger', 'action', 
+      'decision', 'category', 'idea', 'tree', 'for', 'focus', 'cost', 'draggable', 'available', 'takes', 
+      'days', 'day', 'complete', 'news', 'follow', 'of', 'require', 'prevents', 'max', 'full', 'empty', 
+      'with', 'steps', 'horizontal', 'unprogressed', 'color', 'progressed', 'priority', 'allowed'
+    ],
+    controlKeywords: ['if', 'else', 'else_if', 'then', 'not', 'and', 'or', 'limit'],
+    scopes: ['ROOT', 'FROM'],
+    booleans: ['true', 'false', 'yes', 'no'],
+    specialIDs: /[A-Z]{3}\.\d+/, 
+    tokenizer: {
+      root: [
+        [/(country)(\s+)(event)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'primary.keyword', 'white', 'id.declaration']],
+        [/(title|desc|option|namespace)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'id.declaration']],
+        [/\b(AND|and|NOT|not)\b/, 'control.keyword'],
+        [/[a-zA-Z_$][\w$]*/, {
+          cases: {
+            '@primaryKeywords': 'primary.keyword', 
+            '@controlKeywords': 'control.keyword',
+            '@scopes': 'constant.scope',     
+            '@booleans': 'constant.boolean', 
+            '@default': 'id.general'            
+          }
+        }],
+        [/@specialIDs/, 'id.special'],
+        [/\s+/, 'white'],
+        [/#{/, { token: 'comment.block', next: '@blockComment' }], 
+        [/#.*$/, 'comment'], 
+        [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }],
+        [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
+        [/[0-9]+/, 'number'],
+        [/[{}()\[\]]/, 'brackets'], 
+      ],
+      string: [
+        [/\[/, { token: 'brackets', next: '@stringEmbedded' }],
+        [/[^\\\"\[]+/, 'string.content'],
+        [/\\./, 'string.escape'],
+        [/"/, { token: 'string.quote', bracket: '@close', next: '@pop' } ]
+      ],
+      stringEmbedded: [
+        [/\]/, { token: 'brackets', next: '@pop' }],
+        [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
+        [/[a-zA-Z_$][\w$]*/, {
+          cases: {
+            '@scopes': 'constant.scope',
+            '@booleans': 'constant.boolean',
+            '@default': 'id.embedded'
+          }
+        }], 
+        [/[0-9]+/, 'operator'],              
+        [/\s+/, 'white']
+      ],
+      blockComment: [
+        [/#\}/, { token: 'comment.block', next: '@pop' }], 
+        [/[^#\n]+/, 'comment.block'],                      
+        [/#/, 'comment.block'],                            
+        [/\n/, 'comment.block']                            
+      ]
+    }
+  };
+
+  const customDslLanguages = ['eventLang', 'decisionLang', 'scriptedguiLang', 'scriptsLang', 'ideaLang', 'focusLang'];
+  customDslLanguages.forEach(langId => {
+    if (!monacoInstance.languages.getLanguages().some(l => l.id === langId)) {
+      monacoInstance.languages.register({ id: langId });
+      monacoInstance.languages.setMonarchTokensProvider(langId, languageDef);
+    }
+  });
+};
 
 const activeProjectName = ref('Loading...');
 
@@ -123,12 +288,64 @@ const isResizing = ref(false);
 const fileTreeRef = ref(null);
 const openTabs = ref([]);
 const activeTabPath = ref(null);
-let editorInstance = null;
 let isUpdatingModelFromState = false;
+let isSwitchingTab = false; // Anti-reentrancy lock to prevent freeze loops
+const expandedFoldersRegistry = ref(new Set());
+
+// Confirmation interceptor state for tabs with unsaved dirty code modifications
+const closeConfirmVisible = ref(false);
+const pendingClosePath = ref(null);
 
 // Overlays Context System State Management
 const contextMenu = ref({ visible: false, x: 0, y: 0, targetNode: null });
-const modal = ref({ visible: false, title: '', body: '', placeholder: '', inputValue: '', mode: '', targetNode: null });
+const modal = ref({ 
+  visible: false, 
+  title: '', 
+  body: '', 
+  placeholder: '', 
+  inputValue: '', 
+  mode: '', 
+  targetNode: '', // Holds string paths for creation targets
+  selectedExtension: '.unknown', 
+  availableFolders: [] 
+});
+
+// Auto-switches the extension dropdown when the folder choice shifts
+const handleFolderChange = () => {
+  if (!modal.value.targetNode) return;
+  const normalized = modal.value.targetNode.replace(/\\/g, '/');
+  const pathSegments = normalized.split('/');
+  const parentFolder = pathSegments[pathSegments.length - 1].toLowerCase().trim();
+  modal.value.selectedExtension = FILE_EXTENSION_MAP[parentFolder] || '.unknown';
+  
+  expandedFoldersRegistry.value.add(modal.value.targetNode);
+};
+
+
+// Trap standard Enter/Escape keyboard layout shortcuts inside operational modals
+const handleModalKeyDown = (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    event.stopPropagation();
+    modal.value.visible = false;
+  } 
+  else if (event.key === 'Enter') {
+    if (event.target.tagName === 'TEXTAREA') return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+    commitModalAction();
+  }
+};
+
+// Instantly force focus onto the modal overlay container the microsecond it appears
+watch(() => modal.value.visible, async (isVisible) => {
+  if (isVisible) {
+    await nextTick();
+    // Yank focus away from the main window view directly to the modal wrapper
+    modalDimmerRef.value?.focus();
+  }
+});
 
 // Direct access custom click directive
 const vClickOutside = {
@@ -144,81 +361,209 @@ const vClickOutside = {
     document.removeEventListener('mousedown', el.clickOutsideEvent);
   }
 };
-
-// Monaco Setup Framework Lifecycle Bindings
-const initializeMonacoEditor = () => {
-  if (!window.monaco) {
-    setTimeout(initializeMonacoEditor, 100);
+const setActiveTab = async (path) => {
+  if (isSwitchingTab) {
     return;
   }
-  const container = document.getElementById('editor-container');
-  if (!container) return;
 
-  editorInstance = window.monaco.editor.create(container, {
-    theme: 'vs-dark',
-    automaticLayout: false, // Turned off to prevent resizing thread collisions
-    minimap: { enabled: true },
-    fontSize: 13,
-    fontFamily: "'Fira Code', 'Cascadia Code', monospace"
-  });
-
-  editorInstance.onDidChangeModelContent(() => {
-    if (isUpdatingModelFromState) return;
-    const currentTab = openTabs.value.find(t => t.path === activeTabPath.value);
-    if (currentTab && !currentTab.isDirty) currentTab.isDirty = true;
-  });
-};
-
-const handleFileSelection = async (node) => {
-  const existingTab = openTabs.value.find(t => t.path === node.path);
-  if (!existingTab) {
-    const result = await window.api.invoke('get-file-content', { filePath: node.path });
-    if (result && result.success) {
-      openTabs.value.push({ name: node.name, path: node.path, content: result.content, isDirty: false });
-    } else return;
-  }
-  await setActiveTab(node.path);
-};
-
-const setActiveTab = async (path) => {
+  isSwitchingTab = true;
   activeTabPath.value = path;
+  
   const targetTab = openTabs.value.find(t => t.path === path);
-  if (!targetTab) return;
+  if (!targetTab) {
+    isSwitchingTab = false;
+    return;
+  }
 
   await nextTick();
-  if (!editorInstance) initializeMonacoEditor();
 
-  if (editorInstance) {
-    isUpdatingModelFromState = true;
-    const ext = '.' + path.split('.').pop().toLowerCase();
-    let language = 'text';
-    if (['.js', '.json'].includes(ext)) language = 'javascript';
-    else if (['.event', '.script', '.properties'].includes(ext)) language = 'properties';
+  const activeEditor = editorInstance || window.editorInstance;
+  const monacoGlobal = window.monaco;
 
-    const currentModel = window.monaco.editor.getModel(window.monaco.Uri.file(path));
-    if (currentModel) {
-      editorInstance.setModel(currentModel);
-    } else {
-      const newModel = window.monaco.editor.createModel(targetTab.content, language, window.monaco.Uri.file(path));
-      editorInstance.setModel(newModel);
+
+  if (activeEditor && monacoGlobal) {
+    try {
+      if (!targetTab.monacoModel) {
+        const languageId = getMonacoLanguage(path);
+        const modelUri = monacoGlobal.Uri.file(path);
+        
+        let modelInstance = monacoGlobal.editor.getModel(modelUri);
+        
+        if (modelInstance) {
+        } else {
+          modelInstance = monacoGlobal.editor.createModel(targetTab.content, languageId, modelUri);
+          
+          modelInstance.onDidChangeContent(() => {
+            const currentVal = modelInstance.getValue();
+            if (targetTab.content !== currentVal) {
+              targetTab.isDirty = true;
+            }
+          });
+        }
+        
+        targetTab.monacoModel = modelInstance ? markRaw(modelInstance) : null;
+      } else {
+      }
+
+      // Strip any reactive proxies clean before sending the object into the native framework
+      const cleanNativeModel = toRaw(targetTab.monacoModel);
+
+      activeEditor.setModel(cleanNativeModel);
+      
+      const currentLanguageId = getMonacoLanguage(path);
+      
+      // Wrap in a safe microtask deferred timeout to let the editor frame paint the text first
+      setTimeout(() => {
+        try {
+          monacoGlobal.editor.setModelLanguage(targetTab.monacoModel, currentLanguageId);
+        } catch (langErr) {
+        }
+      }, 0);
+
+    } catch (runtimeErr) {
+    } finally {
+      isSwitchingTab = false;
     }
-    isUpdatingModelFromState = false;
-    editorInstance.focus();
+  } else {
+    isSwitchingTab = false;
   }
 };
+const handleFileSelection = async (node) => {
+  if (!node || node.isDir) return;
+
+  try {
+    let existingTab = openTabs.value.find(t => t.path === node.path);
+    
+    if (!existingTab) {
+      const res = await window.api.invoke('get-file-content', { filePath: node.path });
+      
+      // Handle both boolean success and raw object returns depending on your exact wrapper
+      if (res && (res.success !== false)) {
+        const rawContent = typeof res === 'string' ? res : (res.content || '');
+        
+        const monacoGlobal = window.monaco;
+        let tabModel = null;
+        
+        if (monacoGlobal) {
+          const languageId = getMonacoLanguage(node.path);
+          const modelUri = monacoGlobal.Uri.file(node.path);
+          
+          // Look up existing global model instances first
+          tabModel = monacoGlobal.editor.getModel(modelUri);
+          
+          if (!tabModel) {
+            tabModel = monacoGlobal.editor.createModel(rawContent, languageId, modelUri);
+            
+            tabModel.onDidChangeContent(() => {
+              const currentVal = tabModel.getValue();
+              const tabItem = openTabs.value.find(t => t.path === node.path);
+              if (tabItem && tabItem.content !== currentVal) {
+                tabItem.isDirty = true;
+              }
+            });
+          }
+        }
+
+        existingTab = {
+          name: node.name,
+          path: node.path,
+          content: rawContent,
+          isDirty: false,
+          monacoModel: tabModel ? markRaw(tabModel) : null 
+        };
+
+        openTabs.value.push(existingTab);
+      } else {
+        console.error('Backend failed to read file context:', res?.message || res);
+        return;
+      }
+    }
+
+    // Set active pointer and update Monaco display
+    await setActiveTab(node.path);
+
+  } catch (err) {
+    console.error('Failed during file selection loading sequence:', err);
+  }
+};
+
 
 const closeTab = (path) => {
   const tabIndex = openTabs.value.findIndex(t => t.path === path);
   if (tabIndex === -1) return;
 
-  const model = window.monaco.editor.getModel(window.monaco.Uri.file(path));
-  if (model) model.dispose();
+  const targetTab = openTabs.value[tabIndex];
+
+  // Intercept close request if tab has pending, unsaved modifications
+  if (targetTab.isDirty) {
+    pendingClosePath.value = path;
+    closeConfirmVisible.value = true;
+    return; // Halt closing sequence until client confirms structural intent
+  }
+
+  // Fallthrough to standard clean closure routine if tab is not dirty
+  executeForceCloseTab(path);
+};
+
+// Extracted baseline closure handler to run once confirmation checks pass
+const executeForceCloseTab = (path) => {
+  const tabIndex = openTabs.value.findIndex(t => t.path === path);
+  if (tabIndex === -1) return;
+
+  const targetTab = openTabs.value[tabIndex];
+  if (targetTab?.monacoModel?.dispose) {
+    targetTab.monacoModel.dispose();
+  } else {
+    const fallbackModel = window.monaco?.editor?.getModel(window.monaco.Uri.file(path));
+    if (fallbackModel) fallbackModel.dispose();
+  }
 
   openTabs.value.splice(tabIndex, 1);
+  
   if (activeTabPath.value === path) {
-    if (openTabs.value.length > 0) setActiveTab(openTabs.value[Math.max(0, tabIndex - 1)].path);
-    else { activeTabPath.value = null; if (editorInstance) editorInstance.setModel(null); }
+    if (openTabs.value.length > 0) {
+      setActiveTab(openTabs.value[Math.max(0, tabIndex - 1)].path);
+    } else { 
+      activeTabPath.value = null; 
+      if (editorInstance && window.monaco) {
+        const emptyModel = window.monaco.editor.createModel('', 'plaintext');
+        editorInstance.setModel(emptyModel);
+      }
+    }
   }
+};
+
+const handleConfirmCloseSave = async () => {
+  if (!pendingClosePath.value) return;
+  
+  // 1. Activate the tab to ensure saveActiveFile captures its current content
+  await setActiveTab(pendingClosePath.value);
+  await saveActiveFile();
+  
+  // 2. Clear state pointers and force closure
+  const path = pendingClosePath.value;
+  pendingClosePath.value = null;
+  closeConfirmVisible.value = false;
+  executeForceCloseTab(path);
+};
+
+const handleConfirmCloseDiscard = () => {
+  if (!pendingClosePath.value) return;
+  
+  const path = pendingClosePath.value;
+  pendingClosePath.value = null;
+  closeConfirmVisible.value = false;
+  
+  // Reset dirty state to clear closure intercept gates
+  const targetTab = openTabs.value.find(t => t.path === path);
+  if (targetTab) targetTab.isDirty = false;
+  
+  executeForceCloseTab(path);
+};
+
+const handleConfirmCloseCancel = () => {
+  pendingClosePath.value = null;
+  closeConfirmVisible.value = false;
 };
 
 const saveActiveFile = async () => {
@@ -226,7 +571,11 @@ const saveActiveFile = async () => {
   const currentTab = openTabs.value.find(t => t.path === activeTabPath.value);
   if (!currentTab) return;
 
-  const codePayload = editorInstance.getValue();
+  // Retrieve code from the tab's dedicated multi-model structure
+  const modelToSave = currentTab.monacoModel || editorInstance.getModel();
+  if (!modelToSave) return;
+
+  const codePayload = modelToSave.getValue();
   const response = await window.api.invoke('save-file', { filePath: currentTab.path, content: codePayload });
   if (response && response.success) {
     currentTab.content = codePayload;
@@ -250,48 +599,229 @@ const closeContextMenu = () => { contextMenu.value.visible = false; };
 
 const triggerCreateModal = (parentPath = '') => {
   closeContextMenu();
-  modal.value = { visible: true, title: 'Create File Asset', body: `Add asset link inside directory path: /Root ${parentPath}`, placeholder: 'filename.script', inputValue: '', mode: 'create', targetNode: parentPath };
+  let initialExt = '.unknown';
+  if (parentPath) {
+    const normalized = parentPath.replace(/\\/g, '/');
+    const pathSegments = normalized.split('/');
+    const parentFolder = pathSegments[pathSegments.length - 1].toLowerCase().trim();
+    initialExt = FILE_EXTENSION_MAP[parentFolder] || '.unknown';
+  }
+
+  modal.value = { 
+    visible: true, 
+    title: 'New File', 
+    body: 'Select a target folder and specify a name:', 
+    placeholder: 'my_new_file', 
+    inputValue: '', 
+    mode: 'create', 
+    targetNode: parentPath,
+    selectedExtension: initialExt,
+    availableFolders: Object.keys(FILE_EXTENSION_MAP)
+  };
 };
 
 const triggerRenameModal = (node) => {
   closeContextMenu();
-  modal.value = { visible: true, title: 'Rename Asset Reference', body: `Provide target handle key for: ${node.name}`, placeholder: node.name, inputValue: node.name, mode: 'rename', targetNode: node };
+  if (node.isDir) return; // Block folders completely
+
+  const originalExt = '.' + node.path.split('.').pop().toLowerCase();
+  let baseName = node.name;
+  const lastDot = baseName.lastIndexOf('.');
+  if (lastDot !== -1) {
+    baseName = baseName.substring(0, lastDot);
+  }
+
+  modal.value = { 
+    visible: true, 
+    title: 'Rename', 
+    body: 'Change name (extension is preserved safely via dropdown):', 
+    placeholder: baseName, 
+    inputValue: baseName, 
+    mode: 'rename', 
+    targetNode: node,
+    selectedExtension: originalExt,
+    availableFolders: Object.keys(FILE_EXTENSION_MAP)
+  };
 };
 
 const triggerDeleteAction = (node) => {
   closeContextMenu();
-  modal.value = { visible: true, title: 'Confirm Component Purge', body: `Permanently delete "${node.name}" from storage array?`, placeholder: '', inputValue: '', mode: 'confirm', targetNode: node };
+  if (node.isDir) return; // Block folders completely
+  modal.value = { visible: true, title: 'Delete', body: `Are you sure you want to permanently delete "${node.name}"?`, placeholder: '', inputValue: '', mode: 'confirm', targetNode: node };
+};
+
+const handleImportImage = async () => {
+  try {
+    const res = await window.api.invoke('import-image');
+    if (res && res.success) {
+      // Trigger our non-destructive flat tree refresher to instantly show the new .dds assets
+      fileTreeRef.value?.refreshTree();
+    } else if (res && res.message && !res.message.includes('cancelled')) {
+      console.warn(`Import warning notice structural stack trace: ${res.message}`);
+    }
+  } catch (err) {
+    console.error('Failed to trigger native main process asset importer:', err);
+  }
+};
+
+const handleExitWorkspace = async () => {
+  try {
+    // Clear out reactive local UI memory components first
+    openTabs.value = [];
+    activeTabPath.value = '';
+    expandedFoldersRegistry.value.clear();
+    
+    // Fire the command up to main.js. The main process takes full control from here
+    // and reloads/updates the BrowserWindow frame directly.
+    await window.api.invoke('unload-project');
+  } catch (err) {
+    console.error('Failed to execute unmount sequence through main process routing handler:', err);
+  }
 };
 
 const commitModalAction = async () => {
-  const { mode, targetNode, inputValue } = modal.value;
-  const input = inputValue.trim();
+  const { mode, targetNode, inputValue, selectedExtension } = modal.value;
+  let input = inputValue.trim();
+  if (!input && mode !== 'confirm') return;
 
-  if (mode === 'create' && input) {
-    const finalPath = targetNode ? `${targetNode}/${input}` : input;
+  // Strip any manually written dots/extensions from input
+  const lastDotIndex = input.lastIndexOf('.');
+  if (lastDotIndex !== -1) {
+    input = input.substring(0, lastDotIndex);
+  }
+
+  const cleanFileName = `${input}${selectedExtension}`;
+
+  if (mode === 'create') {
+    if (!targetNode) {
+      alert('Please select a target folder first.');
+      return;
+    }
+    const finalPath = `${targetNode}/${cleanFileName}`;
     const res = await window.api.invoke('create-file', { filePath: finalPath });
-    if (res && res.success) fileTreeRef.value?.refreshTree();
-  } else if (mode === 'rename' && input && targetNode) {
+    if (res && res.success) {
+      // Refresh and feed the currently open folder paths straight back into the tree
+      fileTreeRef.value?.refreshTree([...expandedFoldersRegistry.value]);
+    }
+  } 
+  
+  else if (mode === 'rename' && targetNode) {
     const lastSlash = targetNode.path.lastIndexOf('/');
     const parent = lastSlash !== -1 ? targetNode.path.substring(0, lastSlash + 1) : '';
-    const newPath = `${parent}${input}`;
+    const newPath = `${parent}${cleanFileName}`;
+
     const res = await window.api.invoke('rename-file', { oldFilePath: targetNode.path, newFilePath: newPath });
     if (res && res.success) {
       const tab = openTabs.value.find(t => t.path === targetNode.path);
-      if (tab) { tab.name = input; tab.path = newPath; }
+      if (tab) { 
+        tab.name = cleanFileName; 
+        tab.path = newPath; 
+      }
       if (activeTabPath.value === targetNode.path) activeTabPath.value = newPath;
-      fileTreeRef.value?.refreshTree();
+      fileTreeRef.value?.refreshTree([...expandedFoldersRegistry.value]);
     }
-  } else if (mode === 'confirm' && targetNode) {
+  } 
+  
+  else if (mode === 'confirm' && targetNode) {
     const res = await window.api.invoke('delete-file-or-dir', { path: targetNode.path });
-    if (res && res.success) { closeTab(targetNode.path); fileTreeRef.value?.refreshTree(); }
+    if (res && res.success) { 
+      closeTab(targetNode.path); 
+      fileTreeRef.value?.refreshTree([...expandedFoldersRegistry.value]); 
+    }
   }
+
   modal.value.visible = false;
 };
 
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalShortcuts);
-  window.addEventListener('resize', () => editorInstance?.layout());
+  window.addEventListener('resize', () => {
+    const activeEd = editorInstance || window.editorInstance;
+    activeEd?.layout();
+  });
+
+  console.log("[DIAGNOSTIC] onMounted fired. Checking initial loader environment...");
+  console.log("[DIAGNOSTIC] Current window.monaco state:", !!window.monaco);
+  console.log("[DIAGNOSTIC] Targets found: #editor-container =", !!document.getElementById('editor-container'));
+
+  let passCount = 0;
+
+  // Execution loop replaced with a clean, single-pass async initialization routine
+  const initMonacoInstance = async () => {
+    let monacoGlobal = window.monaco || (typeof monaco !== 'undefined' ? monaco : null);
+
+    // Explicitly configure Monaco environment providers to treat worker compilation safely inline
+    window.MonacoEnvironment = {
+      getWorker: function (workerId, label) {
+        return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker.js', import.meta.url), {
+          type: 'module'
+        });
+      }
+    };
+    
+    if (!monacoGlobal) {
+      try {
+        const importedModule = await import('monaco-editor');
+        if (importedModule) {
+          monacoGlobal = importedModule;
+          window.monaco = monacoGlobal;
+        }
+      } catch (importErr) {
+        console.error("[DIAGNOSTIC] Failed to import monaco-editor package:", importErr);
+        return;
+      }
+    }
+
+    if (monacoGlobal) {
+      const container = document.getElementById('editor-container');
+      if (!container) return;
+
+      // Check if Monaco is already mounted to prevent double execution errors
+      if (editorInstance || window.editorInstance) {
+        console.log("[DIAGNOSTIC] Monaco is already mapped to the workspace layout container.");
+        return;
+      }
+
+      try {
+        container.innerHTML = ''; 
+        defineDslLanguages(monacoGlobal);
+
+        const instance = monacoGlobal.editor.create(container, {
+          value: 'Select a project file asset from the tree browser to begin code composition.',
+          language: 'plaintext', 
+          theme: 'myDslTheme', 
+          fixedOverflowWidgets: true,
+          automaticLayout: true, 
+          minimap: { enabled: true },
+          fontSize: 13,
+          fontFamily: "'Fira Code', 'Cascadia Code', monospace",
+          readOnly: false, 
+          links: false,
+          overviewRerenderLanes: 0,
+        });
+
+        editorInstance = instance;
+        window.editorInstance = instance;
+
+        if (activeTabPath.value) {
+          const bufferedTab = openTabs.value.find(t => t.path === activeTabPath.value);
+          if (bufferedTab) {
+            instance.setValue(bufferedTab.content);
+            const languageId = getMonacoLanguage(activeTabPath.value);
+            const model = instance.getModel();
+            if (model && monacoGlobal.editor?.setModelLanguage) {
+              monacoGlobal.editor.setModelLanguage(model, languageId);
+            }
+          }
+        }
+      } catch (initErr) {
+        console.error("[DIAGNOSTIC] Error during editor layout orchestration:", initErr);
+      }
+    }
+  };
+
+  // Run the initialization single-pass directly
+  initMonacoInstance();
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleGlobalShortcuts);
@@ -601,38 +1131,53 @@ $text-muted: var(--text-muted);
 
 .floating-popover-menu {
   position: fixed;
-  background-color: $card-bg;
-  border: 1px solid $border-color;
-  border-radius: 4px;
-  padding: 4px 0;
+  background-color: #1e1e1e !important;
+  border: 1px solid #333333 !important;
+  border-radius: 6px;
+  padding: 4px 0 !important;
   min-width: 180px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
   z-index: 100;
 
   .popover-row {
-    padding: 8px 14px;
+    padding: 8px 14px !important;
+    margin: 0 !important;
     font-size: 12px;
     cursor: pointer;
-    color: $text-color;
+    color: #cccccc !important;
     transition: background-color 0.1s, color 0.1s;
 
     &:hover { 
-      background-color: $primary-blue; 
-      color: #ffffff; 
+      background-color: #2a2a2a !important; 
+      color: #ffffff !important; 
     }
     &.alert-action { 
-      color: #f43f5e; 
+      color: #f43f5e !important; 
       &:hover { 
-        background-color: #e11d48; 
-        color: #ffffff; 
+        background-color: #e11d48 !important; 
+        color: #ffffff !important; 
       } 
     }
   }
 
   .popover-divider {
     height: 1px;
-    background-color: $border-color;
-    margin: 4px 0;
+    background-color: #333333 !important;
+    margin: 4px 0 !important;
+  }
+}
+
+// Global forced overrides to eliminate light grey text on light OS themes
+.dark-forced-input {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border: 1px solid #444444 !important;
+  border-radius: 4px;
+  padding: 8px 12px;
+  
+  option {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
   }
 }
 
@@ -725,8 +1270,19 @@ $text-muted: var(--text-muted);
       background-color: rgba(255, 255, 255, 0.1);
     }
   }
+  
+  &.destructive-action {
+    background-color: rgba(231, 76, 60, 0.15);
+    border: 1px solid #e74c3c;
+    color: #e74c3c;
+    
+    &:hover { 
+      background-color: #e74c3c; 
+      color: #ffffff; 
+    }
+  }
 
-  .btn-icon { 
+  .btn-icon {
     width: 14px; 
     height: 14px; 
     margin-right: 6px; 
