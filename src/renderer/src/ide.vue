@@ -143,133 +143,14 @@
 import { ref, onMounted, watch, nextTick, onBeforeUnmount, markRaw, toRaw } from 'vue';
 import ConsolePanel from '../ide/Console.vue';
 import FileTreePanel from '../ide/FileTree.vue';
-import { FILE_EXTENSION_MAP } from '../ide/components/hoi4/hoi4Config.js';
+import { FILE_EXTENSION_MAP, getMonacoLanguage, defineDslLanguages } from '../ide/components/hoi4/config.js';
 
 const modalDimmerRef = ref(null);
 
 // Active Monaco reference variable accessible anywhere in this script block
 let editorInstance = null;
 
-/**
- * Maps a file path extension to your custom Monaco Language IDs
- */
-const getMonacoLanguage = (pathStr) => {
-  if (!pathStr) return 'plaintext';
-  const extension = pathStr.substring(pathStr.lastIndexOf('.') + 1).toLowerCase();
-  switch (extension) {
-    case 'event':       return 'eventLang'; 
-    case 'decision':    return 'decisionLang'; 
-    case 'scriptedgui': return 'scriptedguiLang'; 
-    case 'script':      return 'scriptsLang'; 
-    case 'idea':        return 'ideaLang'; 
-    case 'focus':       return 'focusLang'; 
-    case 'json':        return 'json';
-    case 'xml':         return 'xml';
-    case 'js':          return 'javascript';
-    default:            return 'plaintext';
-  }
-};
 
-/**
- * Registers your custom DSL text language tokenizers straight into the context
- */
-const defineDslLanguages = (monacoInstance) => {
-  monacoInstance.editor.defineTheme('myDslTheme', {
-    base: 'vs-dark', 
-    inherit: true,
-    rules: [
-      { token: 'comment', foreground: '008000' },
-      { token: 'comment.block', foreground: '008000' },
-      { token: 'string.quote', foreground: 'CE9178' }, 
-      { token: 'string.content', foreground: 'CE9178' }, 
-      { token: 'number', foreground: 'B5CEA8' },
-      { token: 'constant.boolean', foreground: '569CD6' }, 
-      { token: 'constant.scope', foreground: '9CDCFE' }, 
-      { token: 'operator', foreground: 'DCDCAA' }, 
-      { token: 'brackets', foreground: 'DCDCAA' },
-      { token: 'id.embedded', foreground: 'DCDCAA' }, 
-      { token: 'primary.keyword', foreground: '569CD6' }, 
-      { token: 'control.keyword', foreground: 'C586C0' }, 
-      { token: 'id.special', foreground: 'FFD700' },     
-      { token: 'id.general', foreground: '9CDCFE' },    
-      { token: 'id.declaration', foreground: 'FFAC33' }, 
-    ],
-    colors: {}
-  });
-
-  const languageDef = {
-    primaryKeywords: [
-      'country', 'event', 'title', 'desc', 'option', 'namespace', 'text', 'define', 'window',
-      'size', 'position', 'visible', 'icon', 'static', 'tooltip', 'dynamic', 'font', 'checked', 'gridbox',
-      'slotsize', 'format', 'array', 'template', 'button', 'on', 'overlap', 'var', 'sprite', 'bar', 'checkbox', 
-      'click', 'scripted', 'effect', 'name', 'group', 'default', 'game', 'rule', 'trigger', 'action', 
-      'decision', 'category', 'idea', 'tree', 'for', 'focus', 'cost', 'draggable', 'available', 'takes', 
-      'days', 'day', 'complete', 'news', 'follow', 'of', 'require', 'prevents', 'max', 'full', 'empty', 
-      'with', 'steps', 'horizontal', 'unprogressed', 'color', 'progressed', 'priority', 'allowed'
-    ],
-    controlKeywords: ['if', 'else', 'else_if', 'then', 'not', 'and', 'or', 'limit'],
-    scopes: ['ROOT', 'FROM'],
-    booleans: ['true', 'false', 'yes', 'no'],
-    specialIDs: /[A-Z]{3}\.\d+/, 
-    tokenizer: {
-      root: [
-        [/(country)(\s+)(event)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'primary.keyword', 'white', 'id.declaration']],
-        [/(title|desc|option|namespace)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'id.declaration']],
-        [/\b(AND|and|NOT|not)\b/, 'control.keyword'],
-        [/[a-zA-Z_$][\w$]*/, {
-          cases: {
-            '@primaryKeywords': 'primary.keyword', 
-            '@controlKeywords': 'control.keyword',
-            '@scopes': 'constant.scope',     
-            '@booleans': 'constant.boolean', 
-            '@default': 'id.general'            
-          }
-        }],
-        [/@specialIDs/, 'id.special'],
-        [/\s+/, 'white'],
-        [/#{/, { token: 'comment.block', next: '@blockComment' }], 
-        [/#.*$/, 'comment'], 
-        [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }],
-        [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
-        [/[0-9]+/, 'number'],
-        [/[{}()\[\]]/, 'brackets'], 
-      ],
-      string: [
-        [/\[/, { token: 'brackets', next: '@stringEmbedded' }],
-        [/[^\\\"\[]+/, 'string.content'],
-        [/\\./, 'string.escape'],
-        [/"/, { token: 'string.quote', bracket: '@close', next: '@pop' } ]
-      ],
-      stringEmbedded: [
-        [/\]/, { token: 'brackets', next: '@pop' }],
-        [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
-        [/[a-zA-Z_$][\w$]*/, {
-          cases: {
-            '@scopes': 'constant.scope',
-            '@booleans': 'constant.boolean',
-            '@default': 'id.embedded'
-          }
-        }], 
-        [/[0-9]+/, 'operator'],              
-        [/\s+/, 'white']
-      ],
-      blockComment: [
-        [/#\}/, { token: 'comment.block', next: '@pop' }], 
-        [/[^#\n]+/, 'comment.block'],                      
-        [/#/, 'comment.block'],                            
-        [/\n/, 'comment.block']                            
-      ]
-    }
-  };
-
-  const customDslLanguages = ['eventLang', 'decisionLang', 'scriptedguiLang', 'scriptsLang', 'ideaLang', 'focusLang'];
-  customDslLanguages.forEach(langId => {
-    if (!monacoInstance.languages.getLanguages().some(l => l.id === langId)) {
-      monacoInstance.languages.register({ id: langId });
-      monacoInstance.languages.setMonarchTokensProvider(langId, languageDef);
-    }
-  });
-};
 
 const activeProjectName = ref('Loading...');
 
