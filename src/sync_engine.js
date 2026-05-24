@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
+import crypto from 'crypto';
 import { logToMain } from './watcher_workspace.js';
 
 const SOURCE = 'Sync-Engine';
@@ -12,6 +13,40 @@ export class SyncEngine {
         this.inputDir = inputDir;
         this.handleDeletion = handleDeletionCallback;
         this.manifest = { files: [] };
+        
+        // Lock and batching controls to prevent concurrent write race conditions
+        this.isSaving = false;
+        this.saveRequested = false;
+        this.pendingResolves = [];
+    }
+
+    /**
+     * Fast-Hash: Reads first/last 8KB of a file + size to generate a quick MD5 string.
+     */
+    async getFastHash(filePath, size) {
+        const chunkSize = 8192;
+        const fd = await fs.open(filePath, 'r').catch(() => null);
+        if (!fd) return null;
+        try {
+            const hash = crypto.createHash('md5');
+            hash.update(size.toString());
+            
+            if (size <= chunkSize * 2) {
+                const buf = await fs.readFile(filePath);
+                hash.update(buf);
+            } else {
+                const head = Buffer.alloc(chunkSize);
+                await fs.read(fd, head, 0, chunkSize, 0);
+                hash.update(head);
+                
+                const tail = Buffer.alloc(chunkSize);
+                await fs.read(fd, tail, 0, chunkSize, size - chunkSize);
+                hash.update(tail);
+            }
+            return hash.digest('hex');
+        } finally {
+            await fs.close(fd);
+        }
     }
 
     /**
@@ -26,27 +61,36 @@ export class SyncEngine {
         // If no manifest exists, do a full scan and initialize
         if (!(await fs.pathExists(this.manifestPath))) {
             logToMain('warn', 'No manifest found. Performing first-time scan...', SOURCE);
-            const files = await this.scanDir(this.inputDir);
-            this.manifest = { files };
+            const diskFiles = await this.scanDir(this.inputDir);
+            
+            // Compute baseline hashes for new setup
+            for (const [relPath, stat] of Object.entries(diskFiles)) {
+                diskFiles[relPath].hash = await this.getFastHash(path.join(this.inputDir, relPath), stat.size);
+            }
+
+            this.manifest = { files: diskFiles };
             await this.save();
-            return { total: files.length, new: files.length, deleted: 0, isNew: true };
+            const total = Object.keys(diskFiles).length;
+            return { total, new: total, deleted: 0, changedFiles: Object.keys(diskFiles).map(p => path.join(this.inputDir, p)), isNew: true };
         }
 
         // 1. Load the "JSON Truth" from last session
-        let oldManifest;
+        let oldManifest = { files: {} };
         try {
-            oldManifest = await fs.readJson(this.manifestPath);
+            const loaded = await fs.readJson(this.manifestPath);
             
-            if (!oldManifest || !Array.isArray(oldManifest.files)) {
-                throw new Error("Manifest is missing the 'files' array structure.");
+            if (loaded && Array.isArray(loaded.files)) {
+                // Backward compatibility layout migration
+                loaded.files.forEach(f => oldManifest.files[f] = { size: 0, mtimeMs: 0, hash: null });
+                logToMain('info', `Migrating legacy manifest format array layout.`, SOURCE);
+            } else if (loaded && loaded.files && typeof loaded.files === 'object') {
+                oldManifest = loaded;
+                logToMain('info', `Manifest loaded. Previous session had ${Object.keys(oldManifest.files).length} files.`, SOURCE);
+            } else {
+                throw new Error("Manifest structure missing standard 'files' field mapping.");
             }
-            
-            logToMain('info', `Manifest loaded. Previous session had ${oldManifest.files.length} files.`, SOURCE);
-            
         } catch (error) {
             logToMain('error', `CRITICAL: Manifest JSON is corrupted or unreadable. Error: ${error.message}`, SOURCE);
-            
-            // Since this runs in a forked Node process, we use IPC to trigger the Electron dialog in main.js
             if (process.send) {
                 process.send({
                     action: 'show-warning-dialog',
@@ -54,34 +98,56 @@ export class SyncEngine {
                     message: 'The output may contain ghost files due to the manifest being broken. We cannot validate if there were any file deletions in the input after the last time the project was open.'
                 });
             }
-            
-            // Fallback: treat as if no previous files existed so the sync engine doesn't crash
-            oldManifest = { files: [] };
         }
         
         // 2. Perform a single directory scan
         const diskFiles = await this.scanDir(this.inputDir);
         
-        const oldSet = new Set(oldManifest.files);
-        const diskSet = new Set(diskFiles);
-
+        let changedFiles = [];
         let deletedCount = 0;
         let newCount = 0;
 
         // 3. Find Ghost Deletions (In manifest but gone from disk)
-        for (const relPath of oldManifest.files) {
-            if (!diskSet.has(relPath)) {
+        for (const relPath of Object.keys(oldManifest.files)) {
+            if (!diskFiles[relPath]) {
                 logToMain('warn', `Ghost deletion detected: ${relPath}`, SOURCE);
                 await this.handleDeletion(path.join(this.inputDir, relPath));
                 deletedCount++;
             }
         }
 
-        // 4. Find New Files (On disk but not in manifest)
-        for (const relPath of diskFiles) {
-            if (!oldSet.has(relPath)) {
-                logToMain('info', `Offline addition detected: ${relPath}`, SOURCE);
+        // 4. Find Additions and Modifications
+        for (const [relPath, stat] of Object.entries(diskFiles)) {
+            const fullPath = path.join(this.inputDir, relPath);
+            const oldData = oldManifest.files[relPath];
+
+            let isModified = false;
+            let currentHash = null;
+
+            if (!oldData) {
+                isModified = true;
                 newCount++;
+                currentHash = await this.getFastHash(fullPath, stat.size);
+                logToMain('info', `Offline addition detected: ${relPath}`, SOURCE);
+            } else if (oldData.size !== stat.size) {
+                isModified = true;
+                currentHash = await this.getFastHash(fullPath, stat.size);
+                logToMain('info', `Offline size modification detected: ${relPath}`, SOURCE);
+            } else if (oldData.mtimeMs !== stat.mtimeMs) {
+                // Trigger Option 3: mtime changed but size matches (like a git pull). Evaluate fast-hash content signature.
+                currentHash = await this.getFastHash(fullPath, stat.size);
+                if (!oldData.hash || currentHash !== oldData.hash) {
+                    isModified = true;
+                    logToMain('info', `Offline content modification detected: ${relPath}`, SOURCE);
+                }
+            } else {
+                currentHash = oldData.hash;
+            }
+
+            diskFiles[relPath].hash = currentHash;
+
+            if (isModified) {
+                changedFiles.push(fullPath);
             }
         }
 
@@ -89,54 +155,90 @@ export class SyncEngine {
         await this.save();
 
         return {
-            total: diskFiles.length,
+            total: Object.keys(diskFiles).length,
             new: newCount,
             deleted: deletedCount,
+            changedFiles,
             isNew: false
         };
     }
 
     async addFile(relPath) {
-        if (!this.manifest.files.includes(relPath)) {
-            this.manifest.files.push(relPath);
+        const fullPath = path.join(this.inputDir, relPath);
+        try {
+            const stat = await fs.stat(fullPath);
+            const hash = await this.getFastHash(fullPath, stat.size);
+            this.manifest.files[relPath] = { size: stat.size, mtimeMs: stat.mtimeMs, hash };
             await this.save();
-            logToMain('debug', `Manifest updated: added ${relPath}`, SOURCE);
+            logToMain('info', `Manifest updated: added/changed ${relPath}`, SOURCE);
+        } catch (e) {
+            logToMain('error', `Failed to stat added file ${relPath}: ${e.message}`, SOURCE);
         }
     }
 
     async removeFile(relPath) {
-        const originalCount = this.manifest.files.length;
-        this.manifest.files = this.manifest.files.filter(f => f !== relPath);
-        
-        if (this.manifest.files.length !== originalCount) {
+        if (this.manifest.files[relPath]) {
+            delete this.manifest.files[relPath];
             await this.save();
-            logToMain('debug', `Manifest updated: removed ${relPath}`, SOURCE);
+            logToMain('info', `Manifest updated: removed ${relPath}`, SOURCE);
         }
     }
 
     async save() {
+        return new Promise((resolve) => {
+            this.pendingResolves.push(resolve);
+            this.triggerSave();
+        });
+    }
+
+    async triggerSave() {
+        if (this.isSaving) {
+            this.saveRequested = true;
+            return;
+        }
+
+        this.isSaving = true;
+        this.saveRequested = false;
+
+        // Yield to the event loop to allow synchronous operations in the same tick to batch together
+        await new Promise(resolve => setImmediate(resolve));
+
+        const resolves = this.pendingResolves;
+        this.pendingResolves = [];
+
         try {
-            // ATOMIC WRITE: Write to a .tmp file first, then forcefully move/overwrite the real one
             const tempPath = `${this.manifestPath}.tmp`;
+            await fs.ensureDir(path.dirname(this.manifestPath));
             await fs.writeJson(tempPath, this.manifest, { spaces: 4 });
             await fs.move(tempPath, this.manifestPath, { overwrite: true });
         } catch (error) {
             logToMain('error', `Failed to save manifest atomically: ${error.message}`, SOURCE);
+        } finally {
+            this.isSaving = false;
+            
+            // Resolve all promises waiting on this batch
+            for (const resolve of resolves) resolve();
+
+            // If another save request arrived while writing, process the next batch immediately
+            if (this.saveRequested) {
+                this.triggerSave();
+            }
         }
     }
 
     async scanDir(dir, base = dir) {
-        let results = [];
+        let results = {};
         try {
             const list = await fs.readdir(dir);
             for (const file of list) {
                 const fullPath = path.join(dir, file);
                 const stat = await fs.stat(fullPath);
                 if (stat && stat.isDirectory()) {
-                    results = results.concat(await this.scanDir(fullPath, base));
+                    Object.assign(results, await this.scanDir(fullPath, base));
                 } else {
                     if (!file.startsWith('.')) {
-                        results.push(path.relative(base, fullPath));
+                        const relPath = path.relative(base, fullPath);
+                        results[relPath] = { size: stat.size, mtimeMs: stat.mtimeMs };
                     }
                 }
             }

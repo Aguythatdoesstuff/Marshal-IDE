@@ -147,10 +147,40 @@ async function startWatcher() {
     await setupWorkspace();
 
     const syncEngine = new SyncEngine(config.project_root, config.input_dir, (f) => handleDeletion(f, outputBaseDir));
-    await syncEngine.performInitialSync();
+    const syncStats = await syncEngine.performInitialSync();
+
+    // If no manifest existed (first time scan), compile everything once on startup
+    if (syncStats && syncStats.isNew && syncEngine.manifest && Array.isArray(syncEngine.manifest.files)) {
+        logToMain('info', `No manifest found. Compiling all ${syncEngine.manifest.files.length} workspace files...`, SOURCE);
+        for (const relPath of syncEngine.manifest.files) {
+            triggerCompilation(path.join(config.input_dir, relPath));
+        }
+    }
+
+    // IPC listener to handle the frontend recompile command
+    process.on('message', async (packet) => {
+        if (packet && packet.action === 'recompile-all') {
+            logToMain('info', 'Recompile all requested by front-end. Wiping manifest...', SOURCE);
+            try {
+                if (await fs.pathExists(syncEngine.manifestPath)) {
+                    await fs.remove(syncEngine.manifestPath);
+                }
+                await syncEngine.performInitialSync();
+                if (syncEngine.manifest && Array.isArray(syncEngine.manifest.files)) {
+                    logToMain('info', `Forcing full recompilation of all ${syncEngine.manifest.files.length} files...`, SOURCE);
+                    for (const relPath of syncEngine.manifest.files) {
+                        triggerCompilation(path.join(config.input_dir, relPath));
+                    }
+                }
+            } catch (err) {
+                logToMain('error', `Failed to execute recompile-all: ${err.message}`, SOURCE);
+            }
+        }
+    });
 
     const watcher = chokidar.watch(config.input_dir, {
         persistent: true,
+        ignoreInitial: true, // Prevents chokidar from emitting 'add' events for existing files during discovery
         ignored: (p) => {
             const fileName = path.basename(p);
             return fileName.startsWith('.') && fileName !== '.' && fileName !== '..';
@@ -171,6 +201,8 @@ async function startWatcher() {
             triggerCompilation(filePath);
         })
         .on('change', (filePath) => {
+            const relPath = path.relative(config.input_dir, filePath);
+            syncEngine.addFile(relPath).catch(() => {});
             logToMain('info', `File changed: ${path.basename(filePath)}`, SOURCE);
             triggerCompilation(filePath);
         })

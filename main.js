@@ -1001,6 +1001,16 @@ function setupAutoUpdater() {
 			};
 		});
 
+		ipcMain.handle('recompile-all', async () => {
+			if (watcherProcess && watcherProcess.connected) {
+				watcherProcess.send({ action: 'recompile-all' });
+				return { success: true };
+			} else {
+				console.error("[Main-Process] Cannot recompile: Watcher child process is not running or connected.");
+				throw new Error("Watcher process is unavailable.");
+			}
+		});
+
 		ipcMain.handle('dismiss-whats-new', async () => {
 			try {
 				const changelogPath = path.join(USER_DATA_PATH, 'metadata', 'changelog.json');

@@ -13,6 +13,10 @@
       </div>
       
       <div class="controls-section">
+        <button class="ui-btn standard-action" @click="handleRecompileAll">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          Recompile
+        </button>
         <button class="ui-btn standard-action" @click="handleImportImage">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 5H5l3.5-4.5z"/></svg>
           Import Img
@@ -529,6 +533,16 @@ const triggerDeleteAction = (node) => {
   closeContextMenu();
   if (node.isDir) return; // Block folders completely
   modal.value = { visible: true, title: 'Delete', body: `Are you sure you want to permanently delete "${node.name}"?`, placeholder: '', inputValue: '', mode: 'confirm', targetNode: node };
+};
+
+const handleRecompileAll = async () => {
+  try {
+    // Triggers the main process IPC channel, which will pass the action 
+    // down to the active watcher_workspace child process thread
+    await window.api.invoke('recompile-all');
+  } catch (err) {
+    console.error('Failed to trigger full workspace recompilation:', err);
+  }
 };
 
 const handleImportImage = async () => {
