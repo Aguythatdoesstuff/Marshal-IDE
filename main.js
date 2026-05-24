@@ -972,11 +972,44 @@ function setupAutoUpdater() {
 		const eulaPromise = checkEulaStatus(appLogger);
 
 		ipcMain.handle('get-boot-state', async () => {
-			
 			const eula = await eulaPromise;
+			
+			let showWhatsNew = false;
+			const changelogPath = path.join(USER_DATA_PATH, 'metadata', 'changelog.json');
+			const currentVersion = app.getVersion();
+			
+			try {
+				await fs.ensureDir(path.dirname(changelogPath));
+				let lastSeenVersion = null;
+				if (await fs.pathExists(changelogPath)) {
+					const data = await fs.readJson(changelogPath);
+					lastSeenVersion = data.version;
+				}
+				
+				// Trigger the overlay notice if no previous state tracking exists or versions differ
+				if (!lastSeenVersion || lastSeenVersion !== currentVersion) {
+					showWhatsNew = true;
+				}
+			} catch (err) {
+				appLogger?.error(`Failed to verify changelog version state: ${err.message}`);
+			}
+
 			return {
 				enforceEula: !eula.valid,
+				showWhatsNew,
+				currentVersion
 			};
+		});
+
+		ipcMain.handle('dismiss-whats-new', async () => {
+			try {
+				const changelogPath = path.join(USER_DATA_PATH, 'metadata', 'changelog.json');
+				await fs.writeJson(changelogPath, { version: app.getVersion() }, { spaces: 4 });
+				return { success: true };
+			} catch (err) {
+				appLogger?.error(`Failed to save dismissed changelog state: ${err.message}`);
+				return { success: false, message: err.message };
+			}
 		});
 
 		mainWindow.webContents.on('did-finish-load', () => {

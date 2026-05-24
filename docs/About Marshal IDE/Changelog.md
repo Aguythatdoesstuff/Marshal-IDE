@@ -9,6 +9,8 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Smart File Creation Wizard**: Rewrote the "New File" workflow. Instead of forcing automatic extensions, the IDE now features an extension dropdown menu. 
     - **Context-Aware Defaults**: Selecting a target folder automatically auto-selects the recommended compiler extension, safeguarding your build from syntax errors and preventing uncompilable "gibberish" output.
 - **Isolated Language Architecture**: Successfully extracted over 300 lines of massive Regex-based syntax highlighters and configuration maps out of the main view tier into `../ide/components/hoi4/config.js`, laying the architectural groundwork to easily support future Paradox game engines down the line.
+- **Visual File Browser**: Color-coded file icons (e.g., Green for Focuses, Red for Events) for better spatial recognition.
+- **Version-Linked Update Modals**: Implement a "What's New" modal that automatically triggers upon the first launch of a new version to highlight key changes.
 
 ### Changed
 - **Frontend Architecture Overhaul**: Fully refactored the frontend stack to use **Vue.js** and **sass**, paired with a comprehensive CSS audit and cleanup for drastically improved long-term codebase maintenance.

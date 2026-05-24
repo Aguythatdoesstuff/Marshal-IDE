@@ -25,7 +25,11 @@
                 <span v-if="node.isExpanded">📂</span>
                 <span v-else>📁</span>
               </template>
-              <template v-else>📄</template>
+              <template v-else>
+                <svg viewBox="0 0 24 24" fill="currentColor" :style="{ color: getFileColor(node.name) }" width="14" height="14" style="vertical-align: middle; margin-bottom: 2px;">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/>
+                </svg>
+              </template>
             </span>
             <span class="node-text-label">{{ node.name }}</span>
           </div>
@@ -37,6 +41,26 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+
+// Centralized color mapping for file extensions. 
+// Kept in a dictionary variable here so it can easily be migrated to a settings/config file later.
+const FILE_COLOR_MAP = {
+  '.decision': '#eab308',   // Yellow
+  '.event': '#ef4444',      // Red
+  '.scriptedgui': '#a855f7',// Purple
+  '.script': '#3b82f6',     // Blue
+  '.idea': '#f97316',       // Orange
+  '.focus': '#22c55e',      // Green
+  '.unknown': '#8a8a93'     // Muted Gray
+};
+
+const getFileColor = (fileName) => {
+  const lastDotIndex = fileName.lastIndexOf('.');
+  if (lastDotIndex === -1) return FILE_COLOR_MAP['.unknown'];
+  
+  const ext = fileName.substring(lastDotIndex).toLowerCase();
+  return FILE_COLOR_MAP[ext] || FILE_COLOR_MAP['.unknown'];
+};
 
 const props = defineProps({
   sidebarWidth: { type: Number, default: 260 },

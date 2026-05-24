@@ -7,12 +7,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ### CSS & Performance
 - Improvements to the Sync engine to more intelligently choose what files were modified since last workspace session.(will provide a substantial workspace start time reduction for large mods and lower end Pc's)
 
-### User Notifications & Changelog
-- **Version-Linked Update Modals**: Implement a "What's New" modal that automatically triggers upon the first launch of a new version to highlight key changes.
-
-### IDE & UX Improvements
-- **Visual File Browser**: Color-coded file icons (e.g., Green for Focuses, Red for Events) for better spatial recognition.
-
 ### Mod importer
 - Add a importer tool to be able to easily import vanilla Hoi4 mods into a Marshal IDE workspace.
 
