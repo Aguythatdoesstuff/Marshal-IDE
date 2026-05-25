@@ -10,30 +10,23 @@ export default defineConfig({
       viteStaticCopy({
         targets: [
           {
-            // Mirror the root structure into out/main
+            // Mirrors the entire root structure directly into build/vite/main
             src: [
-              './**/*',
-              '!./dist',
-              '!./out',
-              '!./node_modules',
-              '!./public',
-              '!./build',
-              '!./build/**/*',
-              '!./electron.vite.config.js',
-              '!./VS',           
-              '!./**/.*',         
-              '!./**/.vs/**/*',
-              '!./c#',               
-              '!./c#/**/*'        
+              '**/*',
+              '!dist',
+              '!out',
+              '!node_modules',
+              '!public',
+              '!build',
+              '!build/**/*',
+              '!electron.vite.config.js',
+              '!VS',           
+              '!**/.*',         
+              '!**/.vs/**/*',
+              '!c#',               
+              '!c#/**/*'        
             ],
-            dest: '.' 
-          },
-          {
-            src: 'c#/published-components/**/*',
-            dest: 'published-components',
-            rename: {
-              stripBase: 2
-            }
+            dest: '.' // Targets the main outDir directly
           }
         ]
       })
@@ -64,7 +57,7 @@ export default defineConfig({
       }
     }
   },
-renderer: {
+  renderer: {
     root: resolve(__dirname, 'src/renderer'),
     resolve: {
       alias: {

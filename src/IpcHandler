@@ -1,0 +1,96 @@
+import { app } from 'electron';
+import path from 'path';
+import { spawn } from 'child_process';
+
+/**
+ * Spawns the native C# 'importer' binary and listens to its Console output.
+ * * * Directory Structure:
+ * c#/published-components/importer/
+ * ├── linux/importer
+ * └── windows/importer.exe
+ * * @param {Object} paths - The configuration paths for the importer.
+ * @param {string} paths.input - Path to the input directory.
+ * @param {string} paths.output - Path to the output directory.
+ * @param {string} paths.debug - Path to the debug directory.
+ */
+function runImporter({ input, output, debug }) {
+  const isDev = !app.isPackaged;
+  const platform = process.platform;
+
+  // 1. Resolve base directory based on environment
+  const baseDir = isDev
+    ? path.join(app.getAppPath(), 'c#', 'published-components', 'importer')
+    : path.join(process.resourcesPath, 'published-components', 'importer');
+
+  // 2. Select correct binary matching the host OS
+  let binaryPath;
+  if (platform === 'win32') {
+    binaryPath = path.join(baseDir, 'windows', 'importer.exe');
+  } else if (platform === 'linux') {
+    binaryPath = path.join(baseDir, 'linux', 'importer');
+  } else {
+    console.error(`[Importer] Unsupported OS platform: ${platform}`);
+    return;
+  }
+
+  // 3. Format arguments to match your C# parser's named argument structure
+  const args = [
+    `--input=${input}`,
+    `--output=${output}`,
+    `--debug=${debug}`
+  ];
+
+  console.log(`[Importer] Spawning process: ${binaryPath} with args:`, args);
+
+  // 4. Spawn the process asynchronously
+  const importerProcess = spawn(binaryPath, args);
+
+  // 5. Attach listeners to handle console output streams
+  handleProcessOutput(importerProcess);
+}
+
+/**
+ * Helper function to listen to data streams (Console.WriteLine) from the spawned process.
+ * @param {ChildProcess} processInstance - The spawned child process instance.
+ */
+function handleProcessOutput(processInstance) {
+  // Set encoding so we get string chunks instead of raw binary Buffers
+  processInstance.stdout.setEncoding('utf8');
+  processInstance.stderr.setEncoding('utf8');
+
+  // Listen to standard Console.WriteLine() outputs
+  processInstance.stdout.on('data', (data) => {
+    // Trim to clean up trailing system newlines (\r\n or \n) from Console.WriteLine
+    const message = data.trim();
+    if (message) {
+      console.log(`[Importer STDOUT]: ${message}`);
+      // YK: You can trigger IPC events to the renderer here if needed:
+      // mainWindow.webContents.send('importer-log', message);
+    }
+  });
+
+  // Listen to standard Error streams or unhandled exceptions
+  processInstance.stderr.on('data', (data) => {
+    const errorMsg = data.trim();
+    if (errorMsg) {
+      console.error(`[Importer STDERR]: ${errorMsg}`);
+    }
+  });
+
+  // Fired when the C# app terminates or exits
+  processInstance.on('close', (code) => {
+    console.log(`[Importer] Process exited with code ${code}`);
+  });
+
+  // Fired if the binary fails to spawn entirely (e.g., missing execution permissions on Linux)
+  processInstance.on('error', (err) => {
+    console.error('[Importer] Failed to start process:', err);
+  });
+}
+
+// --- Example Usage ---
+// runImporter({
+//   input: '/path/to/input',
+//   output: '/path/to/output',
+//   debug: '/path/to/debug'
+// });
