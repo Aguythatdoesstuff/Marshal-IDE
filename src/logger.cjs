@@ -247,10 +247,15 @@ function handleIpcLog(data) {
     }
 }
 
+function getSessionDir() {
+    return SESSION_DIR;
+}
+
 module.exports = {
     initializeLogger,
     handleIpcLog,
     archiveCurrentSession,
+    getSessionDir,
     getLogsRootDir: () => LOGS_ROOT_DIR, 
     MAX_LOG_STORAGE_MB 
 };

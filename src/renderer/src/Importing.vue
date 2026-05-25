@@ -72,14 +72,12 @@
           </div>
         </div>
 
-        <div class="console-box">
-          <div class="console-header">System Subprocess Log</div>
-          <div class="console-body" ref="consoleBodyElement">
-            <div v-for="(log, idx) in logs" :key="idx" class="log-line">
-              <span class="log-time">[{{ log.time }}]</span> 
-              <span :class="log.type">{{ log.text }}</span>
-            </div>
-          </div>
+        <div class="console-box" style="flex: 1; min-height: 250px; display: flex; flex-direction: column;">
+          <ConsolePanel 
+            :customLogs="logs" 
+            :isMinimized="false"
+            @clear-logs="logs = []"
+          />
         </div>
         
         <div class="action-footer justify-center spacing-top-md" v-if="isDone">
@@ -93,6 +91,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue';
+import ConsolePanel from '../ide/Console.vue';
 
 const isProcessing = ref(false);
 const isDone = ref(false);
@@ -153,51 +152,78 @@ const browseOutput = async () => {
   } catch (error) { console.error(error); }
 };
 
-// Console Log UI helper
-const appendLog = (text, type = 'info') => {
+// Stream lines into the exact format expected by Console.vue
+const appendRealLog = (message, type = 'info') => {
   logs.value.push({
-    time: new Date().toLocaleTimeString(),
-    text,
-    type
-  });
-  nextTick(() => {
-    if (consoleBodyElement.value) {
-      consoleBodyElement.value.scrollTop = consoleBodyElement.value.scrollHeight;
-    }
+    timestamp: new Date().toLocaleTimeString(),
+    type: type,
+    source: 'C# Importer',
+    message: message
   });
 };
 
-// Start Mock Import sequence
-const startImport = () => {
+// Set up event listeners for streaming terminal text from main process
+onMounted(() => {
+  if (window.api && window.api.on) {
+    window.api.on('importer-stdout-line', (event, message) => {
+      appendRealLog(message, 'info');
+    });
+    window.api.on('importer-stderr-line', (event, message) => {
+      appendRealLog(message, 'error');
+    });
+  }
+});
+
+// Start Import sequence
+const startImport = async () => {
   isProcessing.value = true;
   isDone.value = false;
   timerSeconds.value = 0;
   logs.value = [];
   
-  // Start elapsed timer
   timerInterval = setInterval(() => {
     timerSeconds.value++;
   }, 1000);
 
-  appendLog(`Initializing import from ${form.sourcePath}...`, 'system');
-  appendLog(`Bootstrapping non-JS sub-process...`, 'info');
+  appendRealLog(`Initializing workspace creation for ${form.workspaceName}...`, 'warn');
 
-  // MOCK TELEMETRY (Replace with real IPC listeners from your Rust/C++ backend)
-  fakeDataInterval = setInterval(() => {
-    telemetry.cpu = (Math.random() * 15 + 2).toFixed(1);
-    telemetry.ram = Math.floor(Math.random() * 200 + 400).toString();
-    appendLog(`Processed block ${Math.floor(Math.random() * 10000)}...`, 'muted');
-  }, 800);
+  try {
+    // 1. Create the Workspace folder architecture
+    const createResult = await window.api.invoke('create-project', { 
+      projectName: form.workspaceName.trim(), 
+      outputDir: computedOutputPath.value.trim(),
+      includeTemplates: false
+    });
 
-  // MOCK COMPLETION (Remove once backend tells you it's done)
-  setTimeout(() => {
+    if (!createResult.success) {
+      throw new Error(createResult.message || "Failed to finalize project path tracking structures.");
+    }
+    
+    appendRealLog(`Workspace allocated on disk. Executing native binary...`, 'warn');
+
+    // 2. Spawn and track execution
+    const importResult = await window.api.invoke('run-importer', {
+      input: form.sourcePath.trim(),
+      workspaceName: form.workspaceName.trim()
+    });
+
     clearInterval(timerInterval);
-    clearInterval(fakeDataInterval);
     telemetry.cpu = '0.0';
     telemetry.ram = '0';
+
+    if (!importResult || !importResult.success) {
+      throw new Error((importResult && importResult.message) || "Importer exited with structural faults.");
+    }
+
     isDone.value = true;
-    appendLog(`Import completed successfully.`, 'success');
-  }, 5000); // Fakes a 5-second process
+    appendRealLog(`Import operation finalized successfully! All targets written.`, 'info');
+
+  } catch (error) {
+    clearInterval(timerInterval);
+    telemetry.cpu = '0.0';
+    telemetry.ram = '0';
+    appendRealLog(`Fatal Error: ${error.message}`, 'error');
+  }
 };
 </script>
 

@@ -1,6 +1,7 @@
-import { app } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { spawn } from 'child_process';
+import fs from 'fs';
 
 /**
  * Spawns the native C# 'importer' binary and listens to its Console output.
@@ -40,51 +41,81 @@ function runImporter({ input, output, debug }) {
     `--debug=${debug}`
   ];
 
+  // Fix Linux permission flags: dynamically grant permission if missing
+  if (platform === 'linux') {
+    try {
+      // 0o755 gives the owner full Read/Write/Execute access so the binary can spin up
+      fs.chmodSync(binaryPath, 0o755);
+      console.log(`[Importer] Successfully assigned execution rights (0755) to Linux binary.`);
+    } catch (permissionError) {
+      console.warn(`[Importer] Failed to run chmodSync on binary file:`, permissionError);
+    }
+  }
+
   console.log(`[Importer] Spawning process: ${binaryPath} with args:`, args);
 
-  // 4. Spawn the process asynchronously
-  const importerProcess = spawn(binaryPath, args);
+  // 4. Spawn the process asynchronously and wrap execution in a Promise
+  return new Promise((resolve, reject) => {
+    const importerProcess = spawn(binaryPath, args);
 
-  // 5. Attach listeners to handle console output streams
-  handleProcessOutput(importerProcess);
+    // 5. Attach listeners and pass resolve/reject controllers
+    handleProcessOutput(importerProcess, resolve, reject);
+  });
 }
 
 /**
  * Helper function to listen to data streams (Console.WriteLine) from the spawned process.
  * @param {ChildProcess} processInstance - The spawned child process instance.
+ * @param {Function} resolve - Promise resolution handler.
+ * @param {Function} reject - Promise rejection handler.
  */
-function handleProcessOutput(processInstance) {
-  // Set encoding so we get string chunks instead of raw binary Buffers
+function handleProcessOutput(processInstance, resolve, reject) {
   processInstance.stdout.setEncoding('utf8');
   processInstance.stderr.setEncoding('utf8');
 
+  const getFocusedWindow = () => {
+    const wins = BrowserWindow.getAllWindows();
+    return wins.length > 0 ? wins[0] : null;
+  };
+
   // Listen to standard Console.WriteLine() outputs
   processInstance.stdout.on('data', (data) => {
-    // Trim to clean up trailing system newlines (\r\n or \n) from Console.WriteLine
     const message = data.trim();
     if (message) {
       console.log(`[Importer STDOUT]: ${message}`);
-      // YK: You can trigger IPC events to the renderer here if needed:
-      // mainWindow.webContents.send('importer-log', message);
+      const win = getFocusedWindow();
+      if (win) {
+        win.webContents.send('importer-stdout-line', message);
+      }
     }
   });
 
-  // Listen to standard Error streams or unhandled exceptions
+  // Listen to standard Error streams or unhandled exceptions safely
   processInstance.stderr.on('data', (data) => {
     const errorMsg = data.trim();
     if (errorMsg) {
       console.error(`[Importer STDERR]: ${errorMsg}`);
+      const win = getFocusedWindow();
+      if (win) {
+        win.webContents.send('importer-stderr-line', errorMsg);
+      }
     }
   });
 
   // Fired when the C# app terminates or exits
   processInstance.on('close', (code) => {
     console.log(`[Importer] Process exited with code ${code}`);
+    if (code === 0) {
+      resolve({ success: true });
+    } else {
+      reject(new Error(`Importer process exited with non-zero code: ${code}`));
+    }
   });
 
   // Fired if the binary fails to spawn entirely (e.g., missing execution permissions on Linux)
   processInstance.on('error', (err) => {
     console.error('[Importer] Failed to start process:', err);
+    reject(err);
   });
 }
 
@@ -94,3 +125,5 @@ function handleProcessOutput(processInstance) {
 //   output: '/path/to/output',
 //   debug: '/path/to/debug'
 // });
+
+export { runImporter, handleProcessOutput };
