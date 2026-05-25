@@ -61,17 +61,17 @@ export class SyncEngine {
         // If no manifest exists, do a full scan and initialize
         if (!(await fs.pathExists(this.manifestPath))) {
             logToMain('warn', 'No manifest found. Performing first-time scan...', SOURCE);
-            const diskFiles = await this.scanDir(this.inputDir);
-            
-            // Compute baseline hashes for new setup
-            for (const [relPath, stat] of Object.entries(diskFiles)) {
-                diskFiles[relPath].hash = await this.getFastHash(path.join(this.inputDir, relPath), stat.size);
-            }
-
-            this.manifest = { files: diskFiles };
+            const files = await this.scanDir(this.inputDir);
+            this.manifest = { files };
             await this.save();
-            const total = Object.keys(diskFiles).length;
-            return { total, new: total, deleted: 0, changedFiles: Object.keys(diskFiles).map(p => path.join(this.inputDir, p)), isNew: true };
+            const changedFiles = Object.keys(files).map(relPath => path.join(this.inputDir, relPath));
+            return {
+                total: Object.keys(files).length,
+                new: Object.keys(files).length,
+                deleted: 0,
+                changedFiles,
+                isNew: true
+            };
         }
 
         // 1. Load the "JSON Truth" from last session

@@ -13,6 +13,7 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Version-Linked Update Modals**: Implement a "What's New" modal that automatically triggers upon the first launch of a new version to highlight key changes.
 
 ### Changed
+-- **Intelligent Sync Engine**: Optimized the workspace sync engine to more smartly detect which files were modified since the last session. This delivers a substantial reduction in workspace startup times, particularly beneficial for large mods and lower-end hardware.
 - **Frontend Architecture Overhaul**: Fully refactored the frontend stack to use **Vue.js** and **sass**, paired with a comprehensive CSS audit and cleanup for drastically improved long-term codebase maintenance.
 - **Optimized Monaco Core**: Improved and streamlined the Monaco Editor initialization process for better overall editor stability.
 - **UX & Fluidity Enhancements**: Fine-tuned application responsiveness across the board to ensure animations, transitions, and interactions feel faster and more fluent.

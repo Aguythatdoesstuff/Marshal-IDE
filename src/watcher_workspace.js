@@ -149,11 +149,11 @@ async function startWatcher() {
     const syncEngine = new SyncEngine(config.project_root, config.input_dir, (f) => handleDeletion(f, outputBaseDir));
     const syncStats = await syncEngine.performInitialSync();
 
-    // If no manifest existed (first time scan), compile everything once on startup
-    if (syncStats && syncStats.isNew && syncEngine.manifest && Array.isArray(syncEngine.manifest.files)) {
-        logToMain('info', `No manifest found. Compiling all ${syncEngine.manifest.files.length} workspace files...`, SOURCE);
-        for (const relPath of syncEngine.manifest.files) {
-            triggerCompilation(path.join(config.input_dir, relPath));
+    // Compile files identified by the sync engine as new, modified, or part of an initial scan
+    if (syncStats && Array.isArray(syncStats.changedFiles) && syncStats.changedFiles.length > 0) {
+        logToMain('info', `Sync engine identified ${syncStats.changedFiles.length} files requiring compilation on startup. Processing...`, SOURCE);
+        for (const filePath of syncStats.changedFiles) {
+            triggerCompilation(filePath);
         }
     }
 
@@ -165,11 +165,11 @@ async function startWatcher() {
                 if (await fs.pathExists(syncEngine.manifestPath)) {
                     await fs.remove(syncEngine.manifestPath);
                 }
-                await syncEngine.performInitialSync();
-                if (syncEngine.manifest && Array.isArray(syncEngine.manifest.files)) {
-                    logToMain('info', `Forcing full recompilation of all ${syncEngine.manifest.files.length} files...`, SOURCE);
-                    for (const relPath of syncEngine.manifest.files) {
-                        triggerCompilation(path.join(config.input_dir, relPath));
+                const reindexStats = await syncEngine.performInitialSync();
+                if (reindexStats && Array.isArray(reindexStats.changedFiles)) {
+                    logToMain('info', `Forcing full recompilation of all ${reindexStats.changedFiles.length} files...`, SOURCE);
+                    for (const filePath of reindexStats.changedFiles) {
+                        triggerCompilation(filePath);
                     }
                 }
             } catch (err) {
