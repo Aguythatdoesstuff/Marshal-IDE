@@ -15,7 +15,7 @@
       <button @click="declineEula" class="btn btn-decline">
         Decline & Exit
       </button>
-      <button @click="acceptEula" class="btn btn-accept">
+      <button @click="acceptEula" class="btn btn-accept" :disabled="isLoadError || eulaContent === 'Loading...'">
         Accept & Continue
       </button>
     </div>
@@ -58,17 +58,23 @@ const statusDisplayName = ref("Standard User License");
 const statusColor = ref("#60a5fa"); // Reactive variable targeted by CSS v-bind()
 const isModalOpen = ref(false);
 const rawInput = ref("");
+const isLoadError = ref(false);
 let activeCode = "";
 
 // Template references
 const contentDiv = ref(null);
 const modalInput = ref(null);
 
-// --- Methods ---
 const loadLicense = async (code = "") => {
   try {
+    isLoadError.value = false;
     const result = await window.api.invoke('get-eula-text', code);
     
+    // Check if the backend caught an internal error and returned an error block
+    if (result.displayName === "Error" || result.content.startsWith("Error:")) {
+      isLoadError.value = true;
+    }
+
     eulaContent.value = result.content;
     activeCode = code;
     statusDisplayName.value = result.displayName;
@@ -82,7 +88,10 @@ const loadLicense = async (code = "") => {
       }
     });
   } catch (err) {
+    isLoadError.value = true;
     eulaContent.value = "Error: Could not load license.";
+    statusDisplayName.value = "Error";
+    statusColor.value = "#ef4444"; // Red color indicator for error
   }
 };
 

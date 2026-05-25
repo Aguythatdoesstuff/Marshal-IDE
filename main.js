@@ -1034,14 +1034,12 @@ function setupAutoUpdater() {
 			appLogger?.info("Main window shell is now visible showing Splash state.");
 		});
 
-		await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+		// Register handlers immediately so they are alive the instant Vue mounts
+		setupEulaHandlers(mainWindow, async () => {
+			mainWindow.webContents.send('eula-accepted-success');
+		}, appLogger);
 
-		const eula = await eulaPromise;
-		if (!eula.valid) {
-			setupEulaHandlers(mainWindow, async () => {
-				mainWindow.webContents.send('eula-accepted-success');
-			}, appLogger);
-		}
+		await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 	}
 
 	app.whenReady().then(async () => {
