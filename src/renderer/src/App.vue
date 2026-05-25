@@ -32,6 +32,10 @@
       <Ide />
     </div>
 
+    <div v-else-if="currentScreen === 'IMPORTING'" class="importing-layer">
+      <Importing />
+    </div>
+
     <div v-if="showWhatsNewModal" class="whats-new-overlay">
       <div class="whats-new-modal">
         <div class="modal-header">
@@ -89,6 +93,7 @@ import WorkspaceSelection from './WorkspaceSelection.vue'
 import Wiki from './wiki.vue'
 import Settings from './settings.vue'
 import Ide from './ide.vue'
+import Importing from './Importing.vue'
 
 export default {
   name: 'App',
@@ -97,7 +102,8 @@ export default {
     WorkspaceSelection,
     Wiki,
     Settings,
-    Ide
+    Ide,
+    Importing
   },
   data() {
     return {

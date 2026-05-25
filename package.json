@@ -10,11 +10,11 @@
   "license": "SEE LICENSE IN LICENSE.txt",
   "scripts": {
     "license-gen": "generate-license-file --input package.json --output licenses/THIRD-PARTY-LICENSES.txt --overwrite",
-    "start": "electron-vite build && electron .",
-    "dist": "electron-vite build && electron-builder",
-    "dist:win": "electron-vite build && electron-builder --win",
-    "dist:linux": "electron-vite build && electron-builder --linux",
-    "dist:all": "electron-vite build && electron-builder --win --linux"
+    "start": "rm -rf build/vite && electron-vite build && electron .",
+    "dist": "rm -rf build/vite && electron-vite build && electron-builder",
+    "dist:win": "rm -rf build/vite && electron-vite build && electron-builder --win",
+    "dist:linux": "rm -rf build/vite && electron-vite build && electron-builder --linux",
+    "dist:all": "rm -rf build/vite && electron-vite build && electron-builder --win --linux"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
@@ -37,7 +37,8 @@
     "electron-vite": "^2.0.0",
     "generate-license-file": "^4.1.1",
     "sass": "^1.99.0",
-    "vite-plugin-static-copy": "^3.1.4"
+    "vite": "^5.4.21",
+    "vite-plugin-static-copy": "^3.4.0"
   },
   "build": {
     "appId": "com.kacper.marshalide",

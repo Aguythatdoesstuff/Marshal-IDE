@@ -22,9 +22,18 @@ export default defineConfig({
               '!./electron.vite.config.js',
               '!./VS',           
               '!./**/.*',         
-              '!./**/.vs/**/*'  
+              '!./**/.vs/**/*',
+              '!./c#',               
+              '!./c#/**/*'        
             ],
             dest: '.' 
+          },
+          {
+            src: 'c#/published-components/**/*',
+            dest: 'published-components',
+            rename: {
+              stripBase: 2
+            }
           }
         ]
       })
