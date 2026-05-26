@@ -2,7 +2,7 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
-## [1.1.0] - 2026-05-23
+## [1.1.0] - 2026-05-26
 
 ### Added
 - **Tabbed Interface**: Added full support for multi-file workflows, allowing you to open, view, and switch between multiple scripts simultaneously.
