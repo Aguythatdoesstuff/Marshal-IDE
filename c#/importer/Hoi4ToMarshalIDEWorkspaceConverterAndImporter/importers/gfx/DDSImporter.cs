@@ -15,17 +15,17 @@ namespace importer
         // Simple standalone copier. Does not inherit from BaseImporter to avoid the base parser reading binary files.
         private readonly ConcurrentDictionary<string, bool> _copiedFiles = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
-        public async Task RunAsync(string rootDirectory)
+        public async Task RunAsync(string inputRootDirectory, string outputRootDirectory = null)
         {
-            if (string.IsNullOrWhiteSpace(rootDirectory)) rootDirectory = Directory.GetCurrentDirectory();
+            if (string.IsNullOrWhiteSpace(inputRootDirectory)) inputRootDirectory = Directory.GetCurrentDirectory();
 
-            string expected = Path.Combine(rootDirectory, "gfx");
+            string expected = Path.Combine(inputRootDirectory, "gfx");
             string finalPath = expected;
             if (!Directory.Exists(finalPath))
             {
                 try
                 {
-                    finalPath = Directory.EnumerateDirectories(rootDirectory, "gfx", SearchOption.AllDirectories).FirstOrDefault() ?? finalPath;
+                    finalPath = Directory.EnumerateDirectories(inputRootDirectory, "gfx", SearchOption.AllDirectories).FirstOrDefault() ?? finalPath;
                     if (Directory.Exists(finalPath))
                         DebugLogger.Log("DDSImporter", finalPath, LogLevel.Info, $"Found gfx folder at: {finalPath}");
                 }
@@ -37,14 +37,15 @@ namespace importer
 
             if (!Directory.Exists(finalPath))
             {
-                DebugLogger.Log("DDSImporter", rootDirectory, LogLevel.Info, $"No gfx folder found under {rootDirectory}. Nothing to copy.");
+                DebugLogger.Log("DDSImporter", inputRootDirectory, LogLevel.Info, $"No gfx folder found under {inputRootDirectory}. Nothing to copy.");
                 return;
             }
 
             var files = Directory.EnumerateFiles(finalPath, "*.dds", SearchOption.AllDirectories).ToList();
             DebugLogger.Log("DDSImporter", finalPath, LogLevel.Info, $"Found {files.Count} .dds files in {finalPath}");
 
-            var outputBase = Path.Combine(rootDirectory, "mod", "GFX");
+            var outRoot = string.IsNullOrWhiteSpace(outputRootDirectory) ? inputRootDirectory : outputRootDirectory;
+            var outputBase = Path.Combine(outRoot, "mod", "GFX");
             int copied = 0;
 
             var tasks = files.Select(f => Task.Run(() =>

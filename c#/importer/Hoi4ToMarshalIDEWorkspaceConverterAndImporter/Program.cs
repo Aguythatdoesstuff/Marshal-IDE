@@ -124,7 +124,7 @@ namespace importer
 
             // Run the standalone DDS copier in parallel (it should not be part of the BaseImporter list).
             var ddsCopier = new DDSImporter();
-            var ddsTask = ddsCopier.RunAsync(inputDirectory);
+            var ddsTask = ddsCopier.RunAsync(inputDirectory, outputDir);
 
             // Await all; Task.WhenAll will throw if any task faults. We'll catch once and record per-task errors below
             try
@@ -159,15 +159,15 @@ namespace importer
             // on data produced by specific importer instances (we pass the instances in).
             var compilers = new List<Func<Task>>
             {
-                async () => await new ScriptedEffectsCompiler(ScriptedEffectImporter).RunCompileAsync(inputDirectory, context),
-                async () => await new ScriptedTriggerCompiler(ScriptedTriggerImporter).RunCompileAsync(inputDirectory, context),
-                async () => await new OnActionsCompiler(OnActionsImporter).RunCompileAsync(inputDirectory, context),
-                async () => await new GameRulesCompiler(GameRulesImporter).RunCompileAsync(inputDirectory, context),
-                async () => await new EventsCompiler(EventsImporter).RunCompileAsync(inputDirectory, context),
-                async () => await new IdeasCompiler(IdeasImporter).RunCompileAsync(inputDirectory, context),
-                async () => await new DecisionsCompiler(DecisionsImporter,DecisionCategoriesImporter).RunCompileAsync(inputDirectory, context),
-                async () => await new FocusTreeCompiler(FocusTreeImporter).RunCompileAsync(inputDirectory, context),
-                async () => await new ScriptedGuiCompiler(ScriptedLocalisationImporter,ScriptedGuiImporter,GFXImporter,InterfaceImporter).RunCompileAsync(inputDirectory, context),
+                async () => await new ScriptedEffectsCompiler(ScriptedEffectImporter).RunCompileAsync(outputDir, context),
+                async () => await new ScriptedTriggerCompiler(ScriptedTriggerImporter).RunCompileAsync(outputDir, context),
+                async () => await new OnActionsCompiler(OnActionsImporter).RunCompileAsync(outputDir, context),
+                async () => await new GameRulesCompiler(GameRulesImporter).RunCompileAsync(outputDir, context),
+                async () => await new EventsCompiler(EventsImporter).RunCompileAsync(outputDir, context),
+                async () => await new IdeasCompiler(IdeasImporter).RunCompileAsync(outputDir, context),
+                async () => await new DecisionsCompiler(DecisionsImporter,DecisionCategoriesImporter).RunCompileAsync(outputDir, context),
+                async () => await new FocusTreeCompiler(FocusTreeImporter).RunCompileAsync(outputDir, context),
+                async () => await new ScriptedGuiCompiler(ScriptedLocalisationImporter,ScriptedGuiImporter,GFXImporter,InterfaceImporter).RunCompileAsync(outputDir, context),
             };
             DebugLogger.Log("Global", "", LogLevel.Info, "Launching all compilers...");
             // Run compilers and measure per-compiler duration / success
@@ -236,7 +236,7 @@ namespace importer
             DebugLogger.WriteOut(importers, compilerResults, totalSeconds, totalImportedFiles);
 
             IPC.Send("ProcessingComplete", "All importers and compilers have completed successfully.");
-            Console.ReadLine();
+            //Console.ReadLine();
         }
         static async Task PerformEmergencyShutdown(Exception ex, List<Process> spawnedProcesses, string outputDir)
         {
