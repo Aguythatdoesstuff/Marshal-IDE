@@ -2,13 +2,6 @@
 
 This document outlines the planned trajectory for Marshal IDE. Note: Features marked as "Researching" are experimental.
 
-## 🛠 v1.1.0 - The "Quality of Life" Update
-
-### Mod importer
-- Add a importer tool to be able to easily import vanilla Hoi4 mods into a Marshal IDE workspace.
-
----    
-    
 ## 🛠 v1.2.0 – Expansion Update
 ### Compiler refractor
 - Refractoring the compilers will be done into a faster language making the compilers faster

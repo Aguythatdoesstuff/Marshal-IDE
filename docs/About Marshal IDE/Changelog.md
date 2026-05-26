@@ -11,6 +11,7 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Isolated Language Architecture**: Successfully extracted over 300 lines of massive Regex-based syntax highlighters and configuration maps out of the main view tier into `../ide/components/hoi4/config.js`, laying the architectural groundwork to easily support future Paradox game engines down the line.
 - **Visual File Browser**: Color-coded file icons (e.g., Green for Focuses, Red for Events) for better spatial recognition.
 - **Version-Linked Update Modals**: Implement a "What's New" modal that automatically triggers upon the first launch of a new version to highlight key changes.
+- Added a importer tool to be able to easily import vanilla Hoi4 mods into a Marshal IDE workspace.
 
 ### Changed
 -- **Intelligent Sync Engine**: Optimized the workspace sync engine to more smartly detect which files were modified since the last session. This delivers a substantial reduction in workspace startup times, particularly beneficial for large mods and lower-end hardware.
