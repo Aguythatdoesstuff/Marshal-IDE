@@ -50,6 +50,7 @@ namespace importer
 
         public async Task RunImportAsync(string rootDirectory, ImportContext context)
         {
+
             this.Context = context;
             var sw = Stopwatch.StartNew();
             MemoryBeforeBytes = GC.GetTotalMemory(false);
@@ -103,6 +104,7 @@ namespace importer
 
                 while ((line = await reader.ReadLineAsync()) != null)
                 {
+                    
                     string sanitized = line.Replace("\u200B", "")
                           .Replace("\uFEFF", "")
                           .Replace("\u00A0", " ");

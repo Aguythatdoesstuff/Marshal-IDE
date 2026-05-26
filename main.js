@@ -502,7 +502,7 @@ function setupAutoUpdater() {
 		if (currentProjectConfig && path.basename(currentProjectConfig.project_root) === projectName) {
 		    if (watcherProcess) {
 		        appLogger?.info(`Killing active watcher for ${projectName} before deletion.`, { source: 'Main-Config' });
-		        watcherProcess.kill('SIGKILL');
+		        watcherProcess.kill('SIGTERM');
 		        watcherProcess = null;
 		    }
 		    currentProjectConfig = null;
@@ -563,7 +563,7 @@ function setupAutoUpdater() {
 	    // Kill any existing watcher process before starting a new one
 	    if (watcherProcess) {
 		appLogger?.warn(`Terminating previous watcher process (PID: ${watcherProcess.pid}).`, { source: 'Main-Watcher' });
-		watcherProcess.kill('SIGKILL'); 
+		watcherProcess.kill('SIGTERM'); 
 		watcherProcess = null;
 	    }
 
@@ -598,7 +598,7 @@ function setupAutoUpdater() {
 	    });
 
 	    watcherProcess.on('exit', (code, signal) => {
-		if (code !== 0 && signal !== 'SIGKILL' && signal !== null) {
+		if (code !== 0 && signal !== 'SIGTERM' && signal !== null) {
 		    appLogger?.error(`Watcher exited unexpectedly. Code: ${code}, Signal: ${signal}`, { source: 'Main-Watcher' });
 		}
 		watcherProcess = null;

@@ -81,7 +81,7 @@ namespace importer
                 PerformEmergencyShutdown(e.ExceptionObject as Exception, spawnedProcesses, outputDir);
             };
             var context = new ImportContext();
-
+            
             // Create importer instances so we can reference them from compilers later
             var ScriptedEffectImporter = new ScriptedEffectImporter();
             var ScriptedTriggerImporter = new ScriptedTriggerImporter();

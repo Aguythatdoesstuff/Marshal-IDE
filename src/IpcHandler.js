@@ -2,6 +2,50 @@ import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { spawn } from 'child_process';
 import fs from 'fs';
+import os from 'os';
+
+const getCpuTimes = () => {
+  const cpus = os.cpus();
+  if (!cpus || cpus.length === 0) return { total: 0, idle: 0 };
+  let user = 0, nice = 0, sys = 0, idle = 0, irq = 0;
+  for (const cpu of cpus) {
+    user += cpu.times.user;
+    nice += cpu.times.nice;
+    sys += cpu.times.sys;
+    idle += cpu.times.idle;
+    irq += cpu.times.irq;
+  }
+  return { total: user + nice + sys + idle + irq, idle };
+};
+
+let lastCpuTimes = getCpuTimes();
+
+setInterval(() => {
+  const currentCpuTimes = getCpuTimes();
+  const idleDiff = currentCpuTimes.idle - lastCpuTimes.idle;
+  const totalDiff = currentCpuTimes.total - lastCpuTimes.total;
+  
+  let cpuPercent = 0;
+  if (totalDiff > 0) {
+    cpuPercent = 100 - (100 * idleDiff / totalDiff);
+  }
+  
+  lastCpuTimes = currentCpuTimes;
+
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMemMB = Math.round((totalMem - freeMem) / (1024 * 1024));
+
+  const wins = BrowserWindow.getAllWindows();
+  const activeWin = wins.length > 0 ? wins[0] : null;
+  
+  if (activeWin && !activeWin.isDestroyed()) {
+    activeWin.webContents.send('importer-telemetry', {
+      cpu: Math.max(0, Math.min(100, cpuPercent)).toFixed(1),
+      ram: usedMemMB.toString()
+    });
+  }
+}, 1000);
 
 /**
  * Spawns the native C# 'importer' binary and listens to its Console output.
@@ -102,8 +146,12 @@ function handleProcessOutput(processInstance, resolve, reject) {
     }
   });
 
+  let isFinished = false;
+
   // Fired when the C# app terminates or exits
   processInstance.on('close', (code) => {
+    if (isFinished) return;
+    isFinished = true;
     console.log(`[Importer] Process exited with code ${code}`);
     if (code === 0) {
       resolve({ success: true });
@@ -114,9 +162,31 @@ function handleProcessOutput(processInstance, resolve, reject) {
 
   // Fired if the binary fails to spawn entirely (e.g., missing execution permissions on Linux)
   processInstance.on('error', (err) => {
-    console.error('[Importer] Failed to start process:', err);
+    if (isFinished) return;
+    isFinished = true;
+    console.error(`[Importer Spawn Error]: ${err.message}`);
     reject(err);
   });
+
+  // Periodically check if the PID is still alive in the OS (guards against silent antivirus kills)
+  const pidCheckInterval = setInterval(() => {
+    if (isFinished) {
+      clearInterval(pidCheckInterval);
+      return;
+    }
+    try {
+      // signal 0 tests if the process exists without actually killing it
+      process.kill(processInstance.pid, 0);
+    } catch (e) {
+      // Process is dead/unreachable
+      clearInterval(pidCheckInterval);
+      if (!isFinished) {
+        isFinished = true;
+        try { processInstance.kill('SIGKILL'); } catch(err){}
+        reject(new Error("Process closed or killed unexpectedly (Antivirus / OS Termination)"));
+      }
+    }
+  }, 1000);
 }
 
 // --- Example Usage ---

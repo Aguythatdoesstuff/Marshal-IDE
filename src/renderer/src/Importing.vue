@@ -80,8 +80,8 @@
           />
         </div>
         
-        <div class="action-footer justify-center spacing-top-md" v-if="isDone">
-          <button @click="goBack" class="btn btn-primary">Return to Workspaces</button>
+        <div class="action-footer justify-center spacing-top-md">
+          <button @click="goBack" class="btn btn-primary" :disabled="!isDone">Return to Workspaces</button>
         </div>
       </div>
 
@@ -152,24 +152,40 @@ const browseOutput = async () => {
   } catch (error) { console.error(error); }
 };
 
-// Stream lines into the exact format expected by Console.vue
-const appendRealLog = (message, type = 'info') => {
-  logs.value.push({
-    timestamp: new Date().toLocaleTimeString(),
-    type: type,
-    source: 'C# Importer',
-    message: message
-  });
-};
+
+let hasFatalIpcError = false;
 
 // Set up event listeners for streaming terminal text from main process
 onMounted(() => {
   if (window.api && window.api.on) {
-    window.api.on('importer-stdout-line', (event, message) => {
-      appendRealLog(message, 'info');
+    window.api.on('importer-stdout-line', (arg1, arg2) => {
+      const message = arg2 !== undefined ? arg2 : arg1;
+      console.log(message);
+
+      // Catch structured fatal errors from the C# IPC
+      if (typeof message === 'string' && message.includes('[[IPC]]:')) {
+        try {
+          const jsonStr = message.substring(message.indexOf('[[IPC]]:') + 8);
+          const ipcData = JSON.parse(jsonStr);
+          if (ipcData.type === 'FatalError' || ipcData.type === 'FatalErrorInfo') {
+            hasFatalIpcError = true;
+          }
+        } catch (e) { /* ignore parse errors from incomplete streams */ }
+      }
+
+      logs.value = [...logs.value, { type: 'info', text: message, message: message }];
     });
-    window.api.on('importer-stderr-line', (event, message) => {
-      appendRealLog(message, 'error');
+    window.api.on('importer-stderr-line', (arg1, arg2) => {
+      const errorMsg = arg2 !== undefined ? arg2 : arg1;
+      console.error(errorMsg);
+      logs.value.push({ type: 'error', text: errorMsg, message: errorMsg });
+    });
+    window.api.on('importer-telemetry', (arg1, arg2) => {
+      const data = arg2 !== undefined ? arg2 : arg1;
+      if (data) {
+        telemetry.cpu = data.cpu;
+        telemetry.ram = data.ram;
+      }
     });
   }
 });
@@ -185,7 +201,7 @@ const startImport = async () => {
     timerSeconds.value++;
   }, 1000);
 
-  appendRealLog(`Initializing workspace creation for ${form.workspaceName}...`, 'warn');
+  console.warn(`Initializing workspace creation for ${form.workspaceName}...`);
 
   try {
     // 1. Create the Workspace folder architecture
@@ -199,9 +215,10 @@ const startImport = async () => {
       throw new Error(createResult.message || "Failed to finalize project path tracking structures.");
     }
     
-    appendRealLog(`Workspace allocated on disk. Executing native binary...`, 'warn');
+    console.warn(`Workspace allocated on disk. Executing native binary...`);
 
     // 2. Spawn and track execution
+    hasFatalIpcError = false; // Reset before run
     const importResult = await window.api.invoke('run-importer', {
       input: form.sourcePath.trim(),
       workspaceName: form.workspaceName.trim()
@@ -211,18 +228,33 @@ const startImport = async () => {
     telemetry.cpu = '0.0';
     telemetry.ram = '0';
 
-    if (!importResult || !importResult.success) {
-      throw new Error((importResult && importResult.message) || "Importer exited with structural faults.");
+    // Check both the explicit IPC error flag and the standard process exit result
+    if (!importResult || !importResult.success || hasFatalIpcError) {
+      throw new Error((importResult && importResult.message) || "Importer crashed or encountered a fatal error.");
     }
 
     isDone.value = true;
-    appendRealLog(`Import operation finalized successfully! All targets written.`, 'info');
+    console.log(`Import operation finalized successfully! All targets written.`);
 
   } catch (error) {
     clearInterval(timerInterval);
     telemetry.cpu = '0.0';
     telemetry.ram = '0';
-    appendRealLog(`Fatal Error: ${error.message}`, 'error');
+    isDone.value = true; 
+    console.log(`Fatal Error: ${error.message}`, 'error');
+    
+    // Push the final error to the console UI
+    logs.value = [...logs.value, { type: 'error', text: `Fatal Error: ${error.message}`, message: `Fatal Error: ${error.message}` }];
+    
+    // Cleanup the workspace since it failed
+    try {
+      await window.api.invoke('delete-project', { projectName: form.workspaceName.trim() });
+    } catch (cleanupErr) {
+      console.error("Cleanup path removal failed:", cleanupErr);
+    }
+    
+    // Show the mandated popup
+    alert("Failed to import.\n\nBefore reporting any bugs and error:\n1. Run the mod in the game itself\n2. Fix all warnings and errors reported by the game engine\n3. Run again.\n\nStill crashing/failing? Report the crash!");
   }
 };
 </script>
@@ -331,7 +363,7 @@ $text-muted: var(--text-muted, #858585);
 /* Console Box */
 .console-box {
   background: #111; border: 1px solid #37373d; border-radius: 6px; 
-  overflow: hidden; display: flex; flex-direction: column; height: 250px;
+  overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; height: 250px;
 }
 .console-header {
   background: #1e1e1e; padding: 0.5rem 1rem; font-size: 0.75rem; 
