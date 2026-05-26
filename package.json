@@ -85,7 +85,7 @@
       },
       {
         "from": "c#/published-components/",
-        "to": "c#/published-components"
+        "to": "published-components"
       },
       "LICENSE.txt"
     ]
