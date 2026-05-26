@@ -19,13 +19,9 @@
   "dependencies": {
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
-    "chalk": "^5.0.0",
     "chokidar": "^3.6.0",
-    "codemirror": "^6.0.2",
     "electron-updater": "^6.6.2",
     "fs-extra": "^11.3.3",
-    "inquirer": "^9.0.0",
-    "js-yaml": "^4.1.1",
     "monaco-editor": "^0.52.0",
     "open": "^10.2.0",
     "winston": "^3.18.3"
