@@ -1,0 +1,93 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Kacper\\Desktop\\Projects\\Marshal-IDE\\c#\\Compiler\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kacper\\desktop\\projects\\marshal-ide\\c#\\compiler\\compiler\\basefilevalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|solutionrelative:compiler\\basefilevalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kacper\\desktop\\projects\\marshal-ide\\c#\\compiler\\compiler\\effectsvalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|solutionrelative:compiler\\effectsvalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kacper\\desktop\\projects\\marshal-ide\\c#\\compiler\\compiler\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|solutionrelative:compiler\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{40ea2e6b-2121-4bb8-a43e-c83c04b51041}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{b1e99781-ab81-11d0-b683-00aa00a3ee26}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "EffectsValidator.cs",
+              "DocumentMoniker": "C:\\Users\\Kacper\\Desktop\\Projects\\Marshal-IDE\\c#\\Compiler\\Compiler\\EffectsValidator.cs",
+              "RelativeDocumentMoniker": "Compiler\\EffectsValidator.cs",
+              "ToolTip": "C:\\Users\\Kacper\\Desktop\\Projects\\Marshal-IDE\\c#\\Compiler\\Compiler\\EffectsValidator.cs",
+              "RelativeToolTip": "Compiler\\EffectsValidator.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T08:06:26.341Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "BaseFileValidator.cs",
+              "DocumentMoniker": "C:\\Users\\Kacper\\Desktop\\Projects\\Marshal-IDE\\c#\\Compiler\\Compiler\\BaseFileValidator.cs",
+              "RelativeDocumentMoniker": "Compiler\\BaseFileValidator.cs",
+              "ToolTip": "C:\\Users\\Kacper\\Desktop\\Projects\\Marshal-IDE\\c#\\Compiler\\Compiler\\BaseFileValidator.cs",
+              "RelativeToolTip": "Compiler\\BaseFileValidator.cs",
+              "ViewState": "AgIAALwAAAAAAAAAAAA/wN8AAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T08:06:22.217Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Kacper\\Desktop\\Projects\\Marshal-IDE\\c#\\Compiler\\Compiler\\Program.cs",
+              "RelativeDocumentMoniker": "Compiler\\Program.cs",
+              "ToolTip": "C:\\Users\\Kacper\\Desktop\\Projects\\Marshal-IDE\\c#\\Compiler\\Compiler\\Program.cs",
+              "RelativeToolTip": "Compiler\\Program.cs",
+              "ViewState": "AgIAABoAAAAAAAAAAAAAADEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-27T07:44:35.722Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
