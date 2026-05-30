@@ -5,230 +5,163 @@ using System.Linq;
 
 namespace Compiler
 {
-    public interface IValidator
-    {
-        bool Validate(string filePath, out string error);
-    }
+    public record ValidationError(string FileName, int LineNumber, string ErrorMessage);
 
-    public class ValidationResult
+    public abstract class BaseValidator
     {
-        public bool IsValid { get; set; }
-        public List<string> Errors { get; } = new List<string>();
-    }
+        public List<ValidationError> Errors { get; protected set; } = new List<ValidationError>();
 
-    /// Abstract base file validator. Specializations should add expected block keywords
-    /// to ExpectedIndentationBlocks and may override ValidateLines for custom rules.
-    /// Default indentation policy: 4 spaces => one indent level, or tabs count as levels.
-    public abstract class BaseFileValidator : IValidator
-    {
-        protected int SpacesPerIndent { get; set; } = 4; // default 4 spaces
-        protected bool AllowTabsAsIndent { get; set; } = true;
-        protected HashSet<string> ExpectedIndentationBlocks { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-        public bool Validate(string filePath, out string error)
+        public void ValidateFile(string filePath, string fileName)
         {
-            error = null;
-            string[] lines;
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine($"[ERROR] File does not exist: {filePath}");
+                return;
+            }
             try
             {
-                lines = File.ReadAllLines(filePath);
+                var lines = File.ReadAllLines(filePath);
+
+                var sanitizedLines = lines.Select(SanitizeLine).ToList();
+
+                var withoutComments = StripComments(sanitizedLines, fileName);
+
+                ValidateLines(withoutComments, filePath);
             }
             catch (Exception ex)
             {
-                error = "Failed to read file: " + ex.Message;
-                return false;
+                Console.WriteLine($"[ERROR] Failed to read file: {filePath}. Exception: {ex.Message}");
             }
-
-            var errors = new List<string>();
-            ValidateLines(lines, errors);
-            if (errors.Any())
-            {
-                error = string.Join(Environment.NewLine, errors);
-                return false;
-            }
-
-            return true;
+        }
+        // Helper method to count spaces at the start of the line
+        private int GetLeadingSpaceCount(string line)
+        {
+            if (string.IsNullOrEmpty(line)) return 0;
+            return line.TakeWhile(c => c == ' ').Count();
         }
 
-        // Child classes can override to add checks
-        protected virtual void ValidateLines(string[] lines, List<string> errors)
+        private List<string> StripComments(List<string> lines, string fileName)
         {
-            int braceLevel = 0;
-            int pendingKeywordIncrease = 0;
+            var result = new List<string>();
+            bool inBlockComment = false;
 
-            for (int i = 0; i < lines.Length; i++)
+            for (int i = 0; i < lines.Count; i++)
             {
-                var raw = lines[i];
-                var trimmed = raw.Trim();
-                if (string.IsNullOrEmpty(trimmed)) continue;
+                char[] chars = lines[i].ToCharArray();
+                bool inString = false;
 
-                var (okIndent, indentUnits, indentErr) = ComputeIndentationUnits(raw);
-                if (!okIndent) errors.Add($"Line {i + 1}: {indentErr}");
-
-                // If line starts with a closing brace reduce brace level first
-                if (trimmed.StartsWith("}"))
+                for (int j = 0; j < chars.Length; j++)
                 {
-                    int closings = CountChar(trimmed, '}');
-                    braceLevel = Math.Max(0, braceLevel - closings);
-                }
-
-                int expectedIndent = braceLevel + pendingKeywordIncrease;
-
-                if (okIndent && indentUnits != expectedIndent)
-                {
-                    errors.Add($"Line {i + 1}: expected indent {expectedIndent} but found {indentUnits} (content: '{trimmed}')");
-                }
-
-                // Detect keywords that indicate a following block should be indented
-                foreach (var k in ExpectedIndentationBlocks)
-                {
-                    if (trimmed.StartsWith(k, StringComparison.OrdinalIgnoreCase) || trimmed.Contains(" " + k + " ", StringComparison.OrdinalIgnoreCase))
+                    if (inBlockComment)
                     {
-                        if (!trimmed.Contains("{")) pendingKeywordIncrease++;
+                        if (chars[j] == '#' && j + 1 < chars.Length && chars[j + 1] == '}')
+                        {
+                            inBlockComment = false;
+                            chars[j] = ' ';
+                            chars[j + 1] = ' ';
+                            j++;
+                        }
+                        else
+                        {
+                            chars[j] = ' ';
+                        }
+                        continue;
+                    }
+
+                    if (chars[j] == '"')
+                    {
+                        inString = !inString;
+                        continue;
+                    }
+
+                    if (inString) continue;
+
+                    if (chars[j] == '#')
+                    {
+                        if (j + 1 < chars.Length && chars[j + 1] == '{')
+                        {
+                            inBlockComment = true;
+                            chars[j] = ' ';
+                            chars[j + 1] = ' ';
+                            j++;
+                            continue;
+                        }
+
+                        for (int k = j; k < chars.Length; k++)
+                        {
+                            chars[k] = ' ';
+                        }
+                        break;
                     }
                 }
 
-                // Detect assignment-style blocks: key = { (opening braces handled below)
-                if (trimmed.Contains("=") && trimmed.Contains("{"))
+                if (inString)
                 {
-                    // no-op: opening braces processed below
+                    Errors.Add(new ValidationError(fileName, i + 1, "Unclosed string literal. Strings must be closed on the same line."));
                 }
 
-                int openings = CountChar(trimmed, '{');
-                if (openings > 0)
+                result.Add(new string(chars));
+            }
+
+            return result;
+        }
+
+        private string SanitizeLine(string line)
+        {
+            if (string.IsNullOrEmpty(line)) return string.Empty;
+
+            // Fix Unicode hidden spaces and formatting blocks
+            line = line.Replace("\u200B", "")   // Zero-Width Space
+                       .Replace("\u200C", "")   // Zero-Width Non-Joiner
+                       .Replace("\u200D", "")   // Zero-Width Joiner
+                       .Replace("\uFEFF", "")   // Byte Order Mark (BOM) if embedded mid-file
+                       .Replace("\u00A0", " "); // Non-Breaking Space -> convert to regular space
+
+            return line;
+        }
+        // Handles line-by-line validation, tracking dynamic indentation rules
+        protected virtual void ValidateLines(List<string> lines, string filePath)
+        {
+            if (lines.Count == 0)
+            {
+                Console.WriteLine($"[WARNING] File is empty after sanitization: {filePath}");
+                return;
+            }
+
+            string fileName = Path.GetFileName(filePath);
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                string line = lines[i];
+                int lineNumber = i + 1;
+
+                // Skip blank lines
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                int spaceCount = GetLeadingSpaceCount(line);
+
+                // If remainder exists when divided by 4, it's an indentation error (digit with a comma)
+                if (spaceCount % 4 != 0)
                 {
-                    braceLevel += openings;
-                    if (pendingKeywordIncrease > 0)
-                    {
-                        var consume = Math.Min(pendingKeywordIncrease, openings);
-                        pendingKeywordIncrease -= consume;
-                    }
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"Indentation error: {spaceCount} spaces is not a multiple of 4."
+                    ));
                 }
 
-                // If this line shows an increased indent, consume pending increases
-                if (pendingKeywordIncrease > 0 && okIndent && indentUnits >= expectedIndent + 1)
-                {
-                    pendingKeywordIncrease = Math.Max(0, pendingKeywordIncrease - 1);
-                }
+                int currentDepth = spaceCount / 4;
+                string trimmedLine = line.Trim();
 
-                // Closing braces elsewhere on the line reduce level
-                if (!trimmed.StartsWith("}") && trimmed.Contains("}"))
-                {
-                    int c = CountChar(trimmed, '}');
-                    braceLevel = Math.Max(0, braceLevel - c);
-                }
+                ValidateLineContent(trimmedLine, currentDepth, lineNumber, fileName);
             }
         }
 
-        private static int CountChar(string s, char c)
+        protected virtual void ValidateLineContent(string cleanLine, int currentDepth, int lineNumber, string fileName)
         {
-            int r = 0;
-            foreach (var ch in s) if (ch == c) r++;
-            return r;
+            // Example of what you can easily do in the future:
+            // if (cleanLine.StartsWith("scripted_effects") && currentDepth != 2) { ... }
         }
 
-        private (bool ok, int units, string error) ComputeIndentationUnits(string raw)
-        {
-            if (raw == null) return (true, 0, null);
-            int idx = 0; int tabs = 0; int spaces = 0;
-            while (idx < raw.Length)
-            {
-                if (raw[idx] == '\t') { tabs++; idx++; }
-                else if (raw[idx] == ' ') { spaces++; idx++; }
-                else break;
-            }
-
-            if (tabs > 0 && spaces > 0)
-                return (false, 0, "Mixed tabs and spaces in indentation are not allowed");
-
-            if (tabs > 0)
-            {
-                if (!AllowTabsAsIndent) return (false, 0, "Tabs are not allowed for indentation");
-                return (true, tabs, null);
-            }
-
-            if (spaces > 0)
-            {
-                if (spaces % SpacesPerIndent != 0) return (false, 0, $"Spaces indentation must be a multiple of {SpacesPerIndent} (found {spaces})");
-                return (true, spaces / SpacesPerIndent, null);
-            }
-
-            return (true, 0, null);
-        }
-    }
-
-    /// Manager that dispatches validators by extension and enforces absolute path/existence checks.
-    public class BaseValidatorManager
-    {
-        private readonly Dictionary<string, IValidator> _map = new(StringComparer.OrdinalIgnoreCase);
-
-        private static readonly string[] SupportedExtensions = new[]
-        {
-            ".decision",
-            ".event",
-            ".scriptedgui",
-            ".script",
-            ".idea",
-            ".focus",
-            ".scriptedeffect"
-        };
-
-        public BaseValidatorManager()
-        {
-            var generic = new GenericScriptValidator();
-            foreach (var e in SupportedExtensions)
-                _map[e] = generic;
-        }
-
-        public void RegisterValidator(string extension, IValidator validator)
-        {
-            if (!extension.StartsWith(".")) extension = "." + extension;
-            _map[extension] = validator;
-        }
-
-        public ValidationResult ProcessFiles(IEnumerable<string> absolutePaths)
-        {
-            var res = new ValidationResult { IsValid = true };
-            if (absolutePaths == null || !absolutePaths.Any())
-            {
-                res.IsValid = false; res.Errors.Add("No files provided."); return res;
-            }
-
-            foreach (var path in absolutePaths)
-            {
-                if (string.IsNullOrWhiteSpace(path)) { res.IsValid = false; res.Errors.Add("Empty path provided."); continue; }
-                if (!Path.IsPathRooted(path)) { res.IsValid = false; res.Errors.Add($"Path is not absolute: {path}"); continue; }
-                if (!File.Exists(path)) { res.IsValid = false; res.Errors.Add($"File not found: {path}"); continue; }
-
-                var ext = Path.GetExtension(path);
-                if (string.IsNullOrEmpty(ext) || !_map.ContainsKey(ext)) { res.IsValid = false; res.Errors.Add($"Unsupported extension '{ext}' for file {path}"); continue; }
-
-                var validator = _map[ext];
-                if (!validator.Validate(path, out var err)) { res.IsValid = false; res.Errors.Add($"{path}: {err}"); }
-            }
-
-            return res;
-        }
-
-        public bool TryValidateAndRun(IEnumerable<string> absolutePaths, Action<IEnumerable<string>> onAllValid)
-        {
-            var r = ProcessFiles(absolutePaths);
-            if (!r.IsValid) { foreach (var e in r.Errors) Console.WriteLine("Validation error: " + e); return false; }
-            onAllValid?.Invoke(absolutePaths); return true;
-        }
-    }
-
-    public class GenericScriptValidator : BaseFileValidator
-    {
-        public GenericScriptValidator()
-        {
-            ExpectedIndentationBlocks.Add("if");
-            ExpectedIndentationBlocks.Add("else");
-            ExpectedIndentationBlocks.Add("else if");
-            ExpectedIndentationBlocks.Add("then");
-            ExpectedIndentationBlocks.Add("or");
-            ExpectedIndentationBlocks.Add("and");
-            ExpectedIndentationBlocks.Add("not");
-        }
     }
 }

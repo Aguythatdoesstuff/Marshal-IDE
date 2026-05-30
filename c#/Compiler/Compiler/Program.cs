@@ -9,40 +9,52 @@ namespace Compiler
     {
         static void Main(string[] args)
         {
-            // Build validator manager and register specialized validators
-            var manager = new BaseValidatorManager();
+            IEnumerable<string> filePaths;
 
-            // Register specialized EffectsValidator for .scriptedeffect
-            manager.RegisterValidator(".scriptedeffect", new EffectsValidator());
-
-            IEnumerable<string> paths = args != null && args.Length > 0
-                ? args.Select(a => a).ToArray()
-                : DiscoverTestFiles();
-
-            Console.WriteLine($"Validating {paths.Count()} files...");
-            var ok = manager.TryValidateAndRun(paths, validFiles =>
+            // Use absolute paths from arguments if spawned by the parent process
+            if (args != null && args.Length > 0)
             {
-                Console.WriteLine("All files validated. Running compiler placeholder...");
-                foreach (var f in validFiles) Console.WriteLine("-> " + f);
-            });
+                filePaths = args.Select(Path.GetFullPath).ToArray();
+            }
+            else
+            {
+                // Fallback to manual local testing
+                filePaths = DiscoverTestFiles();
+            }
 
-            if (!ok) Environment.ExitCode = 1;
+            if (!filePaths.Any())
+            {
+                Console.WriteLine("No valid files to process. Exiting.");
+                return;
+            }
+
+            var manager = new ProcessManager();
+            manager.ProcessFiles(filePaths);
         }
 
         private static IEnumerable<string> DiscoverTestFiles()
         {
-            // Default dev/test folder: Desktop/Compiler/testing
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-            var testDir = Path.Combine(desktop, "Compiler", "testing");
-            if (!Directory.Exists(testDir)) return Array.Empty<string>();
-            // Return all supported extensions files
-            var exts = new[] { ".decision", ".event", ".scriptedgui", ".script", ".idea", ".focus", ".scriptedeffect" };
-            var files = new List<string>();
-            foreach (var e in exts)
+            var testDir = Path.Combine(desktop, "Compiler testing");
+
+            if (!Directory.Exists(testDir))
             {
-                files.AddRange(Directory.GetFiles(testDir, "*" + e, SearchOption.TopDirectoryOnly));
+                Console.WriteLine("Test directory not found: " + testDir);
+                return Array.Empty<string>();
             }
 
+            Console.WriteLine("Scanning test directory: " + testDir);
+
+            // Strictly restricted to the exact extensions from the image
+            var allowedExtensions = new[] { ".decision", ".event", ".focus", ".idea", ".scriptedgui", ".script" };
+            var files = new List<string>();
+
+            foreach (var ext in allowedExtensions)
+            {
+                files.AddRange(Directory.GetFiles(testDir, "*" + ext, SearchOption.AllDirectories));
+            }
+
+            Console.WriteLine($"Found {files.Count} valid file(s) in {testDir}\n");
             return files;
         }
     }

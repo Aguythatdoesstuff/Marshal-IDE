@@ -6,6 +6,6 @@ dist/
 build/vite/dist/
 build/vite/
 
-# Local environment files (good practice)
+# Local environment files
 .env
 .DS_Store
