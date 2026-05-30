@@ -92,6 +92,7 @@ namespace Compiler
 
                 case ".script":
                     Console.WriteLine(" -> Routed to Script validator logic");
+                    validator = new ScriptValidator();
                     break;
 
                 default:
@@ -101,7 +102,7 @@ namespace Compiler
 
             if (validator != null)
             {
-                validator.ValidateFile(absolutePath);
+                validator.ValidateFile(absolutePath, Path.GetFileName(absolutePath));
                 AllErrors.AddRange(validator.Errors);
             }
         }

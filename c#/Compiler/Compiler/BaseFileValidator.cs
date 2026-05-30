@@ -110,6 +110,9 @@ namespace Compiler
         {
             if (string.IsNullOrEmpty(line)) return string.Empty;
 
+            // ALOT easier to strip out a not necessery for syntax closing bracket then to handle it later on in the pipeline!
+            if (line.Trim() == "}") return string.Empty;
+
             // Fix Unicode hidden spaces and formatting blocks
             line = line.Replace("\u200B", "")   // Zero-Width Space
                        .Replace("\u200C", "")   // Zero-Width Non-Joiner
@@ -120,6 +123,35 @@ namespace Compiler
             return line;
         }
         // Handles line-by-line validation, tracking dynamic indentation rules
+        protected List<string> FileLines { get; private set; } = new List<string>();
+        protected int CurrentLineIndex { get; private set; } = 0;
+
+        protected string GetLineAt(int offset)
+        {
+            int targetIndex = CurrentLineIndex + offset;
+            if (targetIndex >= 0 && targetIndex < FileLines.Count)
+            {
+                return FileLines[targetIndex];
+            }
+            return null;
+        }
+
+        protected int GetDepthAt(int offset)
+        {
+            int targetIndex = CurrentLineIndex + offset;
+            int direction = offset >= 0 ? 1 : -1;
+
+            while (targetIndex >= 0 && targetIndex < FileLines.Count)
+            {
+                if (!string.IsNullOrWhiteSpace(FileLines[targetIndex]))
+                {
+                    return GetLeadingSpaceCount(FileLines[targetIndex]) / 4;
+                }
+                targetIndex += direction;
+            }
+            return 0;
+        }
+
         protected virtual void ValidateLines(List<string> lines, string filePath)
         {
             if (lines.Count == 0)
@@ -128,19 +160,18 @@ namespace Compiler
                 return;
             }
 
+            FileLines = lines;
             string fileName = Path.GetFileName(filePath);
 
-            for (int i = 0; i < lines.Count; i++)
+            for (CurrentLineIndex = 0; CurrentLineIndex < FileLines.Count; CurrentLineIndex++)
             {
-                string line = lines[i];
-                int lineNumber = i + 1;
+                string line = FileLines[CurrentLineIndex];
+                int lineNumber = CurrentLineIndex + 1;
 
-                // Skip blank lines
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
                 int spaceCount = GetLeadingSpaceCount(line);
 
-                // If remainder exists when divided by 4, it's an indentation error (digit with a comma)
                 if (spaceCount % 4 != 0)
                 {
                     Errors.Add(new ValidationError(
@@ -156,12 +187,167 @@ namespace Compiler
                 ValidateLineContent(trimmedLine, currentDepth, lineNumber, fileName);
             }
         }
-
-        protected virtual void ValidateLineContent(string cleanLine, int currentDepth, int lineNumber, string fileName)
+        protected virtual bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
-            // Example of what you can easily do in the future:
-            // if (cleanLine.StartsWith("scripted_effects") && currentDepth != 2) { ... }
+            return false;
+        }
+        protected int ExpectedDepth = 0;
+        protected virtual void ValidateLineContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
+        {
+            bool lineRecognized = false;
+
+            // Give child validators first chance to recognize and handle the line.
+            // This avoids producing spurious indentation errors for valid custom
+            // root-level constructs (e.g., 'scripted effect ...') before the
+            // custom validator can adjust ExpectedDepth or report its own errors.
+            lineRecognized = ValidateCustomContent(trimmedLine, currentDepth, lineNumber, fileName);
+            if (lineRecognized)
+            {
+                int followingDepth = GetDepthAt(1);
+                if (followingDepth < currentDepth)
+                {
+                    ExpectedDepth = followingDepth;
+                }
+                return;
+            }
+
+            var scopeKeywords = new[] { "if", "else if", "else", "then", "not", "and", "or" };
+
+            if (scopeKeywords.Contains(trimmedLine))
+            {
+                // scope keywords must appear at the current expected depth
+                if (currentDepth != ExpectedDepth)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"Unexpected indentation: expected depth {ExpectedDepth}, but got {currentDepth}."
+                    ));
+                }
+
+                lineRecognized = true;
+                ExpectedDepth += 1;
+            }
+            else
+            {
+                int lineOpens = 0;
+                int lineCloses = 0;
+                bool inString = false;
+                bool hasContentAfterOpen = false;
+
+                for (int idx = 0; idx < trimmedLine.Length; idx++)
+                {
+                    char c = trimmedLine[idx];
+                    if (c == '"')
+                    {
+                        inString = !inString;
+                        continue;
+                    }
+
+                    if (!inString)
+                    {
+                        if (c == '{')
+                        {
+                            lineOpens++;
+                            for (int k = idx + 1; k < trimmedLine.Length; k++)
+                            {
+                                if (!char.IsWhiteSpace(trimmedLine[k]) && trimmedLine[k] != '}')
+                                {
+                                    hasContentAfterOpen = true;
+                                    break;
+                                }
+                            }
+                        }
+                        else if (c == '}')
+                        {
+                            lineCloses++;
+                        }
+                    }
+                }
+
+                var blockPrefixes = new[] { "desc", "name", "sprite" };
+                string[] parts = trimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                // "scripted effect open_random_ad" so that custom validators can handle
+                // them (for example to increase ExpectedDepth).
+                if (lineOpens > 0 || lineCloses > 0 || (parts.Length == 3 && (parts[1] == "=" || parts[1] == "<" || parts[1] == ">")) || blockPrefixes.Any(p => trimmedLine.StartsWith(p)))
+                {
+                    lineRecognized = true;
+
+                    // If tokens indicate a pass-through block like: identifier = {
+                    // but the character scan didn't detect the '{' (possible due to tokenization or formatting),
+                    // account for the opening brace here so expected depth increases for following lines.
+                    if (parts.Length == 3 && parts[1] == "=" && parts[2] == "{" && lineOpens == 0)
+                    {
+                        lineOpens = 1;
+                    }
+                }
+
+                if (hasContentAfterOpen && lineOpens != lineCloses)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        "Malformed one-liner: One-line expressions require explicit closing brackets '}'."
+                    ));
+                }
+
+                // Allow closing-only or mixed lines to be indented at the previous depth as long as
+                // after accounting for opens/closes the expected depth matches. For example, a line
+                // with a single '}' may be indented at the same level as its inner content; after
+                // processing the brace the effective expected depth will be one less.
+                int expectedBefore = ExpectedDepth;
+                int expectedAfter = expectedBefore + lineOpens - lineCloses;
+
+                int minExpected = Math.Min(expectedBefore, expectedAfter);
+                int maxExpected = Math.Max(expectedBefore, expectedAfter);
+
+                if (currentDepth < minExpected || currentDepth > maxExpected)
+                {
+                    string expectedText = minExpected == maxExpected
+                        ? $"expected depth {minExpected}"
+                        : $"expected depth between {minExpected} and {maxExpected}";
+
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"Unexpected indentation: {expectedText}, but got {currentDepth}."
+                    ));
+                }
+
+                ExpectedDepth = expectedAfter;
+            }
+
+            if (!lineRecognized)
+            {
+                lineRecognized = ValidateCustomContent(trimmedLine, currentDepth, lineNumber, fileName);
+            }
+
+            if (!lineRecognized)
+            {
+                Errors.Add(new ValidationError(
+                    fileName,
+                    lineNumber,
+                    $"Unknown action or malformed expression: '{trimmedLine}'."
+                ));
+            }
+
+            int nextDepth = GetDepthAt(1);
+            if (nextDepth < currentDepth)
+            {
+                ExpectedDepth = nextDepth;
+            }
         }
 
+        // example how to implement custom calidation in a child class
+        //protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
+        //{
+        //    if (trimmedLine.StartsWith("custom_command"))
+        //    {
+        //        // run checks
+        //        return true; // Mark as recognized
+        //    }
+        //    return false; // Not handled by this child validator
+        //}
     }
 }
