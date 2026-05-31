@@ -87,6 +87,7 @@ namespace Compiler
 
                 case ".idea":
                     Console.WriteLine(" -> Routed to Idea validator logic");
+                    validator = new IdeaValidator();
                     break;
 
                 case ".scriptedgui":
