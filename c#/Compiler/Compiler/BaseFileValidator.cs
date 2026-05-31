@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Compiler
 {
@@ -187,6 +188,10 @@ namespace Compiler
                 ValidateLineContent(trimmedLine, currentDepth, lineNumber, fileName);
             }
         }
+        // If true, this validator allows unquoted ID-style sprites like: sprite button4_gfx
+        // Default false; specific child validators may override to enable this.
+        protected virtual bool AllowSpriteId => false;
+
         protected virtual bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
             return false;
@@ -274,6 +279,96 @@ namespace Compiler
                 {
                     lineRecognized = true;
 
+                    // Additional validation for sprite blocks
+                    // Strict validation for name and desc: must be a single quoted string (empty allowed)
+                    if (trimmedLine.StartsWith("name") || trimmedLine.StartsWith("desc"))
+                    {
+                        bool isName = trimmedLine.StartsWith("name");
+                        int prefixLen = isName ? "name".Length : "desc".Length;
+                        string remainder = trimmedLine.Length > prefixLen ? trimmedLine.Substring(prefixLen).Trim() : string.Empty;
+
+                        if (string.IsNullOrEmpty(remainder) || !IsQuotedString(remainder))
+                        {
+                            Errors.Add(new ValidationError(fileName, lineNumber, $"Malformed {(isName ? "name" : "desc")}: missing quoted value after '{(isName ? "name" : "desc")}'."));
+                        }
+                        else
+                        {
+                            // ensure nothing exists outside the quoted string
+                            string outside = RemoveQuotedContent(remainder);
+                            if (!string.IsNullOrWhiteSpace(outside))
+                            {
+                                Errors.Add(new ValidationError(fileName, lineNumber, $"Malformed {(isName ? "name" : "desc")}: unexpected content outside quoted string."));
+                            }
+                        }
+                    }
+
+                    // Additional validation for sprite blocks
+                    if (trimmedLine.StartsWith("sprite"))
+                    {
+                        // Extract the remainder after the 'sprite' keyword
+                        string remainder = trimmedLine.Length > 6 ? trimmedLine.Substring(6).Trim() : string.Empty;
+
+                        if (string.IsNullOrEmpty(remainder))
+                        {
+                            Errors.Add(new ValidationError(
+                                fileName,
+                                lineNumber,
+                                "Malformed sprite: missing value after 'sprite'."
+                            ));
+                        }
+                        else
+                        {
+                            // Quoted GFX_... form required when quotes are present
+                            if (remainder.StartsWith("\"") && remainder.EndsWith("\""))
+                            {
+                                string inner = remainder.Substring(1, remainder.Length - 2);
+                                if (!IsValidGfxName(inner))
+                                {
+                                    Errors.Add(new ValidationError(
+                                        fileName,
+                                        lineNumber,
+                                        $"Invalid quoted sprite name: '{inner}'. Quoted sprite names must start with 'GFX_' and contain only letters, numbers, and underscores."
+                                    ));
+                                }
+
+                                // Ensure nothing exists outside the quoted string (e.g., stray tokens or '=')
+                                string outside = RemoveQuotedContent(remainder);
+                                if (!string.IsNullOrWhiteSpace(outside))
+                                {
+                                    Errors.Add(new ValidationError(
+                                        fileName,
+                                        lineNumber,
+                                        "Malformed sprite: unexpected content outside quoted string."
+                                    ));
+                                }
+                            }
+                            else
+                            {
+                                // Unquoted form: only allowed when AllowSpriteId is true
+                                if (!AllowSpriteId)
+                                {
+                                    Errors.Add(new ValidationError(
+                                        fileName,
+                                        lineNumber,
+                                        "Invalid sprite value: unquoted sprite identifiers are not allowed here. Use a quoted GFX_ name or enable AllowSpriteId in the specific validator."
+                                    ));
+                                }
+                                else
+                                {
+                                    // Same rules as ScriptValidator ID: lowercase alphanumeric and underscores
+                                    if (!IsValidId(remainder))
+                                    {
+                                        Errors.Add(new ValidationError(
+                                            fileName,
+                                            lineNumber,
+                                            $"Invalid sprite ID: '{remainder}'. IDs must be lowercase, alphanumeric, and may contain underscores."
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // If tokens indicate a pass-through block like: identifier = {
                     // but the character scan didn't detect the '{' (possible due to tokenization or formatting),
                     // account for the opening brace here so expected depth increases for following lines.
@@ -337,6 +432,47 @@ namespace Compiler
             {
                 ExpectedDepth = nextDepth;
             }
+        }
+
+        protected static bool IsQuotedString(string s)
+        {
+            return s.Length >= 2 && s.StartsWith("\"") && s.EndsWith("\"");
+        }
+
+        protected static bool IsValidGfxName(string s)
+        {
+            return Regex.IsMatch(s, "^GFX_[A-Za-z0-9_]+$");
+        }
+
+        protected static bool IsValidId(string s)
+        {
+            return Regex.IsMatch(s, "^[a-z0-9_]+$");
+        }
+
+        protected static bool IsInt(string s)
+        {
+            return !string.IsNullOrEmpty(s) && s.All(char.IsDigit);
+        }
+
+        // Remove quoted segments (including the quotes) and return remaining text
+        protected static string RemoveQuotedContent(string s)
+        {
+            var result = new System.Text.StringBuilder();
+            bool inQuote = false;
+            for (int i = 0; i < s.Length; i++)
+            {
+                char c = s[i];
+                if (c == '"')
+                {
+                    inQuote = !inQuote;
+                    continue;
+                }
+                if (!inQuote)
+                {
+                    result.Append(c);
+                }
+            }
+            return result.ToString().Trim();
         }
 
         // example how to implement custom calidation in a child class

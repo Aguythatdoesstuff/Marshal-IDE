@@ -38,7 +38,7 @@ namespace Compiler
                 string identifier = trimmedLine.Substring(prefixLength).Trim();
 
                 // Strict validation: Must be lower_case_snake_case with no spaces, braces, or special characters
-                if (!Regex.IsMatch(identifier, "^[a-z0-9_]+$"))
+                if (!IsValidId(identifier))
                 {
                     Errors.Add(new ValidationError(
                         fileName,
@@ -63,6 +63,34 @@ namespace Compiler
                 ExpectedDepth = currentDepth + 1;
                 return true;
             }
+
+            // Handle group and option definitions that require a quoted string value
+            bool isGroup = trimmedLine.StartsWith("group ");
+            bool isDefaultOption = trimmedLine.StartsWith("default option ");
+            bool isOption = trimmedLine.StartsWith("option ") && !isDefaultOption; // Don't let "default option" trigger this
+
+            if (isGroup || isDefaultOption || isOption)
+            {
+                // Figure out which keyword we are dealing with to get the correct prefix length
+                string keyword = isGroup ? "group " : (isDefaultOption ? "default option " : "option ");
+                string quotedValue = trimmedLine.Substring(keyword.Length).Trim();
+
+                if (!IsQuotedString(quotedValue))
+                {
+                    string cleanKeywordName = keyword.Trim();
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID VALUE FOR {cleanKeywordName.ToUpper()}: '{quotedValue}' must be a valid string enclosed in double quotes."
+                    ));
+                }
+
+                // Increment depth for whatever is nested inside this definition
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+
+
 
             return false;
         }

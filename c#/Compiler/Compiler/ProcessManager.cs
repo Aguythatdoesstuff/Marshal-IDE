@@ -72,10 +72,12 @@ namespace Compiler
             {
                 case ".decision":
                     Console.WriteLine(" -> Routed to Decision validator logic");
+                    validator = new DecisionValidator();
                     break;
 
                 case ".event":
                     Console.WriteLine(" -> Routed to Event validator logic");
+                    validator = new EventValidator();
                     break;
 
                 case ".focus":
@@ -96,7 +98,7 @@ namespace Compiler
                     break;
 
                 default:
-                    Console.WriteLine(" -> No validator hooked up for this type yet.");
+                    Console.WriteLine(" -> Unsupported file type");
                     break;
             }
 
