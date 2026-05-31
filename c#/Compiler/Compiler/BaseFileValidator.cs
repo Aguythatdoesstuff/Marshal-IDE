@@ -164,6 +164,15 @@ namespace Compiler
             FileLines = lines;
             string fileName = Path.GetFileName(filePath);
 
+            // Require specialized validators to provide allowed block depth configuration.
+            // By default this mapping is empty which forces child validators to override
+            // AllowedBlockDepths; if it remains empty we refuse to continue validation.
+            if (AllowedBlockDepths == null || AllowedBlockDepths.Count == 0)
+            {
+                Errors.Add(new ValidationError(fileName, 1, "Validator configuration error: AllowedBlockDepths must be provided by a specialized validator before validation may proceed."));
+                return;
+            }
+
             for (CurrentLineIndex = 0; CurrentLineIndex < FileLines.Count; CurrentLineIndex++)
             {
                 string line = FileLines[CurrentLineIndex];
@@ -192,6 +201,12 @@ namespace Compiler
         // Default false; specific child validators may override to enable this.
         protected virtual bool AllowSpriteId => false;
 
+        // Mapping of special block prefixes to allowed depths. Specialized validators
+        // MUST override this to provide allowed depths for tokens like "name", "desc",
+        // and "sprite". By default this is empty which causes validation to abort with
+        // a configuration error so child validators are forced to supply a mapping.
+        protected virtual Dictionary<string, int[]> AllowedBlockDepths => new Dictionary<string, int[]>(StringComparer.OrdinalIgnoreCase);
+
         protected virtual bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
             return false;
@@ -200,6 +215,33 @@ namespace Compiler
         protected virtual void ValidateLineContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
             bool lineRecognized = false;
+
+            // Detect pass-through assignments like: identifier = value
+            // This must be robust to quoted RHS values (which may contain spaces)
+            // and must also recognize block openers like: identifier = {
+            // When detected we treat the line as DSL-pass-through and DO NOT
+            // forward it to ValidateCustomContent so specialized validators
+            // won't misinterpret it as native DSL syntax.
+            var assignMatch = Regex.Match(trimmedLine, "^([a-z0-9_]+)\\s*(=|<|>)\\s*(.+)$", RegexOptions.IgnoreCase);
+            if (assignMatch.Success)
+            {
+                string lhs = assignMatch.Groups[1].Value;
+                string op = assignMatch.Groups[2].Value;
+                string rhs = assignMatch.Groups[3].Value.Trim();
+
+                // If RHS starts with a brace this is an opening pass-through block.
+                if (rhs.StartsWith("{"))
+                {
+                    lineRecognized = true;
+                    ExpectedDepth = currentDepth + 1; // block opens
+                    return;
+                }
+
+                // Otherwise treat as a single-line pass-through assignment.
+                lineRecognized = true;
+                ExpectedDepth = currentDepth; // no change in nesting for one-liners
+                return;
+            }
 
             // Give child validators first chance to recognize and handle the line.
             // This avoids producing spurious indentation errors for valid custom
@@ -220,18 +262,34 @@ namespace Compiler
 
             if (scopeKeywords.Contains(trimmedLine))
             {
-                // scope keywords must appear at the current expected depth
+                // Scope keywords (if / else if / else / then / not / and / or) normally
+                // appear at the current ExpectedDepth. However Hoi4 DSL frequently
+                // dedents to shallower depths when switching branches (for example
+                // an 'else if' after a nested block). To reduce false positives we
+                // accept scope keywords that are at a shallower depth than the
+                // current ExpectedDepth by resetting ExpectedDepth to the current
+                // line's depth. If the line is deeper than ExpectedDepth that's
+                // still an error.
                 if (currentDepth != ExpectedDepth)
                 {
-                    Errors.Add(new ValidationError(
-                        fileName,
-                        lineNumber,
-                        $"Unexpected indentation: expected depth {ExpectedDepth}, but got {currentDepth}."
-                    ));
+                    if (currentDepth < ExpectedDepth)
+                    {
+                        // Accept dedent: realign expected depth to this line's depth
+                        ExpectedDepth = currentDepth;
+                    }
+                    else
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"Unexpected indentation: expected depth {ExpectedDepth}, but got {currentDepth}."
+                        ));
+                    }
                 }
 
                 lineRecognized = true;
-                ExpectedDepth += 1;
+                // After a scope keyword we expect inner content at one deeper level
+                ExpectedDepth = currentDepth + 1;
             }
             else
             {
@@ -270,20 +328,34 @@ namespace Compiler
                     }
                 }
 
-                var blockPrefixes = new[] { "desc", "name", "sprite" };
+                // Determine which prefixes are considered special block tokens by the
+                // specialized validator (e.g. name, desc, sprite). Child validators
+                // should override AllowedBlockDepths to provide allowed depths for
+                // these tokens.
+                var blockPrefixes = AllowedBlockDepths.Keys.ToArray();
                 string[] parts = trimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
                 // "scripted effect open_random_ad" so that custom validators can handle
                 // them (for example to increase ExpectedDepth).
-                if (lineOpens > 0 || lineCloses > 0 || (parts.Length == 3 && (parts[1] == "=" || parts[1] == "<" || parts[1] == ">")) || blockPrefixes.Any(p => trimmedLine.StartsWith(p)))
+                if (lineOpens > 0 || lineCloses > 0 || blockPrefixes.Any(p => trimmedLine.StartsWith(p)))
                 {
                     lineRecognized = true;
 
-                    // Additional validation for sprite blocks
-                    // Strict validation for name and desc: must be a single quoted string (empty allowed)
-                    if (trimmedLine.StartsWith("name") || trimmedLine.StartsWith("desc"))
+                    // If this is a configured block prefix, ensure it's allowed at this depth
+                    string matchedPrefix = blockPrefixes.FirstOrDefault(p => trimmedLine.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+                    if (!string.IsNullOrEmpty(matchedPrefix))
                     {
-                        bool isName = trimmedLine.StartsWith("name");
+                        if (!AllowedBlockDepths.TryGetValue(matchedPrefix, out var allowedDepths) || allowedDepths == null || !allowedDepths.Contains(currentDepth))
+                        {
+                            string allowedText = allowedDepths == null || allowedDepths.Length == 0 ? "(none)" : string.Join(",", allowedDepths);
+                            Errors.Add(new ValidationError(fileName, lineNumber, $"'{matchedPrefix}' is not allowed at depth {currentDepth}. Allowed depths: {allowedText}."));
+                        }
+                    }
+
+                    // Strict validation for name and desc: must be a single quoted string (empty allowed)
+                    if (trimmedLine.StartsWith("name", StringComparison.OrdinalIgnoreCase) || trimmedLine.StartsWith("desc", StringComparison.OrdinalIgnoreCase))
+                    {
+                        bool isName = trimmedLine.StartsWith("name", StringComparison.OrdinalIgnoreCase);
                         int prefixLen = isName ? "name".Length : "desc".Length;
                         string remainder = trimmedLine.Length > prefixLen ? trimmedLine.Substring(prefixLen).Trim() : string.Empty;
 
@@ -303,7 +375,7 @@ namespace Compiler
                     }
 
                     // Additional validation for sprite blocks
-                    if (trimmedLine.StartsWith("sprite"))
+                    if (trimmedLine.StartsWith("sprite", StringComparison.OrdinalIgnoreCase))
                     {
                         // Extract the remainder after the 'sprite' keyword
                         string remainder = trimmedLine.Length > 6 ? trimmedLine.Substring(6).Trim() : string.Empty;
@@ -369,13 +441,6 @@ namespace Compiler
                         }
                     }
 
-                    // If tokens indicate a pass-through block like: identifier = {
-                    // but the character scan didn't detect the '{' (possible due to tokenization or formatting),
-                    // account for the opening brace here so expected depth increases for following lines.
-                    if (parts.Length == 3 && parts[1] == "=" && parts[2] == "{" && lineOpens == 0)
-                    {
-                        lineOpens = 1;
-                    }
                 }
 
                 if (hasContentAfterOpen && lineOpens != lineCloses)
@@ -447,6 +512,25 @@ namespace Compiler
         protected static bool IsValidId(string s)
         {
             return Regex.IsMatch(s, "^[a-z0-9_]+$");
+        }
+
+        protected static bool IsValidEventId(string s)
+        {
+            // Lowercase snake case, followed by a dot, followed by one or more digits
+            return Regex.IsMatch(s, "^[a-z0-9_]+\\.[0-9]+$");
+        }
+
+        // Validates country tag rules: exactly 3 characters, alphanumeric only
+        protected static bool IsValidCountryId(string s)
+        {
+            return Regex.IsMatch(s, "^[a-zA-Z0-9]{3}$");
+        }
+
+        // Validates coordinate offsets like x44 or y-20
+        protected static bool IsValidCoordinate(string s, char axis)
+        {
+            // Checks for 'x' or 'y' immediately followed by an optional minus sign and numbers
+            return Regex.IsMatch(s, $"^{axis}-?[0-9]+$");
         }
 
         protected static bool IsInt(string s)

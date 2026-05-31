@@ -5,6 +5,12 @@ namespace Compiler
 {
     public class ScriptValidator : BaseValidator
     {
+        protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = new[] { 1 },
+            ["desc"] = new[] { 1 },
+            ["sprite"] = new[] { 1 },
+        };
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
             // Handle standalone "on action" literal (No ID attached)

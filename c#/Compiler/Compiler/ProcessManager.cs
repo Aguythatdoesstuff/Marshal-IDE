@@ -82,6 +82,7 @@ namespace Compiler
 
                 case ".focus":
                     Console.WriteLine(" -> Routed to Focus validator logic");
+                    validator = new FocusValidator();
                     break;
 
                 case ".idea":

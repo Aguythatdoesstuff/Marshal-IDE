@@ -4,6 +4,12 @@ namespace Compiler
 {
     public class DecisionValidator : BaseValidator
     {
+        protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = new[] { 1, 2 },
+            ["desc"] = new[] { 1, 2 },
+            ["sprite"] = new[] { 1, 2 },
+        };
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
             if (trimmedLine.StartsWith("priority") || trimmedLine.StartsWith("cost"))
