@@ -3,8 +3,12 @@
   "WorkspaceRootPath": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kjkoc\\desktop\\marshal-ide\\c#\\compiler\\compiler\\scriptedgui\\scriptedguivalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|solutionrelative:compiler\\scriptedgui\\scriptedguivalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kjkoc\\desktop\\marshal-ide\\c#\\compiler\\compiler\\event\\eventparser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|solutionrelative:compiler\\event\\eventparser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kjkoc\\desktop\\marshal-ide\\c#\\compiler\\compiler\\basefileparser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|solutionrelative:compiler\\basefileparser.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kjkoc\\desktop\\marshal-ide\\c#\\compiler\\compiler\\basefilevalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -13,10 +17,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kjkoc\\desktop\\marshal-ide\\c#\\compiler\\compiler\\processmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|solutionrelative:compiler\\processmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kjkoc\\desktop\\marshal-ide\\c#\\compiler\\compiler\\idea\\ideavalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|solutionrelative:compiler\\idea\\ideavalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{706201FE-D010-0862-3AFC-B5774F2F7380}|Compiler\\Compiler.csproj|c:\\users\\kjkoc\\desktop\\marshal-ide\\c#\\compiler\\compiler\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -54,52 +54,52 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "BaseFileValidator.cs",
               "DocumentMoniker": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\BaseFileValidator.cs",
               "RelativeDocumentMoniker": "Compiler\\BaseFileValidator.cs",
               "ToolTip": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\BaseFileValidator.cs",
               "RelativeToolTip": "Compiler\\BaseFileValidator.cs",
-              "ViewState": "AgIAAPIBAAAAAAAAAAAAwP8BAAAnAAAAAAAAAA==",
+              "ViewState": "AgIAAHcCAAAAAAAAAAAAAHcCAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-31T13:56:18.495Z",
+              "WhenOpened": "2026-06-01T14:09:25.853Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "ScriptedGUIValidator.cs",
-              "DocumentMoniker": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\scriptedGui\\ScriptedGUIValidator.cs",
-              "RelativeDocumentMoniker": "Compiler\\scriptedGui\\ScriptedGUIValidator.cs",
-              "ToolTip": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\scriptedGui\\ScriptedGUIValidator.cs",
-              "RelativeToolTip": "Compiler\\scriptedGui\\ScriptedGUIValidator.cs",
-              "ViewState": "AgIAACEAAAAAAAAAAAApwIAAAABhAAAAAAAAAA==",
+              "Title": "EventParser.cs",
+              "DocumentMoniker": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\event\\EventParser.cs",
+              "RelativeDocumentMoniker": "Compiler\\event\\EventParser.cs",
+              "ToolTip": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\event\\EventParser.cs",
+              "RelativeToolTip": "Compiler\\event\\EventParser.cs",
+              "ViewState": "AgIAACAAAAAAAAAAAAAIwFIAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-31T13:53:15.625Z",
+              "WhenOpened": "2026-06-01T13:26:32.312Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "BaseFileParser.cs",
+              "DocumentMoniker": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\BaseFileParser.cs",
+              "RelativeDocumentMoniker": "Compiler\\BaseFileParser.cs",
+              "ToolTip": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\BaseFileParser.cs",
+              "RelativeToolTip": "Compiler\\BaseFileParser.cs",
+              "ViewState": "AgIAAA0AAAAAAAAAAAAjwCsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-01T13:13:05.823Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 3,
-              "Title": "IdeaValidator.cs",
-              "DocumentMoniker": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\idea\\IdeaValidator.cs",
-              "RelativeDocumentMoniker": "Compiler\\idea\\IdeaValidator.cs",
-              "ToolTip": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\idea\\IdeaValidator.cs",
-              "RelativeToolTip": "Compiler\\idea\\IdeaValidator.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAABHAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-31T13:38:45.645Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
               "Title": "ProcessManager.cs",
               "DocumentMoniker": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\ProcessManager.cs",
               "RelativeDocumentMoniker": "Compiler\\ProcessManager.cs",
               "ToolTip": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\ProcessManager.cs",
               "RelativeToolTip": "Compiler\\ProcessManager.cs",
-              "ViewState": "AgIAAE8AAAAAAAAAAAAgwGMAAAA1AAAAAAAAAA==",
+              "ViewState": "AgIAAFoAAAAAAAAAAAAcwGQAAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-05-29T18:22:28.974Z",
               "EditorCaption": ""
@@ -112,7 +112,7 @@
               "RelativeDocumentMoniker": "Compiler\\Program.cs",
               "ToolTip": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\Program.cs",
               "RelativeToolTip": "Compiler\\Program.cs",
-              "ViewState": "AgIAAA0AAAAAAAAAAAAgwAoAAAAJAAAAAAAAAA==",
+              "ViewState": "AgIAABwAAAAAAAAAAAAgwAoAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-05-27T07:44:35.722Z",
               "EditorCaption": ""

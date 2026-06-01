@@ -4,6 +4,7 @@ namespace Compiler
 {
     public class EventValidator : BaseValidator
     {
+        protected override BaseParser Parser => new EventParser();
 
         protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
         {

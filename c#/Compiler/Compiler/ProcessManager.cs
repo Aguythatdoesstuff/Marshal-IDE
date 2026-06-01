@@ -72,7 +72,7 @@ namespace Compiler
             {
                 case ".decision":
                     Console.WriteLine(" -> Routed to Decision validator logic");
-                    validator = new DecisionValidator();
+                    //validator = new DecisionValidator();
                     break;
 
                 case ".event":
@@ -82,22 +82,22 @@ namespace Compiler
 
                 case ".focus":
                     Console.WriteLine(" -> Routed to Focus validator logic");
-                    validator = new FocusValidator();
+                    //validator = new FocusValidator();
                     break;
 
                 case ".idea":
                     Console.WriteLine(" -> Routed to Idea validator logic");
-                    validator = new IdeaValidator();
+                    //validator = new IdeaValidator();
                     break;
 
                 case ".scriptedgui":
                     Console.WriteLine(" -> Routed to Scripted GUI validator logic");
-                    validator = new ScriptedGUIValidator();
+                    //validator = new ScriptedGUIValidator();
                     break;
 
                 case ".script":
                     Console.WriteLine(" -> Routed to Script validator logic");
-                    validator = new ScriptValidator();
+                    //validator = new ScriptValidator();
                     break;
 
                 default:
@@ -105,11 +105,20 @@ namespace Compiler
                     break;
             }
 
-            if (validator != null)
-            {
-                validator.ValidateFile(absolutePath, Path.GetFileName(absolutePath));
-                AllErrors.AddRange(validator.Errors);
-            }
+                if (validator != null)
+                {
+                    validator.ValidateFile(absolutePath, Path.GetFileName(absolutePath));
+                    AllErrors.AddRange(validator.Errors);
+
+                    // Append parser errors too (if any). Parser errors are kept on
+                    // the parser instance itself to keep them separate from
+                    // validation errors.
+                    var parserErrors = validator.GetParserErrors();
+                    foreach (var pe in parserErrors)
+                    {
+                        AllErrors.Add(new ValidationError(pe.FileName, pe.LineNumber, "[PARSER] " + pe.ErrorMessage));
+                    }
+                }
         }
     }
 }
