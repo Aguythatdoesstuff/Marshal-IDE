@@ -23,28 +23,15 @@ namespace Compiler
         {
             AllErrors.Clear();
 
+            var tasks = new List<System.Threading.Tasks.Task>();
             foreach (var path in filePaths)
             {
-                {
-                    if (!File.Exists(path))
-                    {
-                        Console.WriteLine($"[ERROR] File does not exist: {path}");
-                        continue;
-                    }
-
-                    string ext = Path.GetExtension(path).ToLowerInvariant();
-
-                    if (!SupportedExtensions.Contains(ext))
-                    {
-                        Console.WriteLine($"[SKIP] Ignored unsupported file: {path}");
-                        continue;
-                    }
-
-                    DispatchValidator(path, ext);
-                }
-
-                PrintTemporaryErrors();
+                var p = path;
+                tasks.Add(System.Threading.Tasks.Task.Run(() => ProcessSingleFileAsync(p)));
             }
+
+            System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+            PrintTemporaryErrors();
         }
         private void PrintTemporaryErrors()
         {
@@ -71,54 +58,121 @@ namespace Compiler
             switch (extension)
             {
                 case ".decision":
-                    Console.WriteLine(" -> Routed to Decision validator logic");
                     validator = new DecisionValidator();
                     break;
-
                 case ".event":
-                    Console.WriteLine(" -> Routed to Event validator logic");
                     validator = new EventValidator();
                     break;
-
                 case ".focus":
-                    Console.WriteLine(" -> Routed to Focus validator logic");
                     validator = new FocusValidator();
                     break;
-
                 case ".idea":
-                    Console.WriteLine(" -> Routed to Idea validator logic");
                     validator = new IdeaValidator();
                     break;
-
                 case ".scriptedgui":
-                    Console.WriteLine(" -> Routed to Scripted GUI validator logic");
                     validator = new ScriptedGUIValidator();
                     break;
-
                 case ".script":
-                    Console.WriteLine(" -> Routed to Script validator logic");
                     validator = new ScriptValidator();
                     break;
-
                 default:
-                    Console.WriteLine(" -> Unsupported file type");
+                    Console.WriteLine("Unsupported file type: " + extension);
                     break;
             }
 
-                if (validator != null)
-                {
-                    validator.ValidateFile(absolutePath, Path.GetFileName(absolutePath));
-                    AllErrors.AddRange(validator.Errors);
+            if (validator == null) return;
 
-                    // Append parser errors too (if any). Parser errors are kept on
-                    // the parser instance itself to keep them separate from
-                    // validation errors.
-                    var parserErrors = validator.GetParserErrors();
-                    foreach (var pe in parserErrors)
+            validator.ValidateFile(absolutePath, Path.GetFileName(absolutePath));
+            lock (AllErrors)
+            {
+                AllErrors.AddRange(validator.Errors);
+                var parserErrors = validator.GetParserErrors();
+                foreach (var pe in parserErrors)
+                {
+                    AllErrors.Add(new ValidationError(pe.FileName, pe.LineNumber, "[PARSER] " + pe.ErrorMessage));
+                }
+            }
+
+            // Only attempt compilation if no validation or parser errors were produced
+            bool hadErrors;
+            lock (AllErrors)
+            {
+                hadErrors = AllErrors.Any(e => string.Equals(e.FileName, Path.GetFileName(absolutePath), StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!hadErrors)
+            {
+                try
+                {
+                    CompileFileForExtension(extension, absolutePath, validator);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Compiler failed for {absolutePath}: {ex.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Skipping compilation for {absolutePath} due to errors.");
+            }
+        }
+
+        private void ProcessSingleFileAsync(string absolutePath)
+        {
+            if (!File.Exists(absolutePath))
+            {
+                Console.WriteLine($"[ERROR] File does not exist: {absolutePath}");
+                return;
+            }
+
+            string ext = Path.GetExtension(absolutePath).ToLowerInvariant();
+            if (!SupportedExtensions.Contains(ext))
+            {
+                Console.WriteLine($"[SKIP] Ignored unsupported file: {absolutePath}");
+                return;
+            }
+
+            DispatchValidator(absolutePath, ext);
+        }
+
+        private void CompileFileForExtension(string extension, string absolutePath, BaseValidator validator)
+        {
+            BaseCompiler compiler = null;
+            switch (extension)
+            {
+                case ".event":
+                    compiler = new Compiler.@event.EventCompiler();
+                    break;
+                default:
+                    // No compiler implemented for this extension yet
+                    return;
+            }
+
+            if (compiler != null)
+            {
+                // Give the compiler the parser-provided source file name when available
+                try
+                {
+                    var parserErrors = validator.GetParserErrors(); // forces access
+                    // Many validators provide Parser which may have SourceFileName set
+                    var parserField = validator?.GetType()?.GetProperty("Parser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.FlattenHierarchy);
+                    if (parserField != null)
                     {
-                        AllErrors.Add(new ValidationError(pe.FileName, pe.LineNumber, "[PARSER] " + pe.ErrorMessage));
+                        var parser = parserField.GetValue(validator) as BaseParser;
+                        if (parser != null && !string.IsNullOrWhiteSpace(parser.SourceFileName))
+                        {
+                            compiler.SourceFileName = parser.SourceFileName;
+                        }
                     }
                 }
+                catch
+                {
+                    // ignore reflection failures
+                }
+
+                compiler.Compile(absolutePath);
+                Console.WriteLine($"[COMPILER] Wrote output for {absolutePath} to {BaseCompiler.OutputPath}");
+            }
         }
     }
 }

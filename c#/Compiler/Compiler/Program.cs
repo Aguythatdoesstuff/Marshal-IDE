@@ -9,16 +9,65 @@ namespace Compiler
     {
         static void Main(string[] args)
         {
-            IEnumerable<string> filePaths;
+            IEnumerable<string> filePaths = Array.Empty<string>();
 
-            // Use absolute paths from arguments if spawned by the parent process
+            string outputArg = null;
             if (args != null && args.Length > 0)
             {
-                filePaths = args.Select(Path.GetFullPath).ToArray();
+                outputArg = args.FirstOrDefault(a => a.StartsWith("--output=", StringComparison.OrdinalIgnoreCase));
+            }
+
+            string resolvedOutputPath;
+            if (!string.IsNullOrWhiteSpace(outputArg))
+            {
+                var raw = outputArg.Substring("--output=".Length).Trim();
+                if (!Path.IsPathRooted(raw))
+                {
+                    Console.WriteLine("Error: --output must be an absolute path. Please provide an absolute path.");
+                    return;
+                }
+
+                try
+                {
+                    resolvedOutputPath = Path.GetFullPath(raw);
+                }
+                catch
+                {
+                    Console.WriteLine("Error: Failed to normalize provided --output path. Provide a valid absolute path.");
+                    return;
+                }
             }
             else
             {
-                // Fallback to manual local testing
+                var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                resolvedOutputPath = Path.Combine(desktop, "marshal-ide-compiler-debbug", "compiled-data");
+            }
+
+            BaseCompiler.OutputPath = resolvedOutputPath;
+            try
+            {
+                Directory.CreateDirectory(BaseCompiler.OutputPath);
+            }
+            catch { }
+
+
+            // Remaining args (excluding the --output= arg) are treated as file paths.
+            if (args != null && args.Length > 0)
+            {
+                var remaining = args.Where(a => !string.IsNullOrWhiteSpace(outputArg) ? !a.Equals(outputArg, StringComparison.OrdinalIgnoreCase) : true).ToArray();
+                if (remaining.Length > 0)
+                {
+                    filePaths = remaining.Select(Path.GetFullPath).ToArray();
+                }
+                else
+                {
+                    // No file paths supplied, fallback to discovery of test input files
+                    filePaths = DiscoverTestFiles();
+                }
+            }
+            else
+            {
+                // No args at all: fallback to discovery of test input files
                 filePaths = DiscoverTestFiles();
             }
 
@@ -35,17 +84,25 @@ namespace Compiler
         private static IEnumerable<string> DiscoverTestFiles()
         {
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-            var testDir = Path.Combine(desktop, "Compiler testing");
+            var testDir = Path.Combine(desktop, "marshal-ide-compiler-debbug", "input");
 
             if (!Directory.Exists(testDir))
             {
                 Console.WriteLine("Test directory not found: " + testDir);
+                try
+                {
+                    Directory.CreateDirectory(testDir);
+                    Console.WriteLine("Created test directory: " + testDir);
+                }
+                catch
+                {
+                    // ignore create failure, fall through to return
+                }
                 return Array.Empty<string>();
             }
 
             Console.WriteLine("Scanning test directory: " + testDir);
 
-            // Strictly restricted to the exact extensions from the image
             var allowedExtensions = new[] { ".decision", ".event", ".focus", ".idea", ".scriptedgui", ".script" };
             var files = new List<string>();
 
@@ -55,7 +112,9 @@ namespace Compiler
             }
 
             Console.WriteLine($"Found {files.Count} valid file(s) in {testDir}\n");
-            return files;
+            return files.Select(Path.GetFullPath).ToArray();
         }
+
+
     }
 }
