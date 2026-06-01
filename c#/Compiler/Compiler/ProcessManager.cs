@@ -92,7 +92,7 @@ namespace Compiler
 
                 case ".scriptedgui":
                     Console.WriteLine(" -> Routed to Scripted GUI validator logic");
-                    //validator = new ScriptedGUIValidator();
+                    validator = new ScriptedGUIValidator();
                     break;
 
                 case ".script":

@@ -473,29 +473,29 @@ namespace Compiler
                         else
                         {
                             // Quoted GFX_... form required when quotes are present
-                            if (remainder.StartsWith("\"") && remainder.EndsWith("\""))
-                            {
-                                string inner = remainder.Substring(1, remainder.Length - 2);
-                                if (!IsValidGfxName(inner))
-                                {
-                                    Errors.Add(new ValidationError(
-                                        fileName,
-                                        lineNumber,
-                                        $"Invalid quoted sprite name: '{inner}'. Quoted sprite names must start with 'GFX_' and contain only letters, numbers, and underscores."
-                                    ));
-                                }
+                if (remainder.StartsWith("\"") && remainder.EndsWith("\""))
+                {
+                    string inner = remainder.Substring(1, remainder.Length - 2);
+                    if (!IsValidGfxName(inner))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"Invalid quoted sprite name: '{inner}'. Quoted sprite names must start with 'GFX_' and contain only lowercase id characters (a-z0-9_) after the prefix."
+                        ));
+                    }
 
-                                // Ensure nothing exists outside the quoted string (e.g., stray tokens or '=')
-                                string outside = RemoveQuotedContent(remainder);
-                                if (!string.IsNullOrWhiteSpace(outside))
-                                {
-                                    Errors.Add(new ValidationError(
-                                        fileName,
-                                        lineNumber,
-                                        "Malformed sprite: unexpected content outside quoted string."
-                                    ));
-                                }
-                            }
+                    // Ensure nothing exists outside the quoted string (e.g., stray tokens or '=')
+                    string outside = RemoveQuotedContent(remainder);
+                    if (!string.IsNullOrWhiteSpace(outside))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            "Malformed sprite: unexpected content outside quoted string."
+                        ));
+                    }
+                }
                             else
                             {
                                 // Unquoted form: only allowed when AllowSpriteId is true
@@ -509,15 +509,19 @@ namespace Compiler
                                 }
                                 else
                                 {
-                                    // Same rules as ScriptValidator ID: lowercase alphanumeric and underscores
-                                    if (!IsValidId(remainder))
+                                // Same rules as ScriptValidator ID: lowercase alphanumeric and underscores
+                                if (!IsValidId(remainder))
+                                {
+                                    // Allow an unquoted GFX_ form in GUI define contexts: GFX_ followed by a lowercase id
+                                    if (!(remainder.StartsWith("GFX_") && IsValidGfxName(remainder)))
                                     {
                                         Errors.Add(new ValidationError(
                                             fileName,
                                             lineNumber,
-                                            $"Invalid sprite ID: '{remainder}'. IDs must be lowercase, alphanumeric, and may contain underscores."
+                                            $"Invalid sprite ID: '{remainder}'. IDs must be lowercase, alphanumeric, and may contain underscores, or use a GFX_... name."
                                         ));
                                     }
+                                }
                                 }
                             }
                         }
@@ -588,7 +592,8 @@ namespace Compiler
 
         protected static bool IsValidGfxName(string s)
         {
-            return Regex.IsMatch(s, "^GFX_[A-Za-z0-9_]+$");
+            // Require GFX_ prefix followed by lowercase id (a-z0-9_) to match in-game gfx naming conventions
+            return Regex.IsMatch(s, "^GFX_[a-z0-9_]+$");
         }
 
         protected static bool IsValidId(string s)

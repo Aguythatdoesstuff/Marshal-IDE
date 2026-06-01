@@ -17,8 +17,10 @@ namespace Compiler
         {
             ["name"] = new[] { 1, 2 },
             ["desc"] = new[] { 1, 2 },
-            ["sprite"] = new[] { 0, 1, 2 },
+            ["sprite"] = new[] { 0, 1, 2, 3 },
         };
+
+        protected override BaseParser Parser => new ScriptedGUIParser();
 
         public IList<string> Validate(string script)
         {
@@ -28,7 +30,6 @@ namespace Compiler
                 results.Add("Script is empty");
                 return results;
             }
-
             var lines = script.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
             // Basic best-effort checks

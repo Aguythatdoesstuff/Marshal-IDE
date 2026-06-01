@@ -37,7 +37,6 @@ namespace Compiler
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
-            // Ensure parser instance records the source file name
             this.SourceFileName = fileName;
 
             //Console.WriteLine($"[PARSER] Parsing file: {filePath}");
