@@ -97,7 +97,7 @@ namespace Compiler
 
                 case ".script":
                     Console.WriteLine(" -> Routed to Script validator logic");
-                    //validator = new ScriptValidator();
+                    validator = new ScriptValidator();
                     break;
 
                 default:

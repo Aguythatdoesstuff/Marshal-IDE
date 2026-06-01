@@ -15,6 +15,19 @@ namespace Compiler
 
     public abstract class BaseParser
     {
+        // The validator must populate this before calling ParseFile so parsers
+        // always have the source file name available. Parsers may rely on
+        // this value when producing parsing output or errors.
+        public string SourceFileName { get; set; } = string.Empty;
+
+        protected void EnsureSourceFileNameSet()
+        {
+            if (string.IsNullOrWhiteSpace(SourceFileName))
+            {
+                throw new InvalidOperationException("Parser SourceFileName was not provided by the validator.");
+            }
+        }
+
         public List<ParsingError> Errors { get; protected set; } = new List<ParsingError>();
         // Parser receives a preprocessed representation of the file produced by
         // the validator: trimmed line text, calculated depth, line number, and file name.

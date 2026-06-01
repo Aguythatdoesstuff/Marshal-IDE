@@ -31,6 +31,8 @@ namespace Compiler
         // Receive preprocessed lines from the validator (BaseValidator.PreprocessedLine). Implementation left empty on purpose.
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
+            this.SourceFileName = fileName;
+
             //Console.WriteLine($"[PARSER] Parsing file: {filePath}");
             int count = 0;
             string isInsideEvent = null;

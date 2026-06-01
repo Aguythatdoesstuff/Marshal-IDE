@@ -85,6 +85,19 @@ namespace Compiler
                         try
                         {
                             var parser = Parser; // may throw InvalidOperationException
+                            // Ensure the parser has the source file name available
+                            // so parsers can include file context in parsing output.
+                            try
+                            {
+                                parser.SourceFileName = fileName;
+                            }
+                            catch
+                            {
+                                // If the concrete parser doesn't expose SourceFileName
+                                // (shouldn't happen because BaseParser defines it),
+                                // ignore and continue to call ParseFile.
+                            }
+
                             parser.ParseFile(filePath, fileName, preprocessed);
                         }
                         catch (InvalidOperationException)

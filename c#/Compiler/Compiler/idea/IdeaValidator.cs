@@ -6,7 +6,7 @@ namespace Compiler
 {
     public class IdeaValidator : BaseValidator
     {
-
+        protected override BaseParser Parser => new IdeaParser();
         protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
         {
             ["name"] = new[] { 1 },

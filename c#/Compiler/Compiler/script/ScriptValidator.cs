@@ -5,6 +5,8 @@ namespace Compiler
 {
     public class ScriptValidator : BaseValidator
     {
+        protected override BaseParser Parser => new ScriptParser();
+
         protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
         {
             ["name"] = new[] { 1 },
