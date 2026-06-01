@@ -6,6 +6,8 @@ namespace Compiler
 {
     public class FocusValidator : BaseValidator
     {
+        // Provide concrete parser so validator hands validated content to parser
+        protected override BaseParser Parser => new FocusParser();
 
         // Require 'name', 'desc', and 'sprite' to appear only at depths 1 or 2 for focus files
         protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)

@@ -82,12 +82,12 @@ namespace Compiler
 
                 case ".focus":
                     Console.WriteLine(" -> Routed to Focus validator logic");
-                    //validator = new FocusValidator();
+                    validator = new FocusValidator();
                     break;
 
                 case ".idea":
                     Console.WriteLine(" -> Routed to Idea validator logic");
-                    //validator = new IdeaValidator();
+                    validator = new IdeaValidator();
                     break;
 
                 case ".scriptedgui":
