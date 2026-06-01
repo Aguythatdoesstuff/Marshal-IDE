@@ -3,11 +3,6 @@ using System.Collections.Generic;
 
 namespace Compiler
 {
-    public class RawLine
-    {
-        public string trimmedLine;
-        public int depth;
-    }
 
     public class Option
     {
@@ -48,7 +43,7 @@ namespace Compiler
             {
                 var pl = preprocessedLines[i];
                 count++;
-                Console.WriteLine($"[PARSER] Line {pl.LineNumber} Depth {pl.Depth}: {pl.TrimmedLine}");
+                //Console.WriteLine($"[PARSER] Line {pl.LineNumber} Depth {pl.Depth}: {pl.TrimmedLine}");
 
                 if (NewEvent == null)
                 {

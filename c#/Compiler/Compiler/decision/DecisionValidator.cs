@@ -4,6 +4,10 @@ namespace Compiler
 {
     public class DecisionValidator : BaseValidator
     {
+        // Provide a concrete parser so validated decision files are handed off
+        // to a specialized parser for further processing.
+        protected override BaseParser Parser => new DecisionParser();
+
         protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
         {
             ["name"] = new[] { 1, 2 },

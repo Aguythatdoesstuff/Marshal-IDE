@@ -72,7 +72,7 @@ namespace Compiler
             {
                 case ".decision":
                     Console.WriteLine(" -> Routed to Decision validator logic");
-                    //validator = new DecisionValidator();
+                    validator = new DecisionValidator();
                     break;
 
                 case ".event":

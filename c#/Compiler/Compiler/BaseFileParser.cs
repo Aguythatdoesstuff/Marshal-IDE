@@ -6,6 +6,11 @@ using System.Text.RegularExpressions;
 
 namespace Compiler
 {
+    public class RawLine
+    {
+        public string trimmedLine;
+        public int depth;
+    }
     public record ParsingError(string FileName, int LineNumber, string ErrorMessage);
 
     public abstract class BaseParser
