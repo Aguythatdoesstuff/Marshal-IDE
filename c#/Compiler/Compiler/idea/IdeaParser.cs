@@ -39,6 +39,7 @@ namespace Compiler
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
             Idea currentIdea = null;
+            Ideas.Clear();
 
             // active block tracking
             string activeBlock = null; // "modifier"

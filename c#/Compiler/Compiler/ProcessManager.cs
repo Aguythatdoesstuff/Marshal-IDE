@@ -149,6 +149,9 @@ namespace Compiler
                 case ".idea":
                     compiler = new Compiler.idea.IdeaCompiler();
                     break;
+                case ".focus":
+                    compiler = new Compiler.focus.FocusCompiler();
+                    break;
                 case ".script":
                     compiler = new Compiler.script.ScriptCompiler();
                     break;
@@ -181,6 +184,11 @@ namespace Compiler
                     if (parserInstance is IdeaParser iParser && compiler is Compiler.idea.IdeaCompiler iCompiler)
                     {
                         iCompiler.PassedData = iParser.LastParsedFile;
+                    }
+                    if (parserInstance is FocusParser fParser && compiler is Compiler.focus.FocusCompiler fCompiler)
+                    {
+                        // pass the parsed trees collection to the focus compiler
+                        fCompiler.PassedTrees = fParser.Trees?.ToArray();
                     }
                     if (parserInstance is DecisionParser dParser && compiler is Compiler.decision.DecisionCompiler dCompiler)
                     {

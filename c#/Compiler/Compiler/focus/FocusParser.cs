@@ -36,6 +36,8 @@ namespace Compiler
     public class FocusParser : BaseParser
     {
         public List<Tree> Trees { get; } = new List<Tree>();
+        // Provide a last parsed snapshot if consumers need it
+        public Tree[] LastParsedTrees { get; private set; }
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
@@ -58,6 +60,7 @@ namespace Compiler
             bool inPreventsBlock = false;
             int reqPrevBaseDepth = 0;
 
+            Trees.Clear();
             for (int i = 0; i < preprocessedLines.Count; i++)
             {
                 var pl = preprocessedLines[i];
@@ -323,7 +326,8 @@ namespace Compiler
                 // Any other unrecognized root-level lines are ignored for now
             }
 
-            // No explicit exposure aside from Trees property
+            // Save a snapshot of parsed trees for external consumers
+            LastParsedTrees = Trees.ToArray();
         }
     }
 }

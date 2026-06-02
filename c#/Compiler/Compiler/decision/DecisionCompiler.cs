@@ -33,6 +33,10 @@ namespace Compiler.decision
                 WriteFile("common/decisions", fileName, ".txt", sw =>
                 {
                     sw.WriteLine($"{cat.id} = {{");
+                });
+                
+                WriteFile("common/decisions", fileName, ".txt", sw =>
+                {
                     foreach (var cat2 in cat.decisions)
                     {
                         sw.WriteLine($"{indent1}{cat2.id} = {{");
@@ -49,7 +53,10 @@ namespace Compiler.decision
                         sw.WriteLine($"{indent2}}}");
                         sw.WriteLine($"{indent1}}}");
                     }
+                });
 
+                WriteFile("common/decisions", fileName, ".txt", sw =>
+                {
                     sw.WriteLine($"}}");
                 });
             }
