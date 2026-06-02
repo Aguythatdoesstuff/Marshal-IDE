@@ -24,9 +24,17 @@ namespace Compiler
         public IdeaModifier modifier = new IdeaModifier();
     }
 
+    public class ParsedIdeaFile
+    {
+        public string SourceFileName { get; set; } = string.Empty;
+        public List<Idea> Ideas { get; set; } = new List<Idea>();
+    }
+
     public class IdeaParser : BaseParser
     {
         public List<Idea> Ideas { get; } = new List<Idea>();
+        // Store the most recently parsed file for other components to use
+        public ParsedIdeaFile LastParsedFile { get; private set; }
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
@@ -167,6 +175,11 @@ namespace Compiler
             {
                 Ideas.Add(currentIdea);
             }
+
+            // Build ParsedIdeaFile for consumers (compilers)
+            var parsed = new ParsedIdeaFile { SourceFileName = fileName };
+            parsed.Ideas.AddRange(Ideas);
+            LastParsedFile = parsed;
         }
     }
 }

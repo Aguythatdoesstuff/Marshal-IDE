@@ -21,7 +21,6 @@ namespace Compiler.@event
             {
                 var fileName = PassedData.SourceFileName;
 
-                // 1. Output the script file (.txt)
                 WriteFile("events", fileName, ".txt", sw =>
                 {
                     // Dynamically extract the namespace by cutting off the '.' and the id number (e.g., "china_event.1" -> "china_event")
@@ -71,7 +70,6 @@ namespace Compiler.@event
                     lastNamespace = ns;
                 });
 
-                // 2. Output the localization file (.yml)
                 WriteFile("localisation/english/events", fileName + "_l_english", ".yml", sw =>
                 {
                     // Only write l_english: once at the absolute top of the generated file

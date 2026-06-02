@@ -143,6 +143,9 @@ namespace Compiler
                 case ".event":
                     compiler = new Compiler.@event.EventCompiler();
                     break;
+                case ".idea":
+                    compiler = new Compiler.idea.IdeaCompiler();
+                    break;
                 default:
                     // No compiler implemented for this extension yet
                     return;
@@ -167,6 +170,11 @@ namespace Compiler
                     if (parserInstance is EventParser evParser && compiler is Compiler.@event.EventCompiler evCompiler)
                     {
                         evCompiler.PassedData = evParser.LastParsedFile;
+                    }
+
+                    if (parserInstance is IdeaParser iParser && compiler is Compiler.idea.IdeaCompiler iCompiler)
+                    {
+                        iCompiler.PassedData = iParser.LastParsedFile;
                     }
                 }
                 catch

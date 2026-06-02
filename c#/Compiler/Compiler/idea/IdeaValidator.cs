@@ -12,6 +12,7 @@ namespace Compiler
             ["name"] = new[] { 1 },
             ["desc"] = new[] { 1 },
             ["sprite"] = new[] { 1 },
+            ["modifier"] = new[] { 1 },
         };
 
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
