@@ -47,7 +47,8 @@ namespace Compiler.@event
 
                     foreach (var line in ev.rawLine)
                     {
-                        sw.WriteLine($"{Ident(line.depth)}{line.trimmedLine}");
+                        WriteAllowedWithConversions(sw, ev.rawLine, l => l.depth, l => l.trimmedLine);
+                        break; // helper processed the entire collection
                     }
 
                     int optIndex = 1;
@@ -57,10 +58,7 @@ namespace Compiler.@event
                         sw.WriteLine($"{indent2}name = {ev.id}_option_{optIndex}");
                         if (option.rawLine != null)
                         {
-                            foreach (var line in option.rawLine)
-                            {
-                                sw.WriteLine($"{Ident(line.depth)}{line.trimmedLine}");
-                            }
+                            WriteAllowedWithConversions(sw, option.rawLine, l => l.depth, l => l.trimmedLine);
                         }
                         sw.WriteLine($"{indent1}}}");
                         optIndex++;

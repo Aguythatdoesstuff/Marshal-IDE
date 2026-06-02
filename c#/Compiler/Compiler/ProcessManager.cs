@@ -140,6 +140,9 @@ namespace Compiler
             BaseCompiler compiler = null;
             switch (extension)
             {
+                case ".decision":
+                    compiler = new Compiler.decision.DecisionCompiler();
+                    break;
                 case ".event":
                     compiler = new Compiler.@event.EventCompiler();
                     break;
@@ -178,6 +181,10 @@ namespace Compiler
                     if (parserInstance is IdeaParser iParser && compiler is Compiler.idea.IdeaCompiler iCompiler)
                     {
                         iCompiler.PassedData = iParser.LastParsedFile;
+                    }
+                    if (parserInstance is DecisionParser dParser && compiler is Compiler.decision.DecisionCompiler dCompiler)
+                    {
+                        dCompiler.PassedData = dParser.LastParsedFile;
                     }
                     
                     if (parserInstance is ScriptParser sParser && compiler is Compiler.script.ScriptCompiler sCompiler)

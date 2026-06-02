@@ -22,8 +22,9 @@ namespace Compiler.script
                         sw.WriteLine($"{se.id} = {{");
                         foreach (var raw in se.rawLines)
                         {
-                            // Match event/idea compiler behavior: write each physical raw line with Ident(raw.depth)
-                            sw.WriteLine($"{Ident(raw.depth)}{raw.trimmedLine}");
+                            // Use helper to write raw lines. No extra offset here, original used Ident(raw.depth)
+                            WriteAllowedWithConversions(sw, se.rawLines, r => r.depth, r => r.trimmedLine);
+                            break;
                         }
                         sw.WriteLine("}\n");
                     }
@@ -99,10 +100,7 @@ namespace Compiler.script
                     foreach (var st in PassedData.ScriptedTriggers)
                     {
                         sw.WriteLine($"{st.id} = {{");
-                        foreach (var raw in st.rawLines)
-                        {
-                            sw.WriteLine($"{Ident(raw.depth)}{raw.trimmedLine}");
-                        }
+                        WriteAllowedWithConversions(sw, st.rawLines, r => r.depth, r => r.trimmedLine);
                         sw.WriteLine("}\n");
                     }
                 });
@@ -116,10 +114,7 @@ namespace Compiler.script
                     sw.WriteLine("on_actions = {");
                     foreach (var oa in PassedData.OnActions)
                     {
-                        foreach (var raw in oa.rawLines)
-                        {
-                            sw.WriteLine($"{Ident(raw.depth)}{raw.trimmedLine}");
-                        }
+                        WriteAllowedWithConversions(sw, oa.rawLines, r => r.depth, r => r.trimmedLine);
                         sw.WriteLine();
                     }
                     sw.WriteLine("}\n");

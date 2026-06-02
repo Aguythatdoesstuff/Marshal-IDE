@@ -43,16 +43,8 @@ namespace Compiler.idea
                     // Any generic rawLines that belong directly to the idea (other blocks)
                     if (idea.rawLines != null && idea.rawLines.Count > 0)
                     {
-                        foreach (var raw in idea.rawLines)
-                        {
-                            if (string.IsNullOrEmpty(raw?.trimmedLine)) continue;
-                            // raw.trimmedLine may contain multiple lines separated by '\n'
-                            var parts = raw.trimmedLine.Split(new[] { '\n' }, StringSplitOptions.None);
-                            foreach (var p in parts)
-                            {
-                                sw.WriteLine($"{Ident(raw.depth + 2)}{p}");
-                            }
-                        }
+                        // previous behavior wrote Ident(raw.depth + 2) for each physical raw line
+                        WriteAllowedWithConversions(sw, idea.rawLines, r => r.depth + 2, r => r.trimmedLine);
                     }
 
                     // modifier block - write header at the depth one less than the minimum raw depth
@@ -61,15 +53,7 @@ namespace Compiler.idea
                         var minDepth = idea.modifier.rawLines.Min(r => r.depth);
                         var modifierHeaderDepth = Math.Max(0, minDepth - 1);
                         sw.WriteLine($"{Ident(modifierHeaderDepth + 2)}modifier = {{");
-                        foreach (var raw in idea.modifier.rawLines)
-                        {
-                            if (string.IsNullOrEmpty(raw?.trimmedLine)) continue;
-                            var parts = raw.trimmedLine.Split(new[] { '\n' }, StringSplitOptions.None);
-                            foreach (var p in parts)
-                            {
-                                sw.WriteLine($"{Ident(raw.depth + 2)}{p}");
-                            }
-                        }
+                        WriteAllowedWithConversions(sw, idea.modifier.rawLines, r => r.depth + 2, r => r.trimmedLine);
                         sw.WriteLine($"{Ident(modifierHeaderDepth + 2)}}}");
                     }
 

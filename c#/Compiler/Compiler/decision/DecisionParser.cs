@@ -35,6 +35,16 @@ namespace Compiler
         // Parsed results are exposed so callers can examine the AST after parsing.
         public List<Category> Categories { get; } = new List<Category>();
 
+        // Provide a lightweight parsed file wrapper similar to Event/Idea parsers
+        public class ParsedDecisionFile
+        {
+            public string SourceFileName { get; set; } = string.Empty;
+            public List<Category> Categories { get; set; } = new List<Category>();
+        }
+
+        // Store the most recently parsed file for other components to use
+        public ParsedDecisionFile LastParsedFile { get; private set; }
+
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
 
@@ -47,12 +57,11 @@ namespace Compiler
             string activeBlock = null; // "allowed", "available", "on click"
             string activeBlockOwner = null; // "category" or "decision"
             int blockBaseDepth = 0;
-            RawLine currentBlockRaw = null;
+            // Raw lines inside named blocks are recorded as individual RawLine entries
 
             // generic raw grouping when not inside a named block
             string genericOwner = null; // "category" or "decision"
             int genericBaseDepth = -1;
-            RawLine currentGenericRaw = null;
 
             for (int i = 0; i < preprocessedLines.Count; i++)
             {
@@ -63,14 +72,18 @@ namespace Compiler
                 // Start of a category
                 if (pl.Depth == 0 && pl.TrimmedLine.StartsWith("category ", StringComparison.OrdinalIgnoreCase))
                 {
+                    // commit any previously open category
+                    if (currentCategory != null)
+                    {
+                        Categories.Add(currentCategory);
+                    }
+
                     currentCategory = new Category();
                     currentCategory.id = pl.TrimmedLine.Substring("category ".Length).Trim();
                     currentDecision = null;
                     // reset any block state
                     activeBlock = null;
-                    currentBlockRaw = null;
                     genericOwner = null;
-                    currentGenericRaw = null;
                     continue;
                 }
 
@@ -86,30 +99,22 @@ namespace Compiler
                 {
                     if (pl.Depth > blockBaseDepth)
                     {
-                        // Group top-level entries inside the block into separate RawLine records
-                        if (currentBlockRaw == null || pl.Depth <= currentBlockRaw.depth)
+                        // Record each physical line as its own RawLine so indentation is preserved
+                        var rl = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
+                        if (activeBlockOwner == "category")
                         {
-                            currentBlockRaw = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
-                            if (activeBlockOwner == "category")
+                            if (activeBlock == "allowed") currentCategory.allowed.Add(rl);
+                            else if (activeBlock == "available") currentCategory.available.Add(rl);
+                            else if (activeBlock == "on click")
                             {
-                                if (activeBlock == "allowed") currentCategory.allowed.Add(currentBlockRaw);
-                                else if (activeBlock == "available") currentCategory.available.Add(currentBlockRaw);
-                                else if (activeBlock == "on click")
-                                {
-                                    // 'on click' does not make sense at category level; record a parser error
-                                    Errors.Add(new ParsingError(fileName, pl.LineNumber, "'on click' block is not allowed at category level."));
-                                }
-                            }
-                            else if (activeBlockOwner == "decision" && currentDecision != null)
-                            {
-                                if (activeBlock == "available") currentDecision.available.Add(currentBlockRaw);
-                                else if (activeBlock == "on click") currentDecision.onClick.Add(currentBlockRaw);
-                                else if (activeBlock == "allowed") currentDecision.allowed.Add(currentBlockRaw);
+                                Errors.Add(new ParsingError(fileName, pl.LineNumber, "'on click' block is not allowed at category level."));
                             }
                         }
-                        else
+                        else if (activeBlockOwner == "decision" && currentDecision != null)
                         {
-                            currentBlockRaw.trimmedLine += "\n" + pl.TrimmedLine;
+                            if (activeBlock == "available") currentDecision.available.Add(rl);
+                            else if (activeBlock == "on click") currentDecision.onClick.Add(rl);
+                            else if (activeBlock == "allowed") currentDecision.allowed.Add(rl);
                         }
                         continue;
                     }
@@ -118,7 +123,6 @@ namespace Compiler
                         // block ended; reset and reprocess this line
                         activeBlock = null;
                         activeBlockOwner = null;
-                        currentBlockRaw = null;
                         i--;
                         continue;
                     }
@@ -132,7 +136,6 @@ namespace Compiler
                     currentCategory.decisions.Add(currentDecision);
                     // reset generic raw grouping for decision
                     genericOwner = null;
-                    currentGenericRaw = null;
                     continue;
                 }
 
@@ -233,46 +236,32 @@ namespace Compiler
                     blockBaseDepth = pl.Depth;
                     // determine owner: depth 1 -> category, depth >=2 -> decision
                     activeBlockOwner = pl.Depth == 1 ? "category" : "decision";
-                    currentBlockRaw = null;
                     continue;
                 }
 
                 // Any deeper content not recognized above should be treated as raw content
                 if (pl.Depth >= 2)
                 {
-                    string owner = pl.Depth == 1 ? "category" : "decision";
-                    owner = (pl.Depth == 1 || currentDecision == null) ? "category" : "decision";
+                    string owner = (pl.Depth == 1 || currentDecision == null) ? "category" : "decision";
 
-                    int baseDepth = pl.Depth - 1;
                     if (genericOwner == null)
                     {
                         genericOwner = owner;
-                        genericBaseDepth = baseDepth;
-                        currentGenericRaw = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
-                        if (genericOwner == "category") currentCategory.rawLines.Add(currentGenericRaw);
-                        else if (currentDecision != null) currentDecision.rawLines.Add(currentGenericRaw);
-                        continue;
+                        genericBaseDepth = pl.Depth; // record the starting depth for this generic block
                     }
 
-                    if (pl.Depth > currentGenericRaw.depth)
+                    if (pl.Depth >= genericBaseDepth)
                     {
-                        currentGenericRaw.trimmedLine += "\n" + pl.TrimmedLine;
-                        continue;
-                    }
-                    else if (pl.Depth == currentGenericRaw.depth)
-                    {
-                        // new sibling raw entry
-                        currentGenericRaw = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
-                        if (genericOwner == "category") currentCategory.rawLines.Add(currentGenericRaw);
-                        else if (currentDecision != null) currentDecision.rawLines.Add(currentGenericRaw);
+                        var rl = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
+                        if (genericOwner == "category") currentCategory.rawLines.Add(rl);
+                        else if (currentDecision != null) currentDecision.rawLines.Add(rl);
                         continue;
                     }
                     else
                     {
-                        // dedent: close generic raw and reprocess this line
+                        // dedent: close generic raw and reprocess
                         genericOwner = null;
                         genericBaseDepth = -1;
-                        currentGenericRaw = null;
                         i--;
                         continue;
                     }
@@ -286,6 +275,11 @@ namespace Compiler
             {
                 Categories.Add(currentCategory);
             }
+
+            // Build a parsed file wrapper for consumers (compilers)
+            var parsed = new ParsedDecisionFile { SourceFileName = fileName };
+            parsed.Categories.AddRange(Categories);
+            LastParsedFile = parsed;
         }
     }
 }

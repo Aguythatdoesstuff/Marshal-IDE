@@ -129,5 +129,137 @@ namespace Compiler
         */
 
         public abstract void Compile();
+
+        /// Writes a collection of parsed lines (items that expose a depth and trimmedLine)
+        /// to the StreamWriter while converting simple syntax keywords into bracketed
+        /// blocks (and/or/not -> "and = {" etc, if/else if/else with limit/then handling).
+        /// The method accepts optional selectors for depth and text; if not supplied
+        /// it will attempt to read properties named "depth" and "trimmedLine" via reflection.
+        protected void WriteAllowedWithConversions<T>(StreamWriter sw, IEnumerable<T> allowed, Func<T, int>? depthSelector = null, Func<T, string>? textSelector = null)
+        {
+            if (sw == null) throw new ArgumentNullException(nameof(sw));
+            if (allowed == null) return;
+
+            // Build a simple in-memory list of (depth, text) for easy indexed/recursive processing
+            var list = new List<(int depth, string text)>();
+
+            foreach (var item in allowed)
+            {
+                int depth = 0;
+                string text = string.Empty;
+
+                if (depthSelector != null) depth = depthSelector(item);
+                if (textSelector != null) text = textSelector(item) ?? string.Empty;
+
+                if (depthSelector == null || textSelector == null)
+                {
+                    // Try reflection fallback for common property names
+                    var t = item?.GetType();
+                    if (t != null)
+                    {
+                        if (depthSelector == null)
+                        {
+                            var pd = t.GetProperty("depth") ?? t.GetProperty("Depth");
+                            if (pd != null)
+                            {
+                                try { depth = Convert.ToInt32(pd.GetValue(item)); } catch { depth = 0; }
+                            }
+                        }
+
+                        if (textSelector == null)
+                        {
+                            var pt = t.GetProperty("trimmedLine") ?? t.GetProperty("TrimmedLine") ?? t.GetProperty("text") ?? t.GetProperty("Text");
+                            if (pt != null)
+                            {
+                                try { text = Convert.ToString(pt.GetValue(item)) ?? string.Empty; } catch { text = string.Empty; }
+                            }
+                        }
+                    }
+                }
+
+                // As a last resort use ToString
+                if (string.IsNullOrEmpty(text) && item != null) text = item.ToString() ?? string.Empty;
+
+                list.Add((depth, text.TrimEnd()));
+            }
+
+            // Normalize whitespace for comparisons
+            static string Normalize(string s) => System.Text.RegularExpressions.Regex.Replace(s.Trim(), "\\s+", " ").ToLowerInvariant();
+
+            // Recursive processor: process items from index 'start' until 'end' or until a line with depth <= parentDepth
+            int ProcessRange(int start, int end, int parentDepth)
+            {
+                int i = start;
+                while (i < end)
+                {
+                    var (depth, text) = list[i];
+                    if (depth <= parentDepth) break;
+
+                    var lower = Normalize(text);
+
+                    // If the line already has an opening brace, just write as-is
+                    if (text.Contains("= {"))
+                    {
+                        sw.WriteLine(Ident(depth) + text);
+                        i++; continue;
+                    }
+
+                    // Simple boolean operator blocks
+                    if (lower == "and" || lower == "or" || lower == "not")
+                    {
+                        sw.WriteLine(Ident(depth) + lower + " = {");
+                        i = ProcessRange(i + 1, end, depth);
+                        sw.WriteLine(Ident(depth) + "}");
+                        continue;
+                    }
+
+                    // Handle if / else if / else
+                    if (lower == "if" || lower == "else if" || lower == "else")
+                    {
+                        string name = lower == "if" ? "if" : (lower == "else" ? "else" : "else_if");
+                        sw.WriteLine(Ident(depth) + name + " = {");
+
+                        // Collect condition lines (everything after this with depth > current depth until a 'then' or a line with depth <= current)
+                        int j = i + 1;
+                        var condLines = new List<(int depth, string text)>();
+                        while (j < end && list[j].depth > depth && Normalize(list[j].text) != "then")
+                        {
+                            condLines.Add(list[j]); j++;
+                        }
+
+                        if (condLines.Count > 0)
+                        {
+                            int limitIndent = condLines.Min(x => x.depth);
+                            sw.WriteLine(Ident(limitIndent) + "limit = {");
+                            foreach (var cl in condLines)
+                            {
+                                // print condition children one level deeper than their original depth so they sit inside limit
+                                sw.WriteLine(Ident(cl.depth + 1) + cl.text);
+                            }
+                            sw.WriteLine(Ident(limitIndent) + "}");
+                        }
+
+                        // Skip a terminating 'then' token if present
+                        if (j < end && list[j].depth > depth && Normalize(list[j].text) == "then") j++;
+
+                        // Process the body of the if/else (all following items with depth > current depth)
+                        j = ProcessRange(j, end, depth);
+
+                        sw.WriteLine(Ident(depth) + "}");
+                        i = j;
+                        continue;
+                    }
+
+                    // Default: write the original line
+                    sw.WriteLine(Ident(depth) + text);
+                    i++;
+                }
+
+                return i;
+            }
+
+            // Start processing top-level (use parentDepth = -1 so depth 0 items are considered children)
+            ProcessRange(0, list.Count, -1);
+        }
     }
 }
