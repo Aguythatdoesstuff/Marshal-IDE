@@ -146,6 +146,9 @@ namespace Compiler
                 case ".idea":
                     compiler = new Compiler.idea.IdeaCompiler();
                     break;
+                case ".script":
+                    compiler = new Compiler.script.ScriptCompiler();
+                    break;
                 default:
                     // No compiler implemented for this extension yet
                     return;
@@ -175,6 +178,11 @@ namespace Compiler
                     if (parserInstance is IdeaParser iParser && compiler is Compiler.idea.IdeaCompiler iCompiler)
                     {
                         iCompiler.PassedData = iParser.LastParsedFile;
+                    }
+                    
+                    if (parserInstance is ScriptParser sParser && compiler is Compiler.script.ScriptCompiler sCompiler)
+                    {
+                        sCompiler.PassedData = sParser.LastParsedFile;
                     }
                 }
                 catch

@@ -41,6 +41,8 @@ namespace Compiler
         public List<GameRule> GameRules { get; } = new List<GameRule>();
         public List<ScriptedTrigger> ScriptedTriggers { get; } = new List<ScriptedTrigger>();
         public List<OnAction> OnActions { get; } = new List<OnAction>();
+        // Store the most recently parsed file for other components to use
+        public ParsedScriptFile LastParsedFile { get; private set; }
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
@@ -151,21 +153,14 @@ namespace Compiler
                 // Otherwise treat as raw lines for the active block
                 if (pl.Depth > baseDepth)
                 {
-                    // Group sibling top-level entries into RawLine records
-                    if (currentRaw == null || pl.Depth <= currentRaw.depth)
+                    // Preserve each physical line as its own RawLine so depth information is exact
+                    currentRaw = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
+                    switch (currentType)
                     {
-                        currentRaw = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
-                        switch (currentType)
-                        {
-                            case "scripted effect": ((ScriptedEffect)current).rawLines.Add(currentRaw); break;
-                            case "game rule": ((GameRule)current).rawLines.Add(currentRaw); break;
-                            case "on action": ((OnAction)current).rawLines.Add(currentRaw); break;
-                            case "scripted trigger": ((ScriptedTrigger)current).rawLines.Add(currentRaw); break;
-                        }
-                    }
-                    else
-                    {
-                        currentRaw.trimmedLine += "\n" + pl.TrimmedLine;
+                        case "scripted effect": ((ScriptedEffect)current).rawLines.Add(currentRaw); break;
+                        case "game rule": ((GameRule)current).rawLines.Add(currentRaw); break;
+                        case "on action": ((OnAction)current).rawLines.Add(currentRaw); break;
+                        case "scripted trigger": ((ScriptedTrigger)current).rawLines.Add(currentRaw); break;
                     }
                     continue;
                 }
@@ -182,6 +177,23 @@ namespace Compiler
                 }
             }
 
+            // Build ParsedScriptFile for consumers (compilers)
+            var parsed = new ParsedScriptFile { SourceFileName = fileName };
+            parsed.ScriptedEffects.AddRange(ScriptedEffects);
+            parsed.GameRules.AddRange(GameRules);
+            parsed.ScriptedTriggers.AddRange(ScriptedTriggers);
+            parsed.OnActions.AddRange(OnActions);
+            LastParsedFile = parsed;
+
         }
+    }
+
+    public class ParsedScriptFile
+    {
+        public string SourceFileName { get; set; } = string.Empty;
+        public List<ScriptedEffect> ScriptedEffects { get; } = new List<ScriptedEffect>();
+        public List<GameRule> GameRules { get; } = new List<GameRule>();
+        public List<ScriptedTrigger> ScriptedTriggers { get; } = new List<ScriptedTrigger>();
+        public List<OnAction> OnActions { get; } = new List<OnAction>();
     }
 }

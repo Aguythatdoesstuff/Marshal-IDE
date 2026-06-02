@@ -344,6 +344,28 @@ namespace Compiler
         {
             bool lineRecognized = false;
 
+            // Special-case: allow certain root-level constructs to reset expected depth
+            // when they legitimately appear at depth 0. If they appear indented we
+            // report a clear error but continue by adjusting ExpectedDepth so
+            // validation can proceed for the following block.
+            var rootLevelPrefixes = new[] { "scripted effect ", "scripted trigger ", "game rule ", "on action" };
+            var matchedRoot = rootLevelPrefixes.FirstOrDefault(p => trimmedLine.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(matchedRoot))
+            {
+                if (currentDepth != 0)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! ROOT-LEVEL SYNTAX AT NON-ZERO DEPTH: '{matchedRoot.Trim()}' must be at depth 0, but found at depth {currentDepth}."
+                    ));
+                }
+
+                // Treat as recognized and expect inner content one level deeper
+                ExpectedDepth = currentDepth + 1;
+                return;
+            }
+
             // Detect pass-through assignments like: identifier = value
             // This must be robust to quoted RHS values (which may contain spaces)
             // and must also recognize block openers like: identifier = {
