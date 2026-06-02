@@ -30,8 +30,6 @@ namespace Compiler
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
-            this.SourceFileName = fileName;
-
             Idea currentIdea = null;
 
             // active block tracking

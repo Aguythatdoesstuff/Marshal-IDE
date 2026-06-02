@@ -10,6 +10,10 @@ namespace Compiler
 
     public abstract class BaseValidator
     {
+        // Holds the parser instance that was used during the most recent ValidateFile call.
+        // This allows external callers (such as the ProcessManager) to inspect parser
+        // output or errors after validation has completed.
+        private BaseParser _lastParserUsed;
         public List<ValidationError> Errors { get; protected set; } = new List<ValidationError>();
 
         // PreprocessedLine lives here so parsers consume a validated, preprocessed
@@ -30,6 +34,15 @@ namespace Compiler
         // Safely return parser errors (keeps parser errors separated from validation errors)
         public IEnumerable<ParsingError> GetParserErrors()
         {
+            // If we have a parser instance that actually ran during ValidateFile,
+            // prefer returning its errors. Falling back to accessing the Parser
+            // property would create a new parser instance which would not contain
+            // the errors from the parsing pass.
+            if (_lastParserUsed != null)
+            {
+                return _lastParserUsed.Errors ?? new List<ParsingError>();
+            }
+
             try
             {
                 var p = Parser; // may throw if not provided
@@ -42,9 +55,17 @@ namespace Compiler
             {
                 // No parser provided; return empty
             }
+
             return Array.Empty<ParsingError>();
         }
 
+        // Expose the actual parser instance used during the last validation run,
+        // or null if no parser has been executed yet. This is useful so callers
+        // can retrieve parsed data structures produced by specialized parsers.
+        public BaseParser GetParserInstance()
+        {
+            return _lastParserUsed;
+        }
         public void ValidateFile(string filePath, string fileName)
         {
             if (!File.Exists(filePath))
@@ -62,47 +83,72 @@ namespace Compiler
 
                 ValidateLines(withoutComments, filePath);
 
-                // If validation produced no errors and a parser is provided,
-                // build a preprocessed representation of the file and pass it to
-                // the parser. This keeps parsing logic working from validated,
-                // prepped data and avoids duplicate sanitization in the parser.
-                if ((Errors == null || Errors.Count == 0))
+                if (Errors == null || Errors.Count == 0)
                 {
                     try
                     {
                         var preprocessed = new List<PreprocessedLine>();
+                        var openBlockDepths = new Stack<int>();
+
                         for (int i = 0; i < FileLines.Count; i++)
                         {
                             string raw = FileLines[i];
                             if (string.IsNullOrWhiteSpace(raw)) continue;
+
                             int depth = GetLeadingSpaceCount(raw) / 4;
                             string trimmed = raw.Trim();
-                            preprocessed.Add(new PreprocessedLine(trimmed, depth, i + 1, fileName));
-                        }
-                        // Attempt to run the parser handoff. Note: accessing Parser
-                        // may throw if a derived validator did not provide one; this
-                        // is handled so validators without parsers do not crash.
-                        try
-                        {
-                            var parser = Parser; // may throw InvalidOperationException
-                            // Ensure the parser has the source file name available
-                            // so parsers can include file context in parsing output.
-                            try
+                            int lineNumber = i + 1;
+
+                            // 1. Count literal net unclosed braces on this specific line
+                            int lineOpens = 0, lineCloses = 0;
+                            bool inString = false;
+                            for (int c = 0; c < trimmed.Length; c++)
                             {
-                                parser.SourceFileName = fileName;
+                                if (trimmed[c] == '"') { inString = !inString; continue; }
+                                if (inString) continue;
+                                if (trimmed[c] == '{') lineOpens++;
+                                else if (trimmed[c] == '}') lineCloses++;
                             }
-                            catch
+                            int netOpens = lineOpens - lineCloses;
+
+                            // 2. Before adding the line, close any literal tracking blocks whose indentation depth we have passed or met
+                            while (openBlockDepths.Count > 0 && depth <= openBlockDepths.Peek())
                             {
-                                // If the concrete parser doesn't expose SourceFileName
-                                // (shouldn't happen because BaseParser defines it),
-                                // ignore and continue to call ParseFile.
+                                int closedDepth = openBlockDepths.Pop();
+                                preprocessed.Add(new PreprocessedLine("}", closedDepth, lineNumber, fileName));
                             }
 
+                            // 3. Add the actual current line to the stream
+                            preprocessed.Add(new PreprocessedLine(trimmed, depth, lineNumber, fileName));
+
+                            // 4. If this line explicitly opens a literal block context, track its depth on the stack
+                            if (netOpens > 0)
+                            {
+                                openBlockDepths.Push(depth);
+                            }
+                        }
+
+                        // 5. Flush any remaining open blocks left over at the absolute end of the file
+                        while (openBlockDepths.Count > 0)
+                        {
+                            int closedDepth = openBlockDepths.Pop();
+                            preprocessed.Add(new PreprocessedLine("}", closedDepth, FileLines.Count, fileName));
+                        }
+
+                        try
+                        {
+                            var parser = Parser;
+                            _lastParserUsed = parser;
                             parser.ParseFile(filePath, fileName, preprocessed);
+
+                            FileLines = new List<string>();
+                            CurrentLineIndex = 0;
+                            preprocessed.Clear();
+                            preprocessed = null;
                         }
                         catch (InvalidOperationException)
                         {
-                            // No parser provided by derived validator; ignore handoff.
+                            // No parser provided; safe to ignore handoff
                         }
                     }
                     catch (Exception ex)
@@ -481,7 +527,7 @@ namespace Compiler
                         Errors.Add(new ValidationError(
                             fileName,
                             lineNumber,
-                            $"Invalid quoted sprite name: '{inner}'. Quoted sprite names must start with 'GFX_' and contain only lowercase id characters (a-z0-9_) after the prefix."
+                            $"Invalid quoted sprite name: '{inner}'. Quoted sprite names must start with 'GFX_' and contain only id characters (A-Za-z0-9_) after the prefix."
                         ));
                     }
 
@@ -592,8 +638,9 @@ namespace Compiler
 
         protected static bool IsValidGfxName(string s)
         {
-            // Require GFX_ prefix followed by lowercase id (a-z0-9_) to match in-game gfx naming conventions
-            return Regex.IsMatch(s, "^GFX_[a-z0-9_]+$");
+            // Require GFX_ prefix followed by id characters (letters, digits, or underscore).
+            // Allow both uppercase and lowercase letters because some sprite names include country codes or other uppercase segments.
+            return Regex.IsMatch(s, "^GFX_[A-Za-z0-9_]+$");
         }
 
         protected static bool IsValidId(string s)

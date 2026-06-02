@@ -150,27 +150,31 @@ namespace Compiler
 
             if (compiler != null)
             {
-                // Give the compiler the parser-provided source file name when available
+                // Provide the compiler with the source file name directly from the absolute path
                 try
                 {
-                    var parserErrors = validator.GetParserErrors(); // forces access
-                    // Many validators provide Parser which may have SourceFileName set
-                    var parserField = validator?.GetType()?.GetProperty("Parser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.FlattenHierarchy);
-                    if (parserField != null)
+                    compiler.SourceFileName = Path.GetFileName(absolutePath);
+                }
+                catch
+                {
+                    // ignore any unexpected failures
+                }
+
+                // If the validator ran a parser, attempt to hand parsed data to the compiler
+                try
+                {
+                    var parserInstance = validator.GetParserInstance();
+                    if (parserInstance is EventParser evParser && compiler is Compiler.@event.EventCompiler evCompiler)
                     {
-                        var parser = parserField.GetValue(validator) as BaseParser;
-                        if (parser != null && !string.IsNullOrWhiteSpace(parser.SourceFileName))
-                        {
-                            compiler.SourceFileName = parser.SourceFileName;
-                        }
+                        evCompiler.PassedData = evParser.LastParsedFile;
                     }
                 }
                 catch
                 {
-                    // ignore reflection failures
+                    // non-fatal, proceed to compilation without attaching parsed data
                 }
 
-                compiler.Compile(absolutePath);
+                compiler.Compile();
                 Console.WriteLine($"[COMPILER] Wrote output for {absolutePath} to {BaseCompiler.OutputPath}");
             }
         }

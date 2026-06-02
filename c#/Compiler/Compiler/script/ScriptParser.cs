@@ -44,8 +44,6 @@ namespace Compiler
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
-            this.SourceFileName = fileName;
-
             object current = null; // one of GameRule, ScriptedEffect, ScriptedTrigger, OnAction
             string currentType = null;
             int baseDepth = 0;

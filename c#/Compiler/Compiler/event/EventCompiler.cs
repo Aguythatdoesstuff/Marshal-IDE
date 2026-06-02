@@ -1,3 +1,4 @@
+using Microsoft.VisualBasic.FileIO;
 using System;
 using System.IO;
 
@@ -5,30 +6,93 @@ namespace Compiler.@event
 {
     public class EventCompiler : BaseCompiler
     {
-        public override void Compile(string sourceFilePath)
+        // Parsed events provided by the parser
+        public ParsedEventFile PassedData { get; set; }
+
+        public override void Compile()
         {
-            // Basic compilation: read original file and emit it into events subfolder as filename.txt
-            string contents;
-            try
-            {
-                contents = File.ReadAllText(sourceFilePath);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Failed to read source for compilation: " + ex.Message, ex);
-            }
+            if (PassedData == null || PassedData.Events == null) return;
+            string lastNamespace = null;
+            bool hasWrittenLocalisationHeader = false; // Tracks if l_english: was added to the file header
+            string indent1 = Ident(1);
+            string indent2 = Ident(2);
 
-            string finalName = null;
-            if (!string.IsNullOrWhiteSpace(this.SourceFileName))
+            foreach (var ev in PassedData.Events)
             {
-                finalName = Path.GetFileNameWithoutExtension(this.SourceFileName);
-            }
-            else
-            {
-                finalName = Path.GetFileNameWithoutExtension(sourceFilePath);
-            }
+                var fileName = PassedData.SourceFileName;
 
-            WriteFile("events", finalName, ".txt", contents);
+                // 1. Output the script file (.txt)
+                WriteFile("events", fileName, ".txt", sw =>
+                {
+                    // Dynamically extract the namespace by cutting off the '.' and the id number (e.g., "china_event.1" -> "china_event")
+                    string ns = ev.id;
+                    int dotIndex = ev.id.LastIndexOf('.');
+                    if (dotIndex > 0)
+                    {
+                        ns = ev.id.Substring(0, dotIndex);
+                    }
+
+                    // Only print the namespace header when it actually changes
+                    if (lastNamespace != ns)
+                    {
+                        sw.WriteLine($"add_namespace = {ns}\n");
+                    }
+
+                    sw.WriteLine($"{ev.type.ToString().ToLowerInvariant()}_event = {{");
+                    sw.WriteLine($"{indent1}id = {ev.id}");
+                    sw.WriteLine($"{indent1}is_triggered_only = yes");
+                    sw.WriteLine($"{indent1}title = {ev.id}_title");
+                    sw.WriteLine($"{indent1}desc = {ev.id}_desc");
+                    if (ev.type == EventType.News) sw.WriteLine($"{indent1}major = yes");
+                    sw.WriteLine($"{indent1}picture = \"{ev.sprite}\"");
+
+                    foreach (var line in ev.rawLine)
+                    {
+                        sw.WriteLine($"{Ident(line.depth)}{line.trimmedLine}");
+                    }
+
+                    int optIndex = 1;
+                    foreach (var option in ev.option)
+                    {
+                        sw.WriteLine($"{indent1}option = {{");
+                        sw.WriteLine($"{indent2}name = {ev.id}_option_{optIndex}");
+                        if (option.rawLine != null)
+                        {
+                            foreach (var line in option.rawLine)
+                            {
+                                sw.WriteLine($"{Ident(line.depth)}{line.trimmedLine}");
+                            }
+                        }
+                        sw.WriteLine($"{indent1}}}");
+                        optIndex++;
+                    }
+
+                    sw.WriteLine($"}}\n");
+                    lastNamespace = ns;
+                });
+
+                // 2. Output the localization file (.yml)
+                WriteFile("localisation/english/events", fileName + "_l_english", ".yml", sw =>
+                {
+                    // Only write l_english: once at the absolute top of the generated file
+                    if (!hasWrittenLocalisationHeader)
+                    {
+                        sw.WriteLine("l_english:");
+                        hasWrittenLocalisationHeader = true;
+                    }
+
+                    // Match Paradox formatting precisely using the ':0 ' notation rule
+                    sw.WriteLine($" {ev.id}_title:0 \"{ev.name}\"");
+                    sw.WriteLine($" {ev.id}_desc:0 \"{ev.desc}\"");
+
+                    int optIndex = 1;
+                    foreach (var option in ev.option)
+                    {
+                        sw.WriteLine($" {ev.id}_option_{optIndex}:0 \"{option.name}\"");
+                        optIndex++;
+                    }
+                });
+            }
         }
     }
 }

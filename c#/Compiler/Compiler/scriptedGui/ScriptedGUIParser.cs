@@ -95,7 +95,6 @@ namespace Compiler
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
-            EnsureSourceFileNameSet();
             Console.WriteLine($"[PARSER] ScriptedGUIParser starting for {fileName} ({preprocessedLines.Count} lines)");
 
             Window currentWindow = null;

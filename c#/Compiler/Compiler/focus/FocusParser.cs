@@ -39,7 +39,6 @@ namespace Compiler
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
-            this.SourceFileName = fileName;
 
             int count = 0;
             Tree currentTree = null;

@@ -9,7 +9,7 @@ namespace Compiler
         public string name;
         public string desc;
         public string sprite;
-        public int priority; // priority must be an int (validator enforces numeric content)
+        public long priority; // priority must be an integer (validator enforces numeric content)
         public List<RawLine> allowed = new List<RawLine>();
         public List<RawLine> available = new List<RawLine>();
         public List<RawLine> rawLines = new List<RawLine>();
@@ -22,7 +22,7 @@ namespace Compiler
         public string name;
         public string desc;
         public string sprite;
-        public int priority;
+        public long priority;
         public int cost;
         public List<RawLine> allowed = new List<RawLine>();
         public List<RawLine> available = new List<RawLine>();
@@ -37,7 +37,6 @@ namespace Compiler
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
-            this.SourceFileName = fileName;
 
             //Console.WriteLine($"[PARSER] Parsing file: {filePath}");
             int count = 0;
@@ -182,7 +181,7 @@ namespace Compiler
                 if (pl.TrimmedLine.StartsWith("priority", StringComparison.OrdinalIgnoreCase))
                 {
                     var val = pl.TrimmedLine.Substring("priority".Length).Trim();
-                    if (int.TryParse(val, out var p))
+                if (long.TryParse(val, out var p))
                     {
                         if (pl.Depth == 1)
                         {
