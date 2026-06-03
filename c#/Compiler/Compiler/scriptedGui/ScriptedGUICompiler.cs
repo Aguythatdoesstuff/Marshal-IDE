@@ -33,7 +33,7 @@ namespace Compiler.scriptedGui
             WriteFile("interface", PassedData.SourceFileName, ".gui", (sw, created) =>
             {
                 sw.WriteLine("guiTypes = {");
-                sw.WriteLine($"{indent1}guiTypes = {{");
+                sw.WriteLine($"{indent1}containerWindowType = {{");
             });
 
 
