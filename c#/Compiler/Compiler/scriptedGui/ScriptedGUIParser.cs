@@ -9,8 +9,9 @@ namespace Compiler
     public class DefineBranch
     {
         public List<RawLine> ConditionRaw = new List<RawLine>(); // raw lines that make up the if / else if condition
-        public List<RawLine> ThenRaw = new List<RawLine>(); // raw lines inside the then branch
         public bool IsElse = false;
+        // Single string extracted from the then block (the value inside the text "..." or sprite "..." line)
+        public string ThenBlock = null;
     }
 
     public class Define
@@ -22,34 +23,39 @@ namespace Compiler
 
     public abstract class GuiElement
     {
+        public (int x, int y)? MaxSize;
         public GuiElementType Type;
         public string Id; // optional (only set when quoted id present after header)
         public string Sprite;
         public string Text;
         public string Font;
+        // When true this element's main field (text or sprite) came from an unquoted property
+        public bool IsProperty = false;
         public (int x, int y)? Position;
         public (int x, int y)? Size; // pixel size
         public bool SizeIsPercent = false;
         public int? SizePercent = null; // when size specified as percent (element-level)
         public bool IsTextScriptedLocalisationId = false;
         public bool SpriteIsScriptedId = false;
+        // optional id that links this element to a Define entry (preserve original define id)
+        public string DefinesId;
         public List<RawLine> OnClickRaw = new List<RawLine>();
         public List<RawLine> Raw = new List<RawLine>(); // raw aggregated inner lines for debugging
-    }
 
+        public class ProgressBarElement : GuiElement
+        {
+            public Orientation Orientation; // horizontal | vertical
+            public int Steps;
+            public (double r, double g, double b)? ProgressedColor;
+            public (double r, double g, double b)? UnprogressedColor;
+            public string VarName;
+            public string ProgressedSprite;
+            public string UnprogressedSprite;
+        }
+    }
     public class TextElement : GuiElement { }
     public class ButtonElement : GuiElement { }
     public class IconElement : GuiElement { }
-    public class ProgressBarElement : GuiElement
-    {
-        public Orientation Orientation; // horizontal | vertical
-        public int Steps;
-        public (double r, double g, double b)? ProgressedColor;
-        public (double r, double g, double b)? UnprogressedColor;
-        public string VarName;
-        public string ProgressedSprite;
-        public string UnprogressedSprite;
-    }
 
     public enum DefineType
     {
@@ -81,21 +87,43 @@ namespace Compiler
         public string Sprite;
         public List<RawLine> VisibleRaw = new List<RawLine>();
         public List<GuiElement> Elements = new List<GuiElement>();
+        // Collected properties for unquoted scripted sprite/text used inside elements
+        public List<WindowProperty> Properties = new List<WindowProperty>();
+    }
+
+    public class WindowProperty
+    {
+        // element type this property belongs to (Icon or ProgressBar)
+        public GuiElementType Type;
+        // generated or derived id for this property (e.g. "text_get_random_image_loc")
+        public string Id;
+        // parent element id (the element this property belongs to)
+        public string ParentId;
+        // the raw value following the keyword (unquoted value)
+        public string Value;
     }
 
     public class ScriptedGUI
     {
         public List<Define> Defines = new List<Define>();
         public List<Window> Windows = new List<Window>();
+        // source file name for this parsed snapshot
+        public string SourceFileName { get; set; } = string.Empty;
     }
 
     public class ScriptedGUIParser : BaseParser
     {
-        public ScriptedGUI Result { get; } = new ScriptedGUI();
+        public ScriptedGUI Result { get; private set; } = new ScriptedGUI();
+        // Expose the last parsed file snapshot similar to other parsers
+        public ScriptedGUI LastParsedFile { get; private set; }
 
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
             Console.WriteLine($"[PARSER] ScriptedGUIParser starting for {fileName} ({preprocessedLines.Count} lines)");
+
+            // reset result and record source file name so compilers can access it
+            Result = new ScriptedGUI();
+            Result.SourceFileName = fileName;
 
             Window currentWindow = null;
             GuiElement currentElement = null;
@@ -156,7 +184,6 @@ namespace Compiler
                             currentBranch = new DefineBranch();
                             currentDefine.Branches.Add(currentBranch);
                             currentBranch.ConditionRaw = new List<RawLine>();
-                            currentBranch.ThenRaw = new List<RawLine>();
                             currentBranch.IsElse = false;
                             continue;
                         }
@@ -164,8 +191,7 @@ namespace Compiler
                         {
                             currentBranch = new DefineBranch();
                             currentDefine.Branches.Add(currentBranch);
-                            currentBranch.ConditionRaw = new List<RawLine> { new RawLine { trimmedLine = t, depth = pl.Depth } };
-                            currentBranch.ThenRaw = new List<RawLine>();
+                            currentBranch.ConditionRaw = new List<RawLine>();
                             currentBranch.IsElse = false;
                             continue;
                         }
@@ -175,7 +201,6 @@ namespace Compiler
                             currentBranch.IsElse = true;
                             currentDefine.Branches.Add(currentBranch);
                             currentBranch.ConditionRaw = new List<RawLine>();
-                            currentBranch.ThenRaw = new List<RawLine>();
                             continue;
                         }
                         if (t.Equals("then", StringComparison.OrdinalIgnoreCase))
@@ -193,7 +218,26 @@ namespace Compiler
                             // but simplest is to append everything into ConditionRaw unless it looks like a 'sprite' or 'text' which we treat as ThenRaw.
                             if (t.StartsWith("sprite", StringComparison.OrdinalIgnoreCase) || t.StartsWith("text", StringComparison.OrdinalIgnoreCase))
                             {
-                                currentBranch.ThenRaw.Add(new RawLine { trimmedLine = t, depth = pl.Depth });
+                                // capture the single value inside the sprite/text line for easy access (e.g., text "Hello")
+                                string rem;
+                                string val = null;
+                                if (t.StartsWith("sprite", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    rem = t.Substring("sprite".Length).Trim();
+                                }
+                                else
+                                {
+                                    rem = t.Substring("text".Length).Trim();
+                                }
+                                if (rem.StartsWith("\""))
+                                {
+                                    val = BaseParser.GetQuotedContent(rem);
+                                }
+                                else
+                                {
+                                    val = rem;
+                                }
+                                currentBranch.ThenBlock = val;
                             }
                             else
                             {
@@ -205,7 +249,6 @@ namespace Compiler
                         // otherwise just append to a generic define debug raw (fallback)
                         var fb = new DefineBranch();
                         fb.ConditionRaw = new List<RawLine> { new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth } };
-                        fb.ThenRaw = new List<RawLine>();
                         currentDefine.Branches.Add(fb);
                         continue;
                     }
@@ -289,6 +332,14 @@ namespace Compiler
                             else el.Id = headerRem;
                         }
                         currentElement = el; currentWindow.Elements.Add(el);
+                        // ensure element has an id even when not provided
+                        if (string.IsNullOrEmpty(el.Id) && currentWindow != null)
+                        {
+                            var elemTypeName = el.Type.ToString().ToLowerInvariant();
+                            var count = currentWindow.Elements.Count(e => e.Type == el.Type);
+                            var winId = string.IsNullOrEmpty(currentWindow.Id) ? "window" : currentWindow.Id.Replace(' ', '_');
+                            el.Id = $"{winId}_{elemTypeName}_{count}";
+                        }
                         Console.WriteLine($"[PARSER] Added Text element id={el.Id}");
                         continue;
                     }
@@ -303,6 +354,13 @@ namespace Compiler
                             else el.Id = headerRem;
                         }
                         currentElement = el; currentWindow.Elements.Add(el);
+                        if (string.IsNullOrEmpty(el.Id) && currentWindow != null)
+                        {
+                            var elemTypeName = el.Type.ToString().ToLowerInvariant();
+                            var count = currentWindow.Elements.Count(e => e.Type == el.Type);
+                            var winId = string.IsNullOrEmpty(currentWindow.Id) ? "window" : currentWindow.Id.Replace(' ', '_');
+                            el.Id = $"{winId}_{elemTypeName}_{count}";
+                        }
                         Console.WriteLine($"[PARSER] Added Button element id={el.Id}");
                         continue;
                     }
@@ -317,6 +375,13 @@ namespace Compiler
                             else el.Id = headerRem;
                         }
                         currentElement = el; currentWindow.Elements.Add(el);
+                        if (string.IsNullOrEmpty(el.Id) && currentWindow != null)
+                        {
+                            var elemTypeName = el.Type.ToString().ToLowerInvariant();
+                            var count = currentWindow.Elements.Count(e => e.Type == el.Type);
+                            var winId = string.IsNullOrEmpty(currentWindow.Id) ? "window" : currentWindow.Id.Replace(' ', '_');
+                            el.Id = $"{winId}_{elemTypeName}_{count}";
+                        }
                         Console.WriteLine($"[PARSER] Added Icon element id={el.Id}");
                         continue;
                     }
@@ -326,7 +391,7 @@ namespace Compiler
                     {
                         // parse steps if present
                         var parts = pl.TrimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                        var el = new ProgressBarElement() { Type = GuiElementType.ProgressBar };
+                    var el = new GuiElement.ProgressBarElement() { Type = GuiElementType.ProgressBar };
                         el.Orientation = parts[0].Equals("horizontal", StringComparison.OrdinalIgnoreCase) ? Orientation.Horizontal : Orientation.Vertical;
                         int idxWith = Array.FindIndex(parts, p => p.Equals("with", StringComparison.OrdinalIgnoreCase));
                         if (idxWith >= 0 && idxWith + 1 < parts.Length && int.TryParse(parts[idxWith + 1], out var steps))
@@ -334,7 +399,16 @@ namespace Compiler
                             el.Steps = steps;
                         }
                         currentElement = el; currentWindow.Elements.Add(el);
-                        Console.WriteLine($"[PARSER] Added {el.Orientation} bar steps={el.Steps}");
+                        // generate id for bar element if missing: <window>_bar_<count>
+                        if (string.IsNullOrEmpty(el.Id) && currentWindow != null)
+                        {
+                            var elemTypeName = "bar";
+                            var count = currentWindow.Elements.Count(e => e.Type == el.Type);
+                            var winId = string.IsNullOrEmpty(currentWindow.Id) ? "window" : currentWindow.Id.Replace(' ', '_');
+                            el.Id = $"{winId}_{elemTypeName}_{count}";
+                            Console.WriteLine($"[PARSER] Generated element id={el.Id}");
+                        }
+                        Console.WriteLine($"[PARSER] Added {el.Orientation} bar steps={el.Steps} id={el.Id}");
                         continue;
                     }
 
@@ -401,6 +475,33 @@ namespace Compiler
                             {
                                 currentElement.Sprite = rem;
                                 currentElement.SpriteIsScriptedId = true;
+                                // preserve the id that may link to a Define (don't overwrite element main Id)
+                                currentElement.DefinesId = rem;
+                                // mark element's main field as coming from an unquoted property
+                                currentElement.IsProperty = true;
+                                // If element has no id, generate one: <windowId>_<elementType>_<count>
+                                if (string.IsNullOrEmpty(currentElement.Id) && currentWindow != null)
+                                {
+                                    var elemTypeName = currentElement.Type.ToString().ToLowerInvariant();
+                                    var count = currentWindow.Elements.Count(e => e.Type == currentElement.Type);
+                                    var winId = string.IsNullOrEmpty(currentWindow.Id) ? "window" : currentWindow.Id.Replace(' ', '_');
+                                    currentElement.Id = $"{winId}_{elemTypeName}_{count}";
+                                    Console.WriteLine($"[PARSER] Generated element id={currentElement.Id}");
+                                }
+                                // Only record a window property for Icon elements (images)
+                                if (currentWindow != null && currentElement.Type == GuiElementType.Icon)
+                                {
+                                    var prop = new WindowProperty();
+                                    prop.Type = currentElement.Type;
+                                    var propCount = currentWindow.Properties.Count(p => p.Type == prop.Type) + 1;
+                                    var baseName = rem.Replace(' ', '_');
+                                    // Use the provided sprite value as the property id (sanitized) without adding suffixes
+                                    prop.Id = baseName;
+                                    prop.ParentId = currentElement.Id;
+                                    prop.Value = rem;
+                                    currentWindow.Properties.Add(prop);
+                                    Console.WriteLine($"[PARSER] Added window property type={prop.Type} id={prop.Id} parent={prop.ParentId} value={prop.Value}");
+                                }
                             }
                             continue;
                         }
@@ -414,8 +515,20 @@ namespace Compiler
                             }
                             else
                             {
+                                // For unquoted text, treat as element-local property but DO NOT create a window property.
                                 currentElement.Text = rem;
                                 if (currentElement is TextElement te) te.IsTextScriptedLocalisationId = true;
+                                // preserve the id that may link to a Define (don't overwrite element main Id)
+                                currentElement.DefinesId = rem;
+                                currentElement.IsProperty = true;
+                                if (string.IsNullOrEmpty(currentElement.Id) && currentWindow != null)
+                                {
+                                    var elemTypeName = currentElement.Type.ToString().ToLowerInvariant();
+                                    var count = currentWindow.Elements.Count(e => e.Type == currentElement.Type);
+                                    var winId = string.IsNullOrEmpty(currentWindow.Id) ? "window" : currentWindow.Id.Replace(' ', '_');
+                                    currentElement.Id = $"{winId}_{elemTypeName}_{count}";
+                                    Console.WriteLine($"[PARSER] Generated element id={currentElement.Id}");
+                                }
                             }
                             continue;
                         }
@@ -442,7 +555,7 @@ namespace Compiler
                             {
                                 int.TryParse(toks[2].TrimStart('x'), out var sx);
                                 int.TryParse(toks[3].TrimStart('y'), out var sy);
-                                currentElement.Size = (sx, sy);
+                                currentElement.MaxSize = (sx, sy);
                             }
                             continue;
                         }
@@ -471,11 +584,31 @@ namespace Compiler
                         }
 
                         // progress bar specific properties
-                        if (currentElement is ProgressBarElement pbe)
+                        if (currentElement is GuiElement.ProgressBarElement pbe)
                         {
                             if (t.StartsWith("var ", StringComparison.OrdinalIgnoreCase))
                             {
                                 pbe.VarName = BaseParser.GetQuotedContent(t.Substring("var".Length).Trim());
+                                // create a window property for the progress bar using the var value as the property Id
+                                if (currentWindow != null)
+                                {
+                                    // ensure progress bar element has an id
+                                    if (string.IsNullOrEmpty(pbe.Id))
+                                    {
+                                        var winId = string.IsNullOrEmpty(currentWindow.Id) ? "window" : currentWindow.Id.Replace(' ', '_');
+                                        var count = currentWindow.Elements.Count(e => e.Type == pbe.Type);
+                                        pbe.Id = $"{winId}_bar_{count}";
+                                        Console.WriteLine($"[PARSER] Generated element id={pbe.Id}");
+                                    }
+                                    var prop = new WindowProperty();
+                                    prop.Type = GuiElementType.ProgressBar;
+                                    // save var value as property id
+                                    prop.Id = pbe.VarName;
+                                    prop.ParentId = pbe.Id;
+                                    prop.Value = pbe.VarName;
+                                    currentWindow.Properties.Add(prop);
+                                    Console.WriteLine($"[PARSER] Added bar property id={prop.Id} parent={prop.ParentId}");
+                                }
                                 continue;
                             }
                             if (t.StartsWith("progressed color", StringComparison.OrdinalIgnoreCase) || t.StartsWith("unprogressed color", StringComparison.OrdinalIgnoreCase))
@@ -483,9 +616,13 @@ namespace Compiler
                                 var toks = t.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                                 if (toks.Length >= 5)
                                 {
-                                    double.TryParse(toks[toks.Length - 3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var a);
-                                    double.TryParse(toks[toks.Length - 2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var b);
-                                    double.TryParse(toks[toks.Length - 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var c);
+                                    // accept comma or dot as decimal separator by normalizing
+                                    var sa = toks[toks.Length - 3].Replace(',', '.');
+                                    var sb = toks[toks.Length - 2].Replace(',', '.');
+                                    var sc = toks[toks.Length - 1].Replace(',', '.');
+                                    double.TryParse(sa, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var a);
+                                    double.TryParse(sb, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var b);
+                                    double.TryParse(sc, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var c);
                                     if (toks[0].StartsWith("progressed", StringComparison.OrdinalIgnoreCase)) pbe.ProgressedColor = (a, b, c);
                                     else pbe.UnprogressedColor = (a, b, c);
                                 }
@@ -509,6 +646,9 @@ namespace Compiler
             }
 
             Console.WriteLine($"[PARSER] Completed parse: {Result.Windows.Count} windows, {Result.Defines.Count} defines");
+
+            // Save parsed snapshot for external consumers
+            LastParsedFile = Result;
         }
     }
 }

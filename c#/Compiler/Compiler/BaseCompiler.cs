@@ -116,51 +116,6 @@ namespace Compiler
             };
         }
 
-        /* ============================================================================
-           EXAMPLE USAGE INSIDE A SPECIALIZED COMPILER
-           ============================================================================
-
-           public class ScriptedGuiCompiler : BaseCompiler
-           {
-               // Assume this data was handed down after the Validator/Parser dropped old lists
-               public ScriptedGUI PassedData { get; set; } 
-
-               public override void Compile()
-               {
-                   // 1. Call WriteFile and pass a lambda expression 'sw => { ... }'
-                   WriteFile("common/scripted_gui", "my_mod_gui", ".txt", sw =>
-                   {
-                       // Write the initial structural header
-                       sw.WriteLine("scripted_gui = {");
-
-                       // 2. Loop through your parsed data structures
-                       foreach (var window in PassedData.Windows)
-                       {
-                           // 3. Use .NET 10 Raw String Literals (""") to easily output multi-line 
-                           // templates from a single input element without clogging your RAM.
-                           sw.Write($"""
-                       	        {window.Id} = {{
-                       		        size = {{ x = {window.Size?.x ?? 500} y = {window.Size?.y ?? 400} }}
-                       		        reset_on_closure = yes
-                       	        }}
-                               """);
-
-                           // You can mix single lines and raw string blocks perfectly. 
-                           // The StreamWriter buffers it all automatically before touching the SSD.
-                           if (window.Draggable)
-                           {
-                               sw.WriteLine("\t\tmoveable = yes");
-                           }
-                       }
-
-                       // Close the core structure
-                       sw.WriteLine("}");
-                   }); 
-                   // At this closing parenthesis, the file stream is flushed, closed, and saved to disk.
-               }
-           }
-        */
-
         public abstract void Compile();
 
         /// Writes a collection of parsed lines (items that expose a depth and trimmedLine)

@@ -141,19 +141,22 @@ namespace Compiler
             switch (extension)
             {
                 case ".decision":
-                    compiler = new Compiler.decision.DecisionCompiler();
+                    //compiler = new Compiler.decision.DecisionCompiler();
                     break;
                 case ".event":
-                    compiler = new Compiler.@event.EventCompiler();
+                    //compiler = new Compiler.@event.EventCompiler();
                     break;
                 case ".idea":
-                    compiler = new Compiler.idea.IdeaCompiler();
+                    //compiler = new Compiler.idea.IdeaCompiler();
                     break;
                 case ".focus":
-                    compiler = new Compiler.focus.FocusCompiler();
+                    //compiler = new Compiler.focus.FocusCompiler();
+                    break;
+                case ".scriptedgui":
+                    compiler = new Compiler.scriptedGui.ScriptedGUICompiler();
                     break;
                 case ".script":
-                    compiler = new Compiler.script.ScriptCompiler();
+                    //compiler = new Compiler.script.ScriptCompiler();
                     break;
                 default:
                     // No compiler implemented for this extension yet
@@ -198,6 +201,10 @@ namespace Compiler
                     if (parserInstance is ScriptParser sParser && compiler is Compiler.script.ScriptCompiler sCompiler)
                     {
                         sCompiler.PassedData = sParser.LastParsedFile;
+                    }
+                    if (parserInstance is ScriptedGUIParser sgParser && compiler is Compiler.scriptedGui.ScriptedGUICompiler sgCompiler)
+                    {
+                        sgCompiler.PassedData = sgParser.LastParsedFile;
                     }
                 }
                 catch
