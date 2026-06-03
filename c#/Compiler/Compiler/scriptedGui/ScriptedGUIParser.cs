@@ -8,8 +8,8 @@ namespace Compiler
     // deliberately permissive: validation is the validator's responsibility.
     public class DefineBranch
     {
-        public string ConditionRaw = string.Empty; // raw lines that make up the if / else if condition
-        public string ThenRaw = string.Empty; // raw lines inside the then branch
+        public List<RawLine> ConditionRaw = new List<RawLine>(); // raw lines that make up the if / else if condition
+        public List<RawLine> ThenRaw = new List<RawLine>(); // raw lines inside the then branch
         public bool IsElse = false;
     }
 
@@ -33,8 +33,8 @@ namespace Compiler
         public int? SizePercent = null; // when size specified as percent (element-level)
         public bool IsTextScriptedLocalisationId = false;
         public bool SpriteIsScriptedId = false;
-        public string OnClickRaw = string.Empty;
-        public string Raw = string.Empty; // raw aggregated inner lines for debugging
+        public List<RawLine> OnClickRaw = new List<RawLine>();
+        public List<RawLine> Raw = new List<RawLine>(); // raw aggregated inner lines for debugging
     }
 
     public class TextElement : GuiElement { }
@@ -79,7 +79,7 @@ namespace Compiler
         public bool SizeIsPercent;
         public (int x, int y)? Position;
         public string Sprite;
-        public string VisibleRaw = string.Empty;
+        public List<RawLine> VisibleRaw = new List<RawLine>();
         public List<GuiElement> Elements = new List<GuiElement>();
     }
 
@@ -118,7 +118,7 @@ namespace Compiler
                 {
                     if (pl.Depth > onClickBaseDepth)
                     {
-                        currentElement.OnClickRaw += (string.IsNullOrEmpty(currentElement.OnClickRaw) ? "" : "\n") + pl.TrimmedLine;
+                        currentElement.OnClickRaw.Add(new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth });
                         continue;
                     }
                     else
@@ -134,7 +134,7 @@ namespace Compiler
                 {
                     if (pl.Depth > visibleBaseDepth)
                     {
-                        currentWindow.VisibleRaw += (string.IsNullOrEmpty(currentWindow.VisibleRaw) ? "" : "\n") + pl.TrimmedLine;
+                        currentWindow.VisibleRaw.Add(new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth });
                         continue;
                     }
                     else
@@ -155,8 +155,8 @@ namespace Compiler
                         {
                             currentBranch = new DefineBranch();
                             currentDefine.Branches.Add(currentBranch);
-                            currentBranch.ConditionRaw = string.Empty;
-                            currentBranch.ThenRaw = string.Empty;
+                            currentBranch.ConditionRaw = new List<RawLine>();
+                            currentBranch.ThenRaw = new List<RawLine>();
                             currentBranch.IsElse = false;
                             continue;
                         }
@@ -164,8 +164,8 @@ namespace Compiler
                         {
                             currentBranch = new DefineBranch();
                             currentDefine.Branches.Add(currentBranch);
-                            currentBranch.ConditionRaw = t; // store the else if line as condition starter
-                            currentBranch.ThenRaw = string.Empty;
+                            currentBranch.ConditionRaw = new List<RawLine> { new RawLine { trimmedLine = t, depth = pl.Depth } };
+                            currentBranch.ThenRaw = new List<RawLine>();
                             currentBranch.IsElse = false;
                             continue;
                         }
@@ -174,6 +174,8 @@ namespace Compiler
                             currentBranch = new DefineBranch();
                             currentBranch.IsElse = true;
                             currentDefine.Branches.Add(currentBranch);
+                            currentBranch.ConditionRaw = new List<RawLine>();
+                            currentBranch.ThenRaw = new List<RawLine>();
                             continue;
                         }
                         if (t.Equals("then", StringComparison.OrdinalIgnoreCase))
@@ -191,17 +193,20 @@ namespace Compiler
                             // but simplest is to append everything into ConditionRaw unless it looks like a 'sprite' or 'text' which we treat as ThenRaw.
                             if (t.StartsWith("sprite", StringComparison.OrdinalIgnoreCase) || t.StartsWith("text", StringComparison.OrdinalIgnoreCase))
                             {
-                                currentBranch.ThenRaw += (string.IsNullOrEmpty(currentBranch.ThenRaw) ? "" : "\n") + t;
+                                currentBranch.ThenRaw.Add(new RawLine { trimmedLine = t, depth = pl.Depth });
                             }
                             else
                             {
-                                currentBranch.ConditionRaw += (string.IsNullOrEmpty(currentBranch.ConditionRaw) ? "" : "\n") + t;
+                                currentBranch.ConditionRaw.Add(new RawLine { trimmedLine = t, depth = pl.Depth });
                             }
                             continue;
                         }
 
                         // otherwise just append to a generic define debug raw (fallback)
-                        currentDefine.Branches.Add(new DefineBranch { ConditionRaw = pl.TrimmedLine });
+                        var fb = new DefineBranch();
+                        fb.ConditionRaw = new List<RawLine> { new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth } };
+                        fb.ThenRaw = new List<RawLine>();
+                        currentDefine.Branches.Add(fb);
                         continue;
                     }
                     else
@@ -375,7 +380,7 @@ namespace Compiler
                     if (pl.Depth == 1 && pl.TrimmedLine.Equals("visible", StringComparison.OrdinalIgnoreCase))
                     {
                         inVisible = true; visibleBaseDepth = pl.Depth;
-                        currentWindow.VisibleRaw = string.Empty;
+                        currentWindow.VisibleRaw = new List<RawLine>();
                         continue;
                     }
 
@@ -383,7 +388,7 @@ namespace Compiler
                     if (currentElement != null && pl.Depth >= 2)
                     {
                         var t = pl.TrimmedLine;
-                        currentElement.Raw += (string.IsNullOrEmpty(currentElement.Raw) ? "" : "\n") + t;
+                        currentElement.Raw.Add(new RawLine { trimmedLine = t, depth = pl.Depth });
                         if (t.StartsWith("sprite", StringComparison.OrdinalIgnoreCase))
                         {
                             var rem = t.Substring("sprite".Length).Trim();
@@ -461,7 +466,7 @@ namespace Compiler
                         if (t.StartsWith("on click", StringComparison.OrdinalIgnoreCase))
                         {
                             inOnClick = true; onClickBaseDepth = pl.Depth;
-                            currentElement.OnClickRaw = string.Empty;
+                            currentElement.OnClickRaw = new List<RawLine>();
                             continue;
                         }
 

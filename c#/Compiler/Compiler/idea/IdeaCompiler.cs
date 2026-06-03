@@ -13,7 +13,6 @@ namespace Compiler.idea
         {
             if (PassedData == null || PassedData.Ideas == null) return;
 
-            bool hasWrittenLocalisationHeader = false;
             var fileName = PassedData.SourceFileName;
             string indent1 = Ident(1);
             string indent2 = Ident(2);
@@ -21,7 +20,7 @@ namespace Compiler.idea
             string indent4 = Ident(4);
 
             // Create file and write header + open country block
-            WriteFile("common/ideas/", fileName, ".idea", sw =>
+            WriteFile("common/ideas/", fileName, ".idea", (sw, created) =>
             {
                 sw.WriteLine("ideas = {");
                 sw.WriteLine($"{indent1}country = {{");
@@ -30,7 +29,7 @@ namespace Compiler.idea
             // Append each idea
             foreach (var idea in PassedData.Ideas)
             {
-                WriteFile("common/ideas/", fileName, ".idea", sw =>
+                WriteFile("common/ideas/", fileName, ".idea", (sw, created) =>
                 {
                     // Idea header
                     sw.WriteLine();
@@ -60,13 +59,9 @@ namespace Compiler.idea
                     // Close idea block
                     sw.WriteLine($"{indent2}}}");
                 });
-                WriteFile("localisation/english/ideas/", fileName + "_l_english", ".yml", sw =>
+                WriteFile("localisation/english/ideas/", fileName + "_l_english", ".yml", (sw, created) =>
                 {
-                    if (!hasWrittenLocalisationHeader)
-                    {
-                        sw.WriteLine("l_english:");
-                        hasWrittenLocalisationHeader = true;
-                    }
+                    if (created) sw.WriteLine("l_english:");
 
                     sw.WriteLine($" {idea.id}:0 \"{idea.name}\"");
                     sw.WriteLine($" {idea.id}_desc:0 \"{idea.desc}\"");
@@ -74,7 +69,7 @@ namespace Compiler.idea
             }
 
             // Close country and ideas blocks
-            WriteFile("common/ideas/", fileName, ".idea", sw =>
+            WriteFile("common/ideas/", fileName, ".idea", (sw, created) =>
             {
                 sw.WriteLine($"{indent1}}}");
                 sw.WriteLine("}");

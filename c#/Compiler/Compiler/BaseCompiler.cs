@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 
 namespace Compiler
@@ -14,28 +15,60 @@ namespace Compiler
         public static string OutputPath { get; set; }
         public string SourceFileName { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Creates or overwrites a file, providing a StreamWriter to cleanly dump data 
-        /// directly to disk without storing massive strings in RAM. Works natively on Windows and Linux.
-        /// </summary>
-        protected void WriteFile(string relativeSubfolder, string fileName, string extension, Action<StreamWriter> writeAction)
+        /// Calculates the Hearts of Iron IV 'cost' value based on a duration and time unit.
+        public static string GetHoi4Cost(double value, string unit)
+        {
+            // Clean up the unit string to avoid casing or spacing issues
+            string timeUnit = unit.Trim().ToLower();
+
+            double finalCost;
+
+            if (timeUnit == "weeks")
+            {
+                // If it's in weeks, 1 cost = 1 week
+                finalCost = value;
+            }
+            else
+            {
+                // Default to 'days' calculation (1 cost unit = 7 days)
+                double exactCost = value / 7.0;
+
+                // Add the small buffer for HOI4 UI display accuracy
+                double safeCost = exactCost + 0.001;
+
+                // Round to 3 decimal places
+                finalCost = Math.Round(safeCost, 3);
+            }
+
+            // "G" format string keeps it compact (e.g., 1.43 instead of 1.430)
+            // InvariantCulture guarantees the dot (.) separator
+            return finalCost.ToString("G", CultureInfo.InvariantCulture);
+        }
+
+        // overload that exposes the 'created' flag so callers can write one-time
+        // headers when a file is created for the first time during a run.
+        protected void WriteFile(string relativeSubfolder, string fileName, string extension, Action<StreamWriter, bool> writeAction)
         {
             if (writeAction == null) return;
 
             if (string.IsNullOrWhiteSpace(extension)) extension = ".txt";
             if (!extension.StartsWith(".")) extension = "." + extension;
 
-            string finalName = fileName;
-            if (string.IsNullOrWhiteSpace(finalName))
+            // Determine the output file name. Prefer an explicit fileName supplied by the caller.
+            // If none is supplied, fall back to the original source file name when available.
+            // If neither is available, use a generic fallback to avoid throwing here.
+            string finalName;
+            if (!string.IsNullOrWhiteSpace(fileName))
             {
-                if (!string.IsNullOrWhiteSpace(SourceFileName))
-                {
-                    finalName = Path.GetFileNameWithoutExtension(SourceFileName);
-                }
-                else
-                {
-                    throw new InvalidOperationException("Fatal error: Unable to determine output file name.");
-                }
+                finalName = Path.GetFileNameWithoutExtension(fileName);
+            }
+            else if (!string.IsNullOrWhiteSpace(SourceFileName))
+            {
+                finalName = Path.GetFileNameWithoutExtension(SourceFileName);
+            }
+            else
+            {
+                finalName = "output";
             }
 
             var subfolder = string.IsNullOrWhiteSpace(relativeSubfolder) ? OutputPath : Path.Combine(OutputPath, relativeSubfolder);
@@ -61,7 +94,7 @@ namespace Compiler
             using (var fs = new FileStream(outPath, fileMode, FileAccess.Write, FileShare.Read))
             using (var sw = new StreamWriter(fs, encoding))
             {
-                writeAction(sw);
+                writeAction(sw, shouldCreate);
             }
         }
 

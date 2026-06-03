@@ -187,8 +187,8 @@ namespace Compiler
                     }
                     if (parserInstance is FocusParser fParser && compiler is Compiler.focus.FocusCompiler fCompiler)
                     {
-                        // pass the parsed trees collection to the focus compiler
-                        fCompiler.PassedTrees = fParser.Trees?.ToArray();
+                        // pass the parsed file (file name + trees) to the focus compiler
+                        fCompiler.PassedTrees = fParser.LastParsedFile;
                     }
                     if (parserInstance is DecisionParser dParser && compiler is Compiler.decision.DecisionCompiler dCompiler)
                     {

@@ -13,7 +13,6 @@ namespace Compiler.@event
         {
             if (PassedData == null || PassedData.Events == null) return;
             string lastNamespace = null;
-            bool hasWrittenLocalisationHeader = false; // Tracks if l_english: was added to the file header
             string indent1 = Ident(1);
             string indent2 = Ident(2);
 
@@ -21,7 +20,7 @@ namespace Compiler.@event
             {
                 var fileName = PassedData.SourceFileName;
 
-                WriteFile("events", fileName, ".txt", sw =>
+                WriteFile("events", fileName, ".txt", (sw, created) =>
                 {
                     // Dynamically extract the namespace by cutting off the '.' and the id number (e.g., "china_event.1" -> "china_event")
                     string ns = ev.id;
@@ -68,14 +67,9 @@ namespace Compiler.@event
                     lastNamespace = ns;
                 });
 
-                WriteFile("localisation/english/events", fileName + "_l_english", ".yml", sw =>
+                WriteFile("localisation/english/events", fileName + "_l_english", ".yml", (sw, created) =>
                 {
-                    // Only write l_english: once at the absolute top of the generated file
-                    if (!hasWrittenLocalisationHeader)
-                    {
-                        sw.WriteLine("l_english:");
-                        hasWrittenLocalisationHeader = true;
-                    }
+                    if (created) sw.WriteLine("l_english:");
 
                     // Match Paradox formatting precisely using the ':0 ' notation rule
                     sw.WriteLine($" {ev.id}_title:0 \"{ev.name}\"");

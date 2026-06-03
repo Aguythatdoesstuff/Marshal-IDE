@@ -15,7 +15,7 @@ namespace Compiler.script
             // Write scripted effects
             if (PassedData.ScriptedEffects != null && PassedData.ScriptedEffects.Count > 0)
             {
-                WriteFile("common/scripted_effects", PassedData.SourceFileName, ".txt", sw =>
+                WriteFile("common/scripted_effects", PassedData.SourceFileName, ".txt", (sw, created) =>
                 {
                     foreach (var se in PassedData.ScriptedEffects)
                     {
@@ -35,7 +35,7 @@ namespace Compiler.script
             if (PassedData.GameRules != null && PassedData.GameRules.Count > 0)
             {
                 bool hasWrittenLocHeader = false;
-                WriteFile("common/game_rules", PassedData.SourceFileName, ".txt", sw =>
+                WriteFile("common/game_rules", PassedData.SourceFileName, ".txt", (sw, created) =>
                 {
                     foreach (var gr in PassedData.GameRules)
                     {
@@ -72,9 +72,9 @@ namespace Compiler.script
                 });
 
                 // localisation for game rules
-                WriteFile("localisation/english/game_rules", PassedData.SourceFileName + "_l_english", ".yml", sw =>
+                WriteFile("localisation/english/game_rules", PassedData.SourceFileName + "_l_english", ".yml", (sw, created) =>
                 {
-                    sw.WriteLine("l_english:");
+                    if (created) sw.WriteLine("l_english:");
                     foreach (var gr in PassedData.GameRules)
                     {
                         var idUpper = gr.id.ToUpperInvariant();
@@ -95,7 +95,7 @@ namespace Compiler.script
             // Scripted triggers
             if (PassedData.ScriptedTriggers != null && PassedData.ScriptedTriggers.Count > 0)
             {
-                WriteFile("common/scripted_triggers", PassedData.SourceFileName, ".txt", sw =>
+                WriteFile("common/scripted_triggers", PassedData.SourceFileName, ".txt", (sw, created) =>
                 {
                     foreach (var st in PassedData.ScriptedTriggers)
                     {
@@ -109,7 +109,7 @@ namespace Compiler.script
             // On actions
             if (PassedData.OnActions != null && PassedData.OnActions.Count > 0)
             {
-                WriteFile("common/on_actions", PassedData.SourceFileName, ".txt", sw =>
+                WriteFile("common/on_actions", PassedData.SourceFileName, ".txt", (sw, created) =>
                 {
                     sw.WriteLine("on_actions = {");
                     foreach (var oa in PassedData.OnActions)
