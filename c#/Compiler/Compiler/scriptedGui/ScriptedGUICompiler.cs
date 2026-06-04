@@ -168,11 +168,61 @@ namespace Compiler.scriptedGui
                             sw.WriteLine($"{indent3}position = {{ x = {Ellement.Position.Value.x} y = {Ellement.Position.Value.y} }}");
                             sw.WriteLine($"{indent3}maxWidth = {Ellement.MaxSize.Value.x}");
                             sw.WriteLine($"{indent3}maxHeight = {Ellement.MaxSize.Value.y}");
+
                             sw.WriteLine($"{indent2}}}");
                         }
                         else if (Ellement.Type == GuiElementType.Icon)
                         {
-
+                            sw.WriteLine($"{indent2}iconType = {{");
+                            sw.WriteLine($"{indent3}name = \"{Ellement.Id}\"");
+                            if (Ellement.IsProperty)
+                            {
+                            }
+                            else
+                            {
+                                sw.WriteLine($"{indent3}spriteType = \"{Ellement.Sprite}\"");
+                            }
+                            if (Ellement.IsTextScriptedLocalisationId)
+                            {
+                                sw.WriteLine($"{indent3}text = {Ellement.Id}");
+                                WriteFile("localisation/english/scripted_gui/", PassedData.SourceFileName + "_l_english", ".yml", (sw, created) =>
+                                {
+                                    sw.WriteLine($" {Ellement.Id}_gui_ellement_{counterGuiEllement}:0 \"{Ellement.Text}\"");
+                                });
+                            }
+                            sw.WriteLine($"{indent3}font = \"{Ellement.Font}\"");
+                            sw.WriteLine($"{indent3}position = {{ x = {Ellement.Position.Value.x} y = {Ellement.Position.Value.y} }}");
+                            if (Ellement.SizePercent != null)
+                            {
+                                sw.WriteLine($"{indent3}scale = {Ellement.SizePercent}");
+                            }
+                            sw.WriteLine($"{indent2}}}");
+                        }
+                        else if (Ellement.Type == GuiElementType.Button)
+                        {
+                            sw.WriteLine($"{indent2}iconType = {{");
+                            sw.WriteLine($"{indent3}name = \"{Ellement.Id}\"");
+                            if (Ellement.IsProperty)
+                            {
+                            }
+                            else
+                            {
+                                sw.WriteLine($"{indent3}spriteType = \"{Ellement.Sprite}\"");
+                            }
+                            sw.WriteLine($"{indent3}position = {{ x = {Ellement.Position.Value.x} y = {Ellement.Position.Value.y} }}");
+                            if (Ellement.SizePercent != null)
+                            {
+                                sw.WriteLine($"{indent3}scale = {Ellement.SizePercent}");
+                            }
+                            sw.WriteLine($"{indent2}}}");
+                        }
+                        else if (Ellement.Type == GuiElementType.ProgressBar)
+                        {
+                            sw.WriteLine($"{indent2}iconType = {{");
+                            sw.WriteLine($"{indent3}name = \"{Ellement.Id}\"");
+                            sw.WriteLine($"{indent3}spriteType = \"GFX_{Ellement.Id}\"");
+                            sw.WriteLine($"{indent3}position = {{ x = {Ellement.Position.Value.x} y = {Ellement.Position.Value.y} }}");
+                            sw.WriteLine($"{indent2}}}");
                         }
                     }
                 });
