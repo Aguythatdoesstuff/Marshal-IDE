@@ -9,6 +9,65 @@ namespace Compiler
     {
         static void Main(string[] args)
         {
+            // Register global handlers to ensure we always have an Exception object and report via IPC
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                try
+                {
+                    var ex = e.ExceptionObject as Exception ?? new Exception("Unhandled exception without Exception object");
+                    IPC.Send("FatalError", ex.Message);
+                    Compiler.Logging.Logger.ReportUnhandledException(ex);
+                    // Exit non-zero to indicate fatal crash
+                    Environment.Exit(1);
+                }
+                catch { Environment.Exit(1); }
+            };
+
+            System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                try
+                {
+                    var ex = e.Exception ?? new Exception("UnobservedTaskException");
+                    IPC.Send("FatalError", ex.Message);
+                    Compiler.Logging.Logger.ReportUnhandledException(ex);
+                    e.SetObserved();
+                }
+                catch { }
+            };
+
+            // Initialize logger early so other components can use it
+            string debugArg = null;
+            if (args != null && args.Length > 0)
+            {
+                debugArg = args.FirstOrDefault(a => a.StartsWith("--debuglog=", StringComparison.OrdinalIgnoreCase));
+            }
+
+            string resolvedLogPath = null;
+            if (!string.IsNullOrWhiteSpace(debugArg))
+            {
+                var raw = debugArg.Substring("--debuglog=".Length).Trim();
+                try
+                {
+                    if (Path.IsPathRooted(raw)) resolvedLogPath = Path.GetFullPath(raw);
+                }
+                catch { resolvedLogPath = null; }
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedLogPath))
+            {
+                var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                resolvedLogPath = Path.Combine(desktop, "marshal-ide-compiler-debbug", "logs");
+            }
+
+            try
+            {
+                Compiler.Logging.Logger.Initialize(resolvedLogPath);
+            }
+            catch
+            {
+                // If logger initialization fails for any reason, continue without crashing the whole app
+            }
+
             IEnumerable<string> filePaths = Array.Empty<string>();
 
             string outputArg = null;
@@ -23,7 +82,7 @@ namespace Compiler
                 var raw = outputArg.Substring("--output=".Length).Trim();
                 if (!Path.IsPathRooted(raw))
                 {
-                    Console.WriteLine("Error: --output must be an absolute path. Please provide an absolute path.");
+                    Compiler.Logging.Logger.LogMain("[ERROR] --output must be an absolute path. Please provide an absolute path.");
                     return;
                 }
 
@@ -33,7 +92,7 @@ namespace Compiler
                 }
                 catch
                 {
-                    Console.WriteLine("Error: Failed to normalize provided --output path. Provide a valid absolute path.");
+                    Compiler.Logging.Logger.LogMain("[ERROR] Failed to normalize provided --output path. Provide a valid absolute path.");
                     return;
                 }
             }
@@ -73,7 +132,7 @@ namespace Compiler
 
             if (!filePaths.Any())
             {
-                Console.WriteLine("No valid files to process. Exiting.");
+                Compiler.Logging.Logger.LogMain("No valid files to process. Exiting.");
                 return;
             }
 
@@ -88,11 +147,11 @@ namespace Compiler
 
             if (!Directory.Exists(testDir))
             {
-                Console.WriteLine("Test directory not found: " + testDir);
+                Compiler.Logging.Logger.LogMain("Test directory not found: " + testDir);
                 try
                 {
                     Directory.CreateDirectory(testDir);
-                    Console.WriteLine("Created test directory: " + testDir);
+                    Compiler.Logging.Logger.LogMain("Created test directory: " + testDir);
                 }
                 catch
                 {
@@ -101,7 +160,7 @@ namespace Compiler
                 return Array.Empty<string>();
             }
 
-            Console.WriteLine("Scanning test directory: " + testDir);
+            Compiler.Logging.Logger.LogMain("Scanning test directory: " + testDir);
 
             var allowedExtensions = new[] { ".decision", ".event", ".focus", ".idea", ".scriptedgui", ".script" };
             var files = new List<string>();
@@ -111,7 +170,7 @@ namespace Compiler
                 files.AddRange(Directory.GetFiles(testDir, "*" + ext, SearchOption.AllDirectories));
             }
 
-            Console.WriteLine($"Found {files.Count} valid file(s) in {testDir}\n");
+            Compiler.Logging.Logger.LogMain($"Found {files.Count} valid file(s) in {testDir}\n");
             return files.Select(Path.GetFullPath).ToArray();
         }
 

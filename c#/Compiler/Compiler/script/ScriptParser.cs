@@ -37,6 +37,10 @@ namespace Compiler
 
     public class ScriptParser : BaseParser
     {
+        public ScriptParser()
+        {
+            Compiler.Logging.Logger.LogComponent("Parser", "ScriptParser initialized.");
+        }
         public List<ScriptedEffect> ScriptedEffects { get; } = new List<ScriptedEffect>();
         public List<GameRule> GameRules { get; } = new List<GameRule>();
         public List<ScriptedTrigger> ScriptedTriggers { get; } = new List<ScriptedTrigger>();

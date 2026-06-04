@@ -10,6 +10,9 @@ namespace Compiler
 
     public abstract class BaseValidator
     {
+        // ComponentName used by the base class for logging to the component-specific markdown
+        protected string ComponentName { get; set; } = "Validator";
+
         // Holds the parser instance that was used during the most recent ValidateFile call.
         // This allows external callers (such as the ProcessManager) to inspect parser
         // output or errors after validation has completed.
@@ -70,7 +73,7 @@ namespace Compiler
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"[ERROR] File does not exist: {filePath}");
+                Compiler.Logging.Logger.LogMain($"[ERROR] File does not exist: {filePath}");
                 return;
             }
             try
@@ -151,15 +154,15 @@ namespace Compiler
                             // No parser provided; safe to ignore handoff
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[ERROR] Parser failed for file: {filePath}. Exception: {ex.Message}");
-                    }
+                        catch (Exception ex)
+                        {
+                            Compiler.Logging.Logger.LogComponent("Parser", $"[ERROR] Parser failed for file: {filePath}. Exception: {ex.Message}");
+                        }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] Failed to read file: {filePath}. Exception: {ex.Message}");
+                Compiler.Logging.Logger.LogMain($"[ERROR] Failed to read file: {filePath}. Exception: {ex.Message}");
             }
         }
         // Helper method to count spaces at the start of the line
@@ -285,7 +288,7 @@ namespace Compiler
         {
             if (lines.Count == 0)
             {
-                Console.WriteLine($"[WARNING] File is empty after sanitization: {filePath}");
+                Compiler.Logging.Logger.LogComponent(ComponentName, $"- [WARNING] File is empty after sanitization: {filePath}");
                 return;
             }
 

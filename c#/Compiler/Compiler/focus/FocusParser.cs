@@ -41,6 +41,10 @@ namespace Compiler
 
     public class FocusParser : BaseParser
     {
+        public FocusParser()
+        {
+            Compiler.Logging.Logger.LogComponent("Parser", "FocusParser initialized.");
+        }
         public List<Tree> Trees { get; } = new List<Tree>();
         // Provide a last parsed snapshot if consumers need it (file name + trees)
         public ParsedFocusFile LastParsedFile { get; private set; }

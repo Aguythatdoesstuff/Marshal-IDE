@@ -133,6 +133,10 @@ namespace Compiler
 
     public class ScriptedGUIParser : BaseParser
     {
+        public ScriptedGUIParser()
+        {
+            Compiler.Logging.Logger.LogComponent("ScriptedGUI", "ScriptedGUIParser initialized.");
+        }
         public ScriptedGUI Result { get; private set; } = new ScriptedGUI();
         // Expose the last parsed file snapshot similar to other parsers
         public ScriptedGUI LastParsedFile { get; private set; }
@@ -159,7 +163,7 @@ namespace Compiler
             for (int i = 0; i < preprocessedLines.Count; i++)
             {
                 var pl = preprocessedLines[i];
-                Console.WriteLine($"[PARSER] Line {pl.LineNumber} Depth {pl.Depth}: {pl.TrimmedLine}");
+                Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Line {pl.LineNumber} Depth {pl.Depth}: {pl.TrimmedLine}");
 
                 // If currently collecting an on click block for an element (only buttons keep on-click data)
                 if (inOnClick)
@@ -222,7 +226,7 @@ namespace Compiler
                     {
                         currentDefine = ParseDefineHeader(pl.TrimmedLine);
                         Result.Defines.Add(currentDefine);
-                        Console.WriteLine($"[PARSER] Started define: type={currentDefine.Type} id={currentDefine.Id}");
+                        Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Started define: type={currentDefine.Type} id={currentDefine.Id}");
                         inDefine = true; defineBaseDepth = pl.Depth;
                         continue;
                     }
@@ -232,7 +236,7 @@ namespace Compiler
                     {
                         currentWindow = ParseWindowHeader(pl.TrimmedLine);
                         Result.Windows.Add(currentWindow);
-                        Console.WriteLine($"[PARSER] Started window: draggable={currentWindow.Draggable} id={currentWindow.Id}");
+                        Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Started window: draggable={currentWindow.Draggable} id={currentWindow.Id}");
                         continue;
                     }
                 }
@@ -249,7 +253,7 @@ namespace Compiler
                             currentWindow.Elements.Add(currentElement);
                             EnsureElementHasId(currentElement, currentWindow);
                             var typeName = currentElement is TextElement ? "Text" : currentElement is ButtonElement ? "Button" : currentElement is IconElement ? "Icon" : currentElement is ProgressBarElement ? "ProgressBar" : "element";
-                            Console.WriteLine($"[PARSER] Added {typeName} element id={currentElement.Id}");
+                            Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Added {typeName} element id={currentElement.Id}");
                             continue;
                         }
 
@@ -308,7 +312,7 @@ namespace Compiler
                 }
             }
 
-            Console.WriteLine($"[PARSER] Completed parse: {Result.Windows.Count} windows, {Result.Defines.Count} defines");
+            Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Completed parse: {Result.Windows.Count} windows, {Result.Defines.Count} defines");
 
             // Save parsed snapshot for external consumers
             LastParsedFile = Result;
@@ -480,7 +484,7 @@ namespace Compiler
             );
             var winId = string.IsNullOrEmpty(window.Id) ? "window" : window.Id.Replace(' ', '_');
             el.Id = $"{winId}_{elemTypeName}_{count}";
-            Console.WriteLine($"[PARSER] Generated element id={el.Id}");
+            Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Generated element id={el.Id}");
         }
 
         private void HandleElementProperty(BaseValidator.PreprocessedLine pl, GuiElement currentElement, Window currentWindow, ref bool inOnClick, ref int onClickBaseDepth)
@@ -510,7 +514,7 @@ namespace Compiler
                         prop.ParentId = ie.Id;
                         prop.Value = rem;
                         currentWindow.Properties.Add(prop);
-                        Console.WriteLine($"[PARSER] Added window property type={prop.Type} id={prop.Id} parent={prop.ParentId} value={prop.Value}");
+                        Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Added window property type={prop.Type} id={prop.Id} parent={prop.ParentId} value={prop.Value}");
                     }
                     else if (currentElement is ButtonElement be)
                     {
@@ -624,7 +628,7 @@ namespace Compiler
                         prop.ParentId = pbe.Id;
                         prop.Value = pbe.VarName;
                         currentWindow.Properties.Add(prop);
-                        Console.WriteLine($"[PARSER] Added bar property id={prop.Id} parent={prop.ParentId}");
+                        Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Added bar property id={prop.Id} parent={prop.ParentId}");
                     }
                     return;
                 }

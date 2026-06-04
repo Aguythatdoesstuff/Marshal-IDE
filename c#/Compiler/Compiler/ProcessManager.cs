@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace Compiler
 {
@@ -27,7 +28,25 @@ namespace Compiler
             foreach (var path in filePaths)
             {
                 var p = path;
-                tasks.Add(System.Threading.Tasks.Task.Run(() => ProcessSingleFileAsync(p)));
+                // Wrap each file processing in a task that will capture exceptions and escalate fatal ones
+                tasks.Add(System.Threading.Tasks.Task.Run(() =>
+                {
+                    try
+                    {
+                        ProcessSingleFileAsync(p);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Treat unexpected exceptions as fatal: report via IPC and logger, then rethrow
+                        try
+                        {
+                            IPC.Send("FatalError", ex.Message);
+                            Compiler.Logging.Logger.ReportUnhandledException(ex);
+                        }
+                        catch { }
+                        throw;
+                    }
+                }));
             }
 
             System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
@@ -35,23 +54,54 @@ namespace Compiler
         }
         private void PrintTemporaryErrors()
         {
-            Console.WriteLine("\n--- VALIDATION TEST RESULTS ---");
+            // Produce only a raw JSON report so external tools (JS) can parse it directly.
             if (!AllErrors.Any())
             {
-                Console.WriteLine("No errors found! Compilation clear.");
+                try
+                {
+                    var emptyReport = new { TotalErrors = 0, Files = new object[0] };
+                    var emptyOptions = new JsonSerializerOptions { WriteIndented = true };
+                    var emptyJson = JsonSerializer.Serialize(emptyReport, emptyOptions);
+                    Compiler.Logging.Logger.LogMain(emptyJson);
+                    // Send the structured object directly so the IPC serializer emits proper JSON (not a JSON string)
+                    IPC.Send("ValidationReport", emptyReport);
+                }
+                catch { }
                 return;
             }
 
-            foreach (var err in AllErrors)
+            // Build a structured report grouped by file
+            var report = AllErrors
+                .GroupBy(e => e.FileName, StringComparer.OrdinalIgnoreCase)
+                .Select(g => new
+                {
+                    File = g.Key,
+                    Errors = g.Select(e => new { Line = e.LineNumber, Message = e.ErrorMessage }).ToList()
+                })
+                .ToList();
+
+            var reportWrapper = new { TotalErrors = AllErrors.Count, Files = report };
+
+            var options = new JsonSerializerOptions
             {
-                Console.WriteLine($"[ERROR] {err.FileName} (Line {err.LineNumber}): {err.ErrorMessage}");
+                WriteIndented = true
+            };
+
+            string json = JsonSerializer.Serialize(reportWrapper, options);
+
+            // Log the structured JSON report instead of line-by-line text
+            Compiler.Logging.Logger.LogMain(json);
+            try
+            {
+                // Send the structured object directly so IPC will serialize it as JSON (not as an escaped string)
+                IPC.Send("ValidationReport", reportWrapper);
             }
-            Console.WriteLine($"Total Errors: {AllErrors.Count}\n-------------------------------");
+            catch { }
         }
 
         private void DispatchValidator(string absolutePath, string extension)
         {
-            Console.WriteLine($"Processing: {absolutePath}");
+            Compiler.Logging.Logger.LogMain($"Processing: {absolutePath}");
 
             BaseValidator validator = null;
 
@@ -75,8 +125,8 @@ namespace Compiler
                 case ".script":
                     validator = new ScriptValidator();
                     break;
-                default:
-                    Console.WriteLine("Unsupported file type: " + extension);
+                    default:
+                    Compiler.Logging.Logger.LogMain("Unsupported file type: " + extension);
                     break;
             }
 
@@ -108,12 +158,20 @@ namespace Compiler
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Compiler failed for {absolutePath}: {ex.Message}");
+                    Compiler.Logging.Logger.LogMain($"Compiler failed for {absolutePath}: {ex.Message}");
+                    // Escalate fatal compiler errors via IPC and logger and rethrow to allow top-level handlers to run
+                    try
+                    {
+                        IPC.Send("FatalError", $"Compiler failed for {absolutePath}: {ex.Message}");
+                        Compiler.Logging.Logger.ReportUnhandledException(ex);
+                    }
+                    catch { }
+                    throw;
                 }
             }
             else
             {
-                Console.WriteLine($"Skipping compilation for {absolutePath} due to errors.");
+                Compiler.Logging.Logger.LogMain($"Skipping compilation for {absolutePath} due to errors.");
             }
         }
 
@@ -121,14 +179,14 @@ namespace Compiler
         {
             if (!File.Exists(absolutePath))
             {
-                Console.WriteLine($"[ERROR] File does not exist: {absolutePath}");
+                Compiler.Logging.Logger.LogMain($"[ERROR] File does not exist: {absolutePath}");
                 return;
             }
 
             string ext = Path.GetExtension(absolutePath).ToLowerInvariant();
             if (!SupportedExtensions.Contains(ext))
             {
-                Console.WriteLine($"[SKIP] Ignored unsupported file: {absolutePath}");
+                Compiler.Logging.Logger.LogMain($"[SKIP] Ignored unsupported file: {absolutePath}");
                 return;
             }
 
@@ -213,7 +271,19 @@ namespace Compiler
                 }
 
                 compiler.Compile();
-                Console.WriteLine($"[COMPILER] Wrote output for {absolutePath} to {BaseCompiler.OutputPath}");
+                // Collect non-fatal compiler errors produced during compilation
+                try
+                {
+                    lock (AllErrors)
+                    {
+                        if (compiler is BaseCompiler bc && bc.CompilerErrors != null && bc.CompilerErrors.Count > 0)
+                        {
+                            AllErrors.AddRange(bc.CompilerErrors);
+                        }
+                    }
+                }
+                catch { }
+                Compiler.Logging.Logger.LogComponent("Compiler", $"[COMPILER] Wrote output for {absolutePath} to {BaseCompiler.OutputPath}");
             }
         }
     }

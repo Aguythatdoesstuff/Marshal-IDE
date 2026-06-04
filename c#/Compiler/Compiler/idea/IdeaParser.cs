@@ -32,6 +32,10 @@ namespace Compiler
 
     public class IdeaParser : BaseParser
     {
+        public IdeaParser()
+        {
+            Compiler.Logging.Logger.LogComponent("Parser", "IdeaParser initialized.");
+        }
         public List<Idea> Ideas { get; } = new List<Idea>();
         // Store the most recently parsed file for other components to use
         public ParsedIdeaFile LastParsedFile { get; private set; }

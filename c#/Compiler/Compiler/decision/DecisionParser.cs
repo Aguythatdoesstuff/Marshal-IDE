@@ -32,6 +32,10 @@ namespace Compiler
 
     public class DecisionParser : BaseParser
     {
+        public DecisionParser()
+        {
+            Compiler.Logging.Logger.LogComponent("Parser", "DecisionParser initialized.");
+        }
         // Parsed results are exposed so callers can examine the AST after parsing.
         public List<Category> Categories { get; } = new List<Category>();
 

@@ -143,14 +143,27 @@ namespace Compiler.scriptedGui
                         }
                         else
                         {
+                            // text localisation id reference
                             sbInterfaceGui.AppendLine($"{indent3}text = {te.Id}");
                             sbLocalisationYml.AppendLine($" {te.Id}_gui_ellement_{counterGuiEllement}:0 \"{te.Text}\"");
                             counterGuiEllement++;
                         }
-                        sbInterfaceGui.AppendLine($"{indent3}font = \"{te.Font}\"");
-                        sbInterfaceGui.AppendLine($"{indent3}position = {{ x = {te.Position.Value.x} y = {te.Position.Value.y} }}");
-                        sbInterfaceGui.AppendLine($"{indent3}maxWidth = {te.MaxSize.Value.x}");
-                        sbInterfaceGui.AppendLine($"{indent3}maxHeight = {te.MaxSize.Value.y}");
+                        // font is optional for text elements
+                        if (!string.IsNullOrEmpty(te.Font))
+                        {
+                            sbInterfaceGui.AppendLine($"{indent3}font = \"{te.Font}\"");
+                        }
+                        // position is required by engine; emit only if present
+                        if (te.Position.HasValue)
+                        {
+                            sbInterfaceGui.AppendLine($"{indent3}position = {{ x = {te.Position.Value.x} y = {te.Position.Value.y} }}");
+                        }
+                        // maxWidth/maxHeight should only be emitted when provided
+                        if (te.MaxSize.HasValue)
+                        {
+                            sbInterfaceGui.AppendLine($"{indent3}maxWidth = {te.MaxSize.Value.x}");
+                            sbInterfaceGui.AppendLine($"{indent3}maxHeight = {te.MaxSize.Value.y}");
+                        }
 
                         sbInterfaceGui.AppendLine($"{indent2}}}");
                     }
@@ -158,10 +171,7 @@ namespace Compiler.scriptedGui
                     {
                         sbInterfaceGui.AppendLine($"{indent2}iconType = {{");
                         sbInterfaceGui.AppendLine($"{indent3}name = \"{ie.Id}\"");
-                        if (ie.IsProperty)
-                        {
-                        }
-                        else
+                        if (!ie.IsProperty && !string.IsNullOrEmpty(ie.Sprite))
                         {
                             sbInterfaceGui.AppendLine($"{indent3}spriteType = \"{ie.Sprite}\"");
                         }
@@ -171,8 +181,15 @@ namespace Compiler.scriptedGui
                             sbLocalisationYml.AppendLine($" {ie.Id}_gui_ellement_{counterGuiEllement}:0 \"{ie.Text}\"");
                             counterGuiEllement++;
                         }
-                        sbInterfaceGui.AppendLine($"{indent3}font = \"{ie.Font}\"");
-                        sbInterfaceGui.AppendLine($"{indent3}position = {{ x = {ie.Position.Value.x} y = {ie.Position.Value.y} }}");
+                        // icons do not support font; only emit if this was erroneously present and record a non-fatal error
+                        if (!string.IsNullOrEmpty(ie.Font))
+                        {
+                            CompilerErrors.Add(new ValidationError(PassedData.SourceFileName ?? "", 0, $"Icon element {ie.Id} contains font which is not valid for iconType"));
+                        }
+                        if (ie.Position.HasValue)
+                        {
+                            sbInterfaceGui.AppendLine($"{indent3}position = {{ x = {ie.Position.Value.x} y = {ie.Position.Value.y} }}");
+                        }
                         if (ie.SizePercent != null)
                         {
                             sbInterfaceGui.AppendLine($"{indent3}scale = {ie.SizePercent}");
@@ -183,14 +200,14 @@ namespace Compiler.scriptedGui
                     {
                         sbInterfaceGui.AppendLine($"{indent2}iconType = {{");
                         sbInterfaceGui.AppendLine($"{indent3}name = \"{be.Id}\"");
-                        if (be.IsProperty)
-                        {
-                        }
-                        else
+                        if (!be.IsProperty && !string.IsNullOrEmpty(be.Sprite))
                         {
                             sbInterfaceGui.AppendLine($"{indent3}spriteType = \"{be.Sprite}\"");
                         }
-                        sbInterfaceGui.AppendLine($"{indent3}position = {{ x = {be.Position.Value.x} y = {be.Position.Value.y} }}");
+                        if (be.Position.HasValue)
+                        {
+                            sbInterfaceGui.AppendLine($"{indent3}position = {{ x = {be.Position.Value.x} y = {be.Position.Value.y} }}");
+                        }
                         if (be.SizePercent != null)
                         {
                             sbInterfaceGui.AppendLine($"{indent3}scale = {be.SizePercent}");
@@ -202,7 +219,10 @@ namespace Compiler.scriptedGui
                         sbInterfaceGui.AppendLine($"{indent2}iconType = {{");
                         sbInterfaceGui.AppendLine($"{indent3}name = \"{pe.Id}\"");
                         sbInterfaceGui.AppendLine($"{indent3}spriteType = \"GFX_{pe.Id}\"");
-                        sbInterfaceGui.AppendLine($"{indent3}position = {{ x = {pe.Position.Value.x} y = {pe.Position.Value.y} }}");
+                        if (pe.Position.HasValue)
+                        {
+                            sbInterfaceGui.AppendLine($"{indent3}position = {{ x = {pe.Position.Value.x} y = {pe.Position.Value.y} }}");
+                        }
                         sbInterfaceGui.AppendLine($"{indent2}}}");
                     }
                 }

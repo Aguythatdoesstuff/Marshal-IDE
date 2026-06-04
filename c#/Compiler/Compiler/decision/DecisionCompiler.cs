@@ -5,6 +5,10 @@ namespace Compiler.decision
 {
     public class DecisionCompiler : BaseCompiler
     {
+        public DecisionCompiler()
+        {
+            Compiler.Logging.Logger.LogComponent("Compiler", "DecisionCompiler initialized.");
+        }
         public Compiler.DecisionParser.ParsedDecisionFile PassedData { get; set; }
 
         public override void Compile()
@@ -70,6 +74,7 @@ namespace Compiler.decision
             // Now write each buffer once via WriteFile and respect created header logic
             WriteFile("common/decisions/categories", fileName, ".txt", (sw, created) =>
             {
+                if (created) Compiler.Logging.Logger.LogComponent("Decision", $"Created categories output for {fileName}");
                 if (sbCategories.Length > 0) sw.Write(sbCategories.ToString());
             });
 

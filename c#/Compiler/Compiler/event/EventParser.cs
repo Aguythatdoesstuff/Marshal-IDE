@@ -39,6 +39,10 @@ namespace Compiler
     }
     public class EventParser : BaseParser
     {
+        public EventParser()
+        {
+            Compiler.Logging.Logger.LogComponent("Parser", "EventParser initialized.");
+        }
         // store the most recently parsed file for other components to use
         public ParsedEventFile LastParsedFile { get; private set; }
 

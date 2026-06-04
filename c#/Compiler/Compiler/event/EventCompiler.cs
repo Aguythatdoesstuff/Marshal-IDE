@@ -6,6 +6,10 @@ namespace Compiler.@event
 {
     public class EventCompiler : BaseCompiler
     {
+        public EventCompiler()
+        {
+            Compiler.Logging.Logger.LogComponent("Compiler", "EventCompiler initialized.");
+        }
         // Parsed events provided by the parser
         public ParsedEventFile PassedData { get; set; }
 

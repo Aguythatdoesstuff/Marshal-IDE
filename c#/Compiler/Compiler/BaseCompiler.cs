@@ -6,6 +6,10 @@ namespace Compiler
 {
     public abstract class BaseCompiler
     {
+        // Compilers may add non-fatal errors here. ProcessManager will collect
+        // these after compilation and include them in the global report.
+        public List<ValidationError> CompilerErrors { get; } = new List<ValidationError>();
+
         // Tracks files that have already been created by any compiler during this
         // run. The first write to a given output path will truncate/create the
         // file; subsequent writes will append. This is static so multiple

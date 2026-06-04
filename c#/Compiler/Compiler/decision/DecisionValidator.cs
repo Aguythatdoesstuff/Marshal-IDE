@@ -4,6 +4,11 @@ namespace Compiler
 {
     public class DecisionValidator : BaseValidator
     {
+        public DecisionValidator()
+        {
+            ComponentName = "Decision";
+            Compiler.Logging.Logger.LogComponent(ComponentName, "Validator initialized for Decision files.");
+        }
         // Provide a concrete parser so validated decision files are handed off
         // to a specialized parser for further processing.
         protected override BaseParser Parser => new DecisionParser();
