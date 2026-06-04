@@ -249,5 +249,23 @@ namespace Compiler
             // Start processing top-level (use parentDepth = -1 so depth 0 items are considered children)
             ProcessRange(0, list.Count, -1);
         }
+
+        // Renders the same output produced by WriteAllowedWithConversions into a string
+        // using an in-memory buffer. This avoids duplicating the MemoryStream + StreamWriter
+        // boilerplate in every concrete compiler while preserving exact textual output.
+        protected string RenderAllowedToString<T>(IEnumerable<T>? items, Func<T, int>? depthSelector = null, Func<T, string>? textSelector = null)
+        {
+            if (items == null) return string.Empty;
+            using var ms = new MemoryStream();
+            using (var swTemp = new StreamWriter(ms, System.Text.Encoding.UTF8, 1024, true))
+            {
+                // reuse the existing protected method which writes the properly converted lines
+                this.WriteAllowedWithConversions(swTemp, items, depthSelector, textSelector);
+                swTemp.Flush();
+                ms.Position = 0;
+                using var sr = new StreamReader(ms);
+                return sr.ReadToEnd();
+            }
+        }
     }
 }

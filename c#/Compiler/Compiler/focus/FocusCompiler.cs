@@ -22,69 +22,76 @@ namespace Compiler.focus
             string indent1 = Ident(1);
             string indent2 = Ident(2);
             string indent3 = Ident(3);
+            // Use shared RenderAllowedToString helper from BaseCompiler to avoid duplication
+            string RenderAllowed<T>(IEnumerable<T> items, Func<T, int> depthSel, Func<T, string> textSel)
+                => RenderAllowedToString(items, depthSel, textSel);
+
+
+
             foreach (var tree in PassedTrees.Trees)
             {
-                // Write a single file containing all trees passed
+                // Build buffers for this tree
+                var sbFocus = new System.Text.StringBuilder();
+                var sbLocalisation = new System.Text.StringBuilder();
+
+                sbFocus.AppendLine($"{indent1}id = {tree.id}");
+                if (tree.isDefault) sbFocus.AppendLine($"{indent1}default = yes");
+                if (!string.IsNullOrEmpty(tree.countryTag))
+                {
+                    sbFocus.AppendLine($"{indent1}country = {{");
+                    sbFocus.AppendLine($"{indent2}factor = 0");
+                    sbFocus.AppendLine($"{indent2}modifier = {{");
+                    sbFocus.AppendLine($"{indent3}add = 100");
+                    sbFocus.AppendLine($"{indent3}original_tag = {tree.countryTag}");
+                    sbFocus.AppendLine($"{indent2}}}");
+                    sbFocus.AppendLine($"{indent1}}}");
+                }
+                sbFocus.Append(RenderAllowed(tree.rawLines, rl => rl.depth, rl => rl.trimmedLine));
+                foreach (var focus in tree.focuses)
+                {
+                    sbFocus.AppendLine($"{indent1}focus = {{");
+                    sbFocus.AppendLine($"{indent2}id = {focus.id}");
+                    sbFocus.AppendLine($"{indent2}cost = {GetHoi4Cost(focus.timeValue, focus.timeUnit)}");
+                    sbFocus.AppendLine($"{indent2}icon = {focus.sprite}");
+                    sbFocus.AppendLine($"{indent2}x = {focus.positionX}");
+                    sbFocus.AppendLine($"{indent2}y = {focus.positionY}");
+                    foreach (var require in focus.requireIds)
+                    {
+                        sbFocus.AppendLine($"{indent2}prerequisite = {{ id = {require} }}");
+                    }
+                    foreach (var prevents in focus.preventsIds)
+                    {
+                        sbFocus.AppendLine($"{indent2}mutually_exclusive = {{ id = {prevents} }}");
+                    }
+                    if (!string.IsNullOrEmpty(focus.followPositionOf))
+                    {
+                        sbFocus.AppendLine($"{indent2}relative_position_id = {focus.followPositionOf}");
+                    }
+                    sbFocus.Append(RenderAllowed(focus.rawLines, rl => rl.depth, rl => rl.trimmedLine));
+                    sbFocus.AppendLine($"{indent2}completion_reward = {{");
+                    sbFocus.Append(RenderAllowed(focus.onComplete, rl => rl.depth, rl => rl.trimmedLine));
+                    sbFocus.AppendLine($"{indent2}}}");
+                    sbFocus.AppendLine($"{indent1}}}");
+                }
+                sbFocus.AppendLine("}");
+
+                foreach (var focus in tree.focuses)
+                {
+                    sbLocalisation.AppendLine($" {focus.id}:0 \"{focus.name}\"");
+                    sbLocalisation.AppendLine($" {focus.id}_desc:0 \"{focus.desc}\"");
+                }
+
+                // Flush buffers
                 WriteFile("common/national_focus/", fileName, ".txt", (sw, created) =>
                 {
-                    if (created)
-                    {
-                        sw.WriteLine("focus_tree = {");
-                    }
-                    sw.WriteLine($"{indent1}id = {tree.id}");
-                    if (tree.isDefault) sw.WriteLine($"{indent1}default = yes");
-                    if (!string.IsNullOrEmpty(tree.countryTag))
-                    {
-                        sw.WriteLine($"{indent1}country = {{");
-                        sw.WriteLine($"{indent2}factor = 0");
-                        sw.WriteLine($"{indent2}modifier = {{");
-                        sw.WriteLine($"{indent3}add = 100");
-                        sw.WriteLine($"{indent3}original_tag = {tree.countryTag}");
-                        sw.WriteLine($"{indent2}}}");
-                        sw.WriteLine($"{indent1}}}");
-                    }
-                    WriteAllowedWithConversions(sw, tree.rawLines, rl => rl.depth, rl => rl.trimmedLine);
-                    foreach (var focus in tree.focuses)
-                    {
-                        sw.WriteLine($"{indent1}focus = {{");
-                        sw.WriteLine($"{indent2}id = {focus.id}");
-                        sw.WriteLine($"{indent2}cost = {GetHoi4Cost(focus.timeValue, focus.timeUnit)}");
-                        sw.WriteLine($"{indent2}icon = {focus.sprite}");
-                        sw.WriteLine($"{indent2}x = {focus.positionX}");
-                        sw.WriteLine($"{indent2}y = {focus.positionY}");
-                        foreach (var require in focus.requireIds)
-                        {
-                            sw.WriteLine($"{indent2}prerequisite = {{ id = {require} }}");
-                        }
-                        foreach (var prevents in focus.preventsIds)
-                        {
-                            sw.WriteLine($"{indent2}mutually_exclusive = {{ id = {prevents} }}");
-                        }
-                        if (!string.IsNullOrEmpty(focus.followPositionOf))
-                        {
-                            sw.WriteLine($"{indent2}relative_position_id = {focus.followPositionOf}");
-                        }
-                        WriteAllowedWithConversions(sw, focus.rawLines, rl => rl.depth, rl => rl.trimmedLine);
-                        sw.WriteLine($"{indent2}completion_reward = {{");
-                        WriteAllowedWithConversions(sw, focus.onComplete, rl => rl.depth, rl => rl.trimmedLine);
-                        sw.WriteLine($"{indent2}}}");
-                        sw.WriteLine($"{indent1}}}");
-                    }
-                    sw.WriteLine("}");
+                    if (created) sw.WriteLine("focus_tree = {");
+                    if (sbFocus.Length > 0) sw.Write(sbFocus.ToString());
                 });
-
 
                 WriteFile("localisation/english/national_focus/", fileName + "_l_english", ".yml", (sw, created) =>
                 {
                     if (created) sw.WriteLine("l_english:");
-                });
-                WriteFile("localisation/english/national_focus/", fileName + "_l_english", ".yml", (sw, created) =>
-                {
-                    foreach (var focus in tree.focuses)
-                    {
-                        sw.WriteLine($" {focus.id}:0 \"{focus.name}\"");
-                        sw.WriteLine($" {focus.id}_desc:0 \"{focus.desc}\"");
-                    }
+                    if (sbLocalisation.Length > 0) sw.Write(sbLocalisation.ToString());
                 });
             }
         }
