@@ -82,37 +82,38 @@ if (!gotTheLock) {
 	// ========================================================
 	// --- CONSOLE INTERCEPTOR (RECURSION SAFE) ---
 	// ========================================================
-	const originalConsole = { 
-	    log: console.log, 
-	    info: console.info, 
-	    warn: console.warn, 
-	    error: console.error 
-	};
+	// Moved to Logger module should be not needed now but leaving original here for now!
+	// const originalConsole = { 
+	//     log: console.log, 
+	//     info: console.info, 
+	//     warn: console.warn, 
+	//     error: console.error 
+	// };
 
-	['log', 'info', 'warn', 'error'].forEach((level) => {
-	    console[level] = (...args) => {
-		// Terminal output (Immediate)
-		originalConsole[level](...args);
+	// ['log', 'info', 'warn', 'error'].forEach((level) => {
+	//     console[level] = (...args) => {
+	// 	// Terminal output (Immediate)
+	// 	originalConsole[level](...args);
 
-		const message = args.map(arg => 
-		    arg instanceof Error ? arg.stack : (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg))
-		).join(' ');
+	// 	const message = args.map(arg => 
+	// 	    arg instanceof Error ? arg.stack : (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg))
+	// 	).join(' ');
 
-		// SMART FILTER:
-		// Only skip if the message starts with a Year (like 2026-...) 
-		// This prevents re-logging things Winston already wrote, 
-		// but ALLOWS "raw" logs like [Archive-Cleanup] to be captured!
-		const isAlreadyFormatted = /^\d{4}-\d{2}-\d{2}/.test(message);
+	// 	// SMART FILTER:
+	// 	// Only skip if the message starts with a Year (like 2026-...) 
+	// 	// This prevents re-logging things Winston already wrote, 
+	// 	// but ALLOWS "raw" logs like [Archive-Cleanup] to be captured!
+	// 	const isAlreadyFormatted = /^\d{4}-\d{2}-\d{2}/.test(message);
 		
-		if (isAlreadyFormatted) return;
+	// 	if (isAlreadyFormatted) return;
 
-		logToSystem({
-		    type: level === 'log' ? 'info' : level,
-		    message: message,
-		    source: 'Console-Intercept' 
-		});
-	    };
-	});
+	// 	logToSystem({
+	// 	    type: level === 'log' ? 'info' : level,
+	// 	    message: message,
+	// 	    source: 'Console-Intercept' 
+	// 	});
+	//     };
+	// });
 
 	// ========================================================
 	// --- INITIALIZATION & HELPERS ---
@@ -244,6 +245,25 @@ function setupAutoUpdater() {
 		return { success: false, message: error.message };
 	    }
 	});
+
+	ipcMain.handle('open-path', async (e, { path: p }) => {
+	    try {
+		const absolutePath = path.resolve(p);
+		await fs.access(absolutePath);
+
+		const openFunc = open.default || open;
+		
+		await openFunc(absolutePath); 
+		
+		appLogger?.info(`Successfully opened path: ${p}`, { source: 'Main-OpenPath' });
+		return { success: true };
+	    } catch (error) {
+		const errorMessage = `Failed to open path ${p} with system handler: ${error.message}`;
+		appLogger?.error(errorMessage, { source: 'Main-OpenPath' });
+		return { success: false, message: errorMessage };
+	    }
+	});
+
 	ipcMain.handle('run-importer', async (event, { input, workspaceName }) => {
 		try {
 			// 1. Calculate and fetch target directory paths matching Electron's workspace structure
@@ -360,11 +380,11 @@ function setupAutoUpdater() {
 			INPUT_DIR = null;
 			OUTPUT_DIR = null;
 
-			// Re-load the main manager menu view frame inside the window
-			if (mainWindow && !mainWindow.isDestroyed()) {
-				appLogger?.info('Re-loading main workspace matrix context shell inside BrowserWindow.', { source: 'Main-Config' });
-				await mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-			}
+			// Navigate the frontend single-page application back to the workspace selection view smoothly
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                appLogger?.info('Navigating frontend back to workspace selection view context.', { source: 'Main-Config' });
+                mainWindow.webContents.send('navigate-to', 'WORKSPACE');
+            }
 
 			return { success: true };
 		} catch (error) {
@@ -750,133 +770,6 @@ function setupAutoUpdater() {
 		callback();
 	    }
 	}
-/**
-	 * BROWSER EXPORT (In-Browser)
-	 * Creates a fully self-contained HTML snapshot with inlined CSS/JS
-	 * to bypass browser CORS / Origin restrictions.
-	 */
-	ipcMain.handle('open-wiki-external', async () => {
-		const appRoot = app.getAppPath();
-		
-		// Setup documentation paths
-		const docsPath = app.isPackaged 
-			? path.join(process.resourcesPath, 'docs') 
-			: path.join(appRoot, 'docs');
-		
-		// Find Vite's build directories
-		const rendererBuildDir = app.isPackaged
-			? path.join(__dirname, '..', 'renderer')
-			: path.join(__dirname, '..', 'renderer'); 
-		
-		const templatePath = path.join(rendererBuildDir, 'index.html');
-		
-		// User Data Output targets
-		const userDataPath = app.getPath('userData');
-		const metadataDir = path.join(userDataPath, 'wiki_metadata');
-		const outputPath = path.join(metadataDir, 'wiki_browser.html');
-
-		// Recursive scanner to parse documentation files into a clean data tree
-		async function packageDocs(dir) {
-			if (!(await fs.pathExists(dir))) return [];
-			const entries = await fs.readdir(dir, { withFileTypes: true });
-			const parts = await Promise.all(entries.map(async (entry) => {
-				const fullPath = path.join(dir, entry.name);
-				if (entry.isDirectory()) {
-					return { name: entry.name, type: 'folder', children: await packageDocs(fullPath) };
-				} else if (entry.name.endsWith('.md')) {
-					const content = await fs.readFile(fullPath, 'utf-8');
-					return { name: entry.name.replace('.md', ''), type: 'file', content: content };
-				}
-				return null;
-			}));
-			return parts.filter(Boolean);
-		}
-
-		try {
-			await fs.mkdir(metadataDir, { recursive: true });
-			const fullData = await packageDocs(docsPath);
-			
-			if (!(await fs.pathExists(templatePath))) {
-				throw new Error(`Compiled template bundle not found at: ${templatePath}`);
-			}
-
-			let htmlContent = await fs.readFile(templatePath, 'utf-8');
-			
-			// --- STEP 1: Inline the Assets to Banish CORS/Origin Blocks ---
-			const assetsDir = path.join(rendererBuildDir, 'assets');
-			
-			if (await fs.pathExists(assetsDir)) {
-				const assetFiles = await fs.readdir(assetsDir);
-				
-				let inlinedCss = '';
-				let inlinedJs = '';
-
-				for (const file of assetFiles) {
-					const filePath = path.join(assetsDir, file);
-					if (file.endsWith('.css')) {
-						const cssContent = await fs.readFile(filePath, 'utf-8');
-						inlinedCss += `\n/* Inlined: ${file} */\n${cssContent}\n`;
-					} else if (file.endsWith('.js')) {
-						const jsContent = await fs.readFile(filePath, 'utf-8');
-						inlinedJs += `\n// Inlined: ${file}\n${jsContent}\n`;
-					}
-				}
-
-				// Remove the original external link tags so the browser doesn't try to fetch them via file://
-				htmlContent = htmlContent.replace(/<link[^>]*href=[^>]*assets\/[^>]*>/gi, '');
-				htmlContent = htmlContent.replace(/<script[^>]*src=[^>]*assets\/[^>]*>[^<]*<\/script>/gi, '');
-
-				// Inject our compiled, pre-baked blocks right before the closing head tag
-				const assetInjections = `
-	<style>
-	${inlinedCss}
-	</style>
-	<script type="module">
-	${inlinedJs}
-	</script>`;
-				
-				htmlContent = htmlContent.replace('</head>', `${assetInjections}\n</head>`);
-			}
-
-			// --- STEP 2: Inject Wiki Metadata payload and Routing hooks ---
-			const dataInjection = `
-	<script>
-		window.BROWSER_WIKI_DATA = ${JSON.stringify(fullData)};
-		localStorage.setItem('FORCE_SCREEN', 'WIKI');
-	</script>`;
-			
-			htmlContent = htmlContent.replace('<head>', `<head>\n    ${dataInjection}`);
-			
-			// --- STEP 3: Write out final monolithic document ---
-			await fs.writeFile(outputPath, htmlContent, 'utf-8');
-
-			const openFunc = open.default || open;
-			await openFunc(`file://${outputPath}`);
-			
-			return { success: true };
-		} catch (err) {
-			console.error("Failed to generate wiki in userData:", err);
-			return { success: false, message: err.message };
-		}
-	});
-	ipcMain.handle('open-path', async (e, { path: p }) => {
-	    try {
-		const absolutePath = path.resolve(p);
-		await fs.access(absolutePath);
-
-		const openFunc = open.default || open;
-		
-		await openFunc(absolutePath); 
-		
-		appLogger?.info(`Successfully opened path: ${p}`, { source: 'Main-OpenPath' });
-		return { success: true };
-	    } catch (error) {
-		const errorMessage = `Failed to open path ${p} with system handler: ${error.message}`;
-		appLogger?.error(errorMessage, { source: 'Main-OpenPath' });
-		return { success: false, message: errorMessage };
-	    }
-	});
-
 
 
 	ipcMain.handle('get-log-directory', async () => {

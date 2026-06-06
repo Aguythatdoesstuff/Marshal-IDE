@@ -72,7 +72,7 @@
           </div>
         </div>
 
-        <div class="console-box" style="flex: 1; min-height: 250px; display: flex; flex-direction: column;">
+        <div class="console-box" style="flex: 1; min-height: 250px; max-height: 400px; display: flex; flex-direction: column;">
           <ConsolePanel 
             :customLogs="logs" 
             :isMinimized="false"

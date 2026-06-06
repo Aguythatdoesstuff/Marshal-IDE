@@ -15,7 +15,7 @@
           <h2 class="section-title">Available Mods</h2>
           
           <div class="button-group">
-            <button @click="showWikiModal = true" class="btn btn-secondary">
+            <button @click="openWikiInApp" class="btn btn-secondary">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
@@ -201,19 +201,6 @@
         </div>
       </div>
     </div>
-
-    <div v-if="showWikiModal" class="modal-overlay">
-      <div class="modal-card max-w-sm">
-        <h2 class="modal-title font-medium">Open Wiki</h2>
-        <p class="modal-description text-center">How would you like to view the documentation?</p>
-        
-        <div class="flex-column-stack">
-          <button @click="openWikiInApp" class="btn btn-primary w-full btn-center">Open In-App</button>
-          <button @click="openWikiInBrowser" class="btn btn-secondary w-full btn-center">Open in Browser</button>
-          <button @click="showWikiModal = false" class="btn btn-neutral w-full btn-center">Cancel</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -228,7 +215,6 @@ const showImportModal = ref(false);
 const showCreateModal = ref(false);
 const showSettingsModal = ref(false);
 const showDeleteModal = ref(false);
-const showWikiModal = ref(false);
 
 const modToEditName = ref('');
 const modToDeleteName = ref('');
@@ -422,14 +408,8 @@ const confirmDeleteMod = async () => {
   }
 };
 
-const openWikiInBrowser = () => {
-  window.api.invoke('open-wiki-external'); 
-  showWikiModal.value = false;
-};
-
 const openWikiInApp = () => {
   window.api.send('switch-page', 'wiki');
-  showWikiModal.value = false;
 };
 
 const openSettings = () => {window.api.send('switch-page', 'settings');};

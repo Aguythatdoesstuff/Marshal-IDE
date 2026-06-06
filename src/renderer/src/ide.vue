@@ -163,6 +163,15 @@ onMounted(() => {
   activeProjectName.value = localStorage.getItem('marshal_project_to_load') || 'No Active Project';
 });
 
+const handleExitWorkspace = async () => {
+  try {
+    // Notify the main process to shut down background tasks and safely transition the view
+    await window.api.invoke('unload-project');
+  } catch (err) {
+    console.error('Failed to execute unmount sequence through main process routing handler:', err);
+  }
+};
+
 // Isolated layout states
 const sidebarWidth = ref(260);
 const consoleHeight = ref(240);
@@ -556,21 +565,6 @@ const handleImportImage = async () => {
     }
   } catch (err) {
     console.error('Failed to trigger native main process asset importer:', err);
-  }
-};
-
-const handleExitWorkspace = async () => {
-  try {
-    // Clear out reactive local UI memory components first
-    openTabs.value = [];
-    activeTabPath.value = '';
-    expandedFoldersRegistry.value.clear();
-    
-    // Fire the command up to main.js. The main process takes full control from here
-    // and reloads/updates the BrowserWindow frame directly.
-    await window.api.invoke('unload-project');
-  } catch (err) {
-    console.error('Failed to execute unmount sequence through main process routing handler:', err);
   }
 };
 

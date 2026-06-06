@@ -24,15 +24,52 @@ function getDelta() {
     lastTimestamp = now; 
     return diff.toFixed(2); // Returns ms as a string, e.g., "10.45"
 }
-const formatLogString = ({ level, message, timestamp, source }) => {
-	const delta = getDelta();
-	return `${timestamp} (+${delta}ms) [${level.toUpperCase()}] [${source || 'Main'}] - ${message}`; [cite_start]// [cite: 4, 5]
+
+const formatLogString = ({ level, message, timestamp, source, exactTimestamp, exactDelta }) => {
+    // Prefer exact timings if passed (from buffer or interceptor), otherwise calculate fresh
+    const finalTimestamp = exactTimestamp || timestamp || new Date().toISOString().replace(/\..+/, '');
+    const finalDelta = exactDelta || getDelta();
+    return `${finalTimestamp} (+${finalDelta}ms) [${level.toUpperCase()}] [${source || 'Main'}] - ${message}`;
 };
 
 const winstonLogFormat = winston.format.printf(formatLogString);
 
 let logger = null;
 let mainWindow = null;
+const preInitBuffer = [];
+
+// ========================================================
+// --- CONSOLE INTERCEPTOR (RECURSION SAFE) ---
+// ========================================================
+const originalConsole = { 
+    log: console.log, 
+    info: console.info, 
+    warn: console.warn, 
+    error: console.error 
+};
+
+['log', 'info', 'warn', 'error'].forEach((level) => {
+    console[level] = (...args) => {
+        // Terminal output (Immediate)
+        originalConsole[level](...args);
+
+        const message = args.map(arg => 
+            arg instanceof Error ? arg.stack : (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg))
+        ).join(' ');
+
+        // SMART FILTER: Prevents recursive loops by ignoring Winston's own outputs
+        const isAlreadyFormatted = /^\d{4}-\d{2}-\d{2}/.test(message);
+        
+        if (isAlreadyFormatted) return;
+
+        // Route to the IPC handler which will automatically buffer if !logger
+        handleIpcLog({
+            type: level === 'log' ? 'info' : level,
+            message: message,
+            source: 'Console-Intercept' 
+        });
+    };
+});
 
 // --- CRITICAL FALLBACK ---
 
@@ -171,6 +208,36 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB)
 
     logger = winston.createLogger({ level: 'debug', transports, exitOnError: false });
 
+    // --- FLUSH PRE-INIT BUFFER ---
+    while (preInitBuffer.length > 0) {
+        const bufferedLog = preInitBuffer.shift();
+        
+        // Pass exact timings so they match when they were actually fired
+        logger.log({ 
+            level: bufferedLog.level, 
+            message: bufferedLog.message, 
+            source: bufferedLog.source,
+            exactTimestamp: bufferedLog.timestamp,
+            exactDelta: bufferedLog.delta
+        });
+        
+        let specificLogFile;
+        if (bufferedLog.source.includes('Watcher')) specificLogFile = 'Watcher.log';
+        else if (bufferedLog.source.includes('Compiler')) specificLogFile = 'Compilers.log';
+
+        if (specificLogFile) {
+            const logEntry = formatLogString({ 
+                level: bufferedLog.level, 
+                message: bufferedLog.message, 
+                source: bufferedLog.source, 
+                exactTimestamp: bufferedLog.timestamp, 
+                exactDelta: bufferedLog.delta 
+            });
+            // Write synchronously here to ensure order is preserved before async processes start
+            require('fs').appendFileSync(path.join(SESSION_DIR, specificLogFile), `${logEntry}\n`);
+        }
+    }
+
     logger.info(`--- System Info ---`, { source: 'Logger-System' });
     logger.info(`Platform: ${systemInfo.platform}, Arch: ${systemInfo.arch}, Version: ${systemInfo.version}`, { source: 'Logger-System' });
     logger.info(`Session started in ${SESSION_DIR}`, { source: 'Logger-System' });
@@ -218,8 +285,6 @@ function archiveCurrentSession() {
 }
 
 function handleIpcLog(data) {
-    if (!logger) return;
-
     const sanitized = {
         level: (data && data.type) ? data.type.toLowerCase() : 'warn',
         source: (data && data.source) ? data.source : 'Unknown-Process',
@@ -234,15 +299,40 @@ function handleIpcLog(data) {
         sanitized.message = JSON.stringify(data) || 'Empty/Null Log';
     }
 
-    logger.log({ level: sanitized.level, message: sanitized.message, source: sanitized.source });
+    // Capture exact timing the moment the function is called
+    const exactTimestamp = new Date().toISOString().replace(/\..+/, '');
+    const exactDelta = getDelta();
+
+    // If logger isn't ready yet, buffer it with the precise timings
+    if (!logger) {
+        preInitBuffer.push({
+            ...sanitized,
+            timestamp: exactTimestamp,
+            delta: exactDelta
+        });
+        return;
+    }
+
+    logger.log({ 
+        level: sanitized.level, 
+        message: sanitized.message, 
+        source: sanitized.source,
+        exactTimestamp,
+        exactDelta
+    });
 
     let specificLogFile;
     if (sanitized.source.includes('Watcher')) specificLogFile = 'Watcher.log';
     else if (sanitized.source.includes('Compiler')) specificLogFile = 'Compilers.log';
 
     if (specificLogFile) {
-        const timestamp = new Date().toISOString().replace(/\..+/, '');
-        const logEntry = formatLogString({ ...sanitized, timestamp });
+        const logEntry = formatLogString({ 
+            level: sanitized.level, 
+            message: sanitized.message, 
+            source: sanitized.source, 
+            exactTimestamp, 
+            exactDelta 
+        });
         fs.appendFile(path.join(SESSION_DIR, specificLogFile), `${logEntry}\n`).catch(() => {});
     }
 }

@@ -100,8 +100,8 @@ export const defineDslLanguages = (monacoInstance) => {
         [/(country|news)(\s+)(event)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'primary.keyword', 'white', 'id.declaration']],
         [/(title|desc|option|namespace)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'id.declaration']],
         [/[a-zA-Z_$][\w$]*/, { cases: { '@primaryKeywords': 'primary.keyword', '@controlKeywords': 'control.keyword', '@scopes': 'constant.scope', '@booleans': 'constant.boolean', '@default': 'id.general' } }],
-        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
-        [/#{/, { token: 'comment.block', next: '@blockComment' }], [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
+        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#{/, { token: 'comment.block', next: '@blockComment' }], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
+        [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
       ],
       ...baseTokenizerStates
     }
@@ -116,8 +116,8 @@ export const defineDslLanguages = (monacoInstance) => {
         [/\b(on\s+click|remove\s+effect)\b/, 'primary.keyword'],
         [/(category|decision)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'id.declaration']],
         [/[a-zA-Z_$][\w$]*/, { cases: { '@primaryKeywords': 'primary.keyword', '@controlKeywords': 'control.keyword', '@scopes': 'constant.scope', '@booleans': 'constant.boolean', '@default': 'id.general' } }],
-        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
-        [/#{/, { token: 'comment.block', next: '@blockComment' }], [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
+        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#{/, { token: 'comment.block', next: '@blockComment' }], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
+        [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
       ],
       ...baseTokenizerStates
     }
@@ -149,8 +149,8 @@ export const defineDslLanguages = (monacoInstance) => {
       root: [
         [/(scripted\s+(?:effect|trigger)|game\s+rule|on\s+action)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'id.declaration']],
         [/[a-zA-Z_$][\w$]*/, { cases: { '@primaryKeywords': 'primary.keyword', '@controlKeywords': 'control.keyword', '@scopes': 'constant.scope', '@booleans': 'constant.boolean', '@default': 'id.general' } }],
-        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
-        [/#{/, { token: 'comment.block', next: '@blockComment' }], [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
+        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#{/, { token: 'comment.block', next: '@blockComment' }], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
+        [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
       ],
       ...baseTokenizerStates
     }
@@ -164,8 +164,8 @@ export const defineDslLanguages = (monacoInstance) => {
       root: [
         [/((?:country|laws)\s+)?(idea)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'primary.keyword', 'white', 'id.declaration']],
         [/[a-zA-Z_$][\w$]*/, { cases: { '@primaryKeywords': 'primary.keyword', '@controlKeywords': 'control.keyword', '@scopes': 'constant.scope', '@booleans': 'constant.boolean', '@default': 'id.general' } }],
-        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
-        [/#{/, { token: 'comment.block', next: '@blockComment' }], [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
+        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#{/, { token: 'comment.block', next: '@blockComment' }], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
+        [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
       ],
       ...baseTokenizerStates
     }
@@ -187,8 +187,8 @@ export const defineDslLanguages = (monacoInstance) => {
         [/\b(require|prevents)\b/, { token: 'primary.keyword', next: '@focusIdBlock' }],
 
         [/[a-zA-Z_$][\w$]*/, { cases: { '@primaryKeywords': 'primary.keyword', '@controlKeywords': 'control.keyword', '@scopes': 'constant.scope', '@booleans': 'constant.boolean', '@default': 'id.general' } }],
-        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
-        [/#{/, { token: 'comment.block', next: '@blockComment' }], [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
+        [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#{/, { token: 'comment.block', next: '@blockComment' }], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
+        [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
       ],
       // Contextual engine tracking focus tree requirements (inline list definitions match orange, properties pop stack)
       focusIdBlock: [
