@@ -48,6 +48,44 @@ setInterval(() => {
 }, 1000);
 
 /**
+ * Spawns the native C# 'compiler' binary in a persistent state.
+ * This is called by the background watcher process to maintain an always-on compilation server.
+ * @param {Object} params
+ * @param {string} params.output - Path to the output directory.
+ * @param {string} params.debug - Path to the active session debug directory.
+ * @returns {ChildProcess} The active process instance so stdin/stdout can be controlled by the caller.
+ */
+function runCompiler({ output, debug }) {
+  const platform = process.platform;
+
+  // 1. Resolve safe absolute path using the unified helper
+  const binaryPath = resolveBinaryPath('compiler');
+
+  // 2. Format argument parameters matching C# expected structure
+  const args = [
+    `--output=${output}`,
+    `--debug=${debug}`
+  ];
+
+  // 3. Dynamic Linux execution permission assignment
+  if (platform === 'linux') {
+    try {
+      if (fs.existsSync(binaryPath)) {
+        fs.chmodSync(binaryPath, 0o755);
+        console.log(`[Compiler] Granted execution permissions (0755) to Linux binary.`);
+      }
+    } catch (err) {
+      console.warn(`[Compiler] Failed to assign permissions on binary:`, err.message);
+    }
+  }
+
+  console.log(`[Compiler] Spawning PERSISTENT process: ${binaryPath} with args:`, args);
+
+  // 4. Spawn and return process directly so standard I/O pipes can be attached
+  return spawn(binaryPath, args);
+}
+
+/**
  * Spawns the native C# 'importer' binary and listens to its Console output.
  * * * Directory Structure:
  * c#/published-components/importer/
@@ -63,22 +101,10 @@ function runImporter({ input, output, debug }) {
   const platform = process.platform;
 
   // 1. Resolve base directory based on environment
-  const baseDir = isDev
-    ? path.join(app.getAppPath(), 'c#', 'published-components', 'importer')
-    : path.join(process.resourcesPath, 'published-components', 'importer');
+  const binaryPath = resolveBinaryPath('importer');
+  if (!binaryPath) return;
 
-  // 2. Select correct binary matching the host OS
-  let binaryPath;
-  if (platform === 'win32') {
-    binaryPath = path.join(baseDir, 'windows', 'importer.exe');
-  } else if (platform === 'linux') {
-    binaryPath = path.join(baseDir, 'linux', 'importer');
-  } else {
-    console.error(`[Importer] Unsupported OS platform: ${platform}`);
-    return;
-  }
-
-  // 3. Format arguments to match your C# parser's named argument structure
+  // 2. Format arguments to match your C# parser's named argument structure
   const args = [
     `--input=${input}`,
     `--output=${output}`,
@@ -88,9 +114,10 @@ function runImporter({ input, output, debug }) {
   // Fix Linux permission flags: dynamically grant permission if missing
   if (platform === 'linux') {
     try {
-      // 0o755 gives the owner full Read/Write/Execute access so the binary can spin up
-      fs.chmodSync(binaryPath, 0o755);
-      console.log(`[Importer] Successfully assigned execution rights (0755) to Linux binary.`);
+      if (fs.existsSync(binaryPath)) {
+        fs.chmodSync(binaryPath, 0o755);
+        console.log(`[Importer] Successfully assigned execution rights (0755) to Linux binary.`);
+      }
     } catch (permissionError) {
       console.warn(`[Importer] Failed to run chmodSync on binary file:`, permissionError);
     }
@@ -189,6 +216,60 @@ function handleProcessOutput(processInstance, resolve, reject) {
   }, 1000);
 }
 
+/**
+ * Helper function to cleanly resolve binary component paths across platforms and environments.
+ * Built to support both Electron Main context and Forked Child Process context under Vite.
+ * @param {string} componentName - The name of the target component subdirectory ('compiler' or 'importer').
+ * @returns {string} The absolute path to the platform-specific executable binary.
+ */
+function resolveBinaryPath(componentName) {
+  const platform = process.platform;
+  const isDev = !app || !app.isPackaged || process.env.NODE_ENV === 'development';
+
+  // 1. Array of potential lookups matching exactly where the files live across architectures
+  let baseChoices = [];
+
+  if (app && typeof app.getAppPath === 'function') {
+    try {
+      baseChoices.push(path.join(app.getAppPath(), 'c#', 'published-components', componentName));
+    } catch (e) {}
+  }
+
+  // Handle Vite development paths relative to current directory structures
+  if (typeof __dirname !== 'undefined') {
+    baseChoices.push(path.join(__dirname, '..', 'c#', 'published-components', componentName));
+    baseChoices.push(path.join(__dirname, '..', '..', '..', 'c#', 'published-components', componentName));
+  }
+
+  // Production ASAR unpack structure fallback
+  if (app && typeof app.getPath === 'function') {
+    try {
+      baseChoices.push(path.join(process.resourcesPath, 'published-components', componentName));
+    } catch (e) {}
+  }
+  
+  // Standard execution working directory lookup
+  baseChoices.push(path.join(process.cwd(), 'c#', 'published-components', componentName));
+
+  // 2. Select binary name extension based on Host OS
+  const binaryName = platform === 'win32' ? path.join('windows', `${componentName}.exe`) : path.join('linux', componentName);
+
+  // 3. Loop through choices and find the one that actually contains the files
+  for (const baseDir of baseChoices) {
+    const fullPath = path.join(baseDir, binaryName);
+    if (fs.existsSync(fullPath)) {
+      return fullPath;
+    }
+  }
+
+  // Ultimate fallback layout if disk indexer is running asynchronously under Vite
+  const defaultFallbackBase = isDev
+    ? path.join(process.cwd(), 'c#', 'published-components', componentName)
+    : path.join(process.resourcesPath, 'published-components', componentName);
+    
+  return path.join(defaultFallbackBase, binaryName);
+}
+
 // --- Example Usage ---
 // runImporter({
 //   input: '/path/to/input',
@@ -196,4 +277,4 @@ function handleProcessOutput(processInstance, resolve, reject) {
 //   debug: '/path/to/debug'
 // });
 
-export { runImporter, handleProcessOutput };
+export { runImporter, handleProcessOutput, runCompiler };

@@ -1,8 +1,10 @@
 // watcher_workspace.js (Child Process)
+// watcher_workspace.js (Child Process)
 import fs from 'fs-extra';
 import * as path from 'path';
 import chokidar from 'chokidar';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { spawn } from 'child_process';
 import { handleDeletion, handleRename } from './deletion_handler.js'; 
 import { SyncEngine } from './sync_engine.js'; 
 
@@ -10,10 +12,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let config; 
-let compilerMap = {}; 
+let compilerProcess = null; 
 let outputBaseDir; 
 let trackedGfxFiles = new Set();
 
+// Allowed extensions extracted from previous runtime compilers configuration
+const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds']);
 // --- Process Safety ---
 const checkParentAndExit = () => {
     if (!process.connected) process.exit(0);
@@ -54,14 +58,62 @@ async function setupWorkspace() {
         config = JSON.parse(payloadString);
         outputBaseDir = config.output_dir;
 
-        for (const key in config.compilers) {
-            const compilerInfo = config.compilers[key];
-            const modulePath = path.resolve(__dirname, compilerInfo.processor); 
-            const moduleUrl = pathToFileURL(modulePath).href;
-            const compilerModule = await import(moduleUrl);
-            if (!compilerMap[compilerInfo.ext]) compilerMap[compilerInfo.ext] = [];
-            compilerMap[compilerInfo.ext].push({ key, module: compilerModule, config: compilerInfo });
+        const platform = process.platform;
+        const isDev = !process.resourcesPath || !fs.existsSync(path.join(process.resourcesPath, 'published-components'));
+
+        // Resolve binary location safely within standard or electron environments
+        const baseDir = isDev
+            ? path.join(__dirname, '..', 'c#', 'published-components', 'compiler')
+            : path.join(process.resourcesPath, 'published-components', 'compiler');
+
+        let binaryPath;
+        if (platform === 'win32') {
+            binaryPath = path.join(baseDir, 'windows', 'compiler.exe');
+        } else if (platform === 'linux') {
+            binaryPath = path.join(baseDir, 'linux', 'compiler');
+        } else {
+            throw new Error(`Unsupported OS platform: ${platform}`);
         }
+
+        if (platform === 'linux') {
+            try {
+                fs.chmodSync(binaryPath, 0o755);
+                logToMain('info', `Successfully assigned execution rights (0755) to Linux binary.`, SOURCE);
+            } catch (permissionError) {
+                logToMain('warn', `Failed to run chmodSync on binary file: ${permissionError.message}`, SOURCE);
+            }
+        }
+
+        const debugDir = path.join(config.project_root, 'metadata');
+        const args = [
+            `--output=${config.output_dir}`,
+            `--debug=${debugDir}`
+        ];
+
+        logToMain('info', `Spawning persistent compiler process: ${binaryPath}`, SOURCE);
+        compilerProcess = spawn(binaryPath, args);
+
+        compilerProcess.stdout.on('data', (data) => {
+            logToMain('info', `[Compiler Output]: ${data.toString().trim()}`, 'Compiler-Stdout');
+        });
+
+        compilerProcess.stderr.on('data', (data) => {
+            logToMain('error', `[Compiler Error]: ${data.toString().trim()}`, 'Compiler-Stderr');
+        });
+
+        compilerProcess.on('close', (code) => {
+            logToMain('warn', `Compiler process exited with code ${code}`, SOURCE);
+        });
+
+        compilerProcess.on('error', (err) => {
+            logToMain('error', `Compiler process error: ${err.message}`, SOURCE);
+        });
+
+        // Safe auto-cleanup when the parent script exits
+        process.on('exit', () => {
+            if (compilerProcess) compilerProcess.kill();
+        });
+
     } catch (error) {
         logToMain('error', `Setup failed: ${error.message}`, SOURCE);
         process.exit(1); 
@@ -80,59 +132,22 @@ function writeFileWithBomLogic(filePath, content) {
 
 function triggerCompilation(filePath) {
     const SOURCE = 'Watcher-Compile';
+    const ext = path.extname(filePath).toLowerCase();
+
+    // Whitelist and accept only matching valid extension paths 
+    const allowedExts = ['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds'];
+    if (!allowedExts.includes(ext)) return;
+
     const normalizedFilePath = filePath.split(path.sep).join(path.posix.sep);
-    const ext = path.extname(normalizedFilePath).toLowerCase();
-
-    // Registry Update
     if (ext === '.dds') trackedGfxFiles.add(normalizedFilePath);
-
-    const potentialCompilers = compilerMap[ext];
-    if (!potentialCompilers) return;
-
-    let compilerToUse = potentialCompilers[0]; 
-    if (potentialCompilers.length > 1) {
-        const bestMatch = potentialCompilers.find(c => normalizedFilePath.toLowerCase().includes(c.key.toLowerCase()));
-        if (bestMatch) compilerToUse = bestMatch;
-    }
     
     try {
-        const isBinary = ext === '.dds';
-        // CRITICAL: Don't read binary as utf8
-        const content = fs.readFileSync(filePath, isBinary ? null : 'utf8');
-        if (!isBinary && content.trim().length === 0) return;
-
-        const result = compilerToUse.module.compile(
-            content, 
-            compilerToUse.config, 
-            normalizedFilePath, 
-            Array.from(trackedGfxFiles)
-        );
-
-        if (result.success) {
-            if (result.outputs && Array.isArray(result.outputs)) {
-                for (const out of result.outputs) {
-                    const finalPath = path.join(config.output_dir, out.path);
-                    if (out.action === 'delete') {
-                        fs.removeSync(finalPath);
-                    } else {
-                        ensureDirectoryExistence(path.dirname(finalPath)); 
-                        if (isBinary || !out.path.endsWith('.yml')) {
-                            fs.writeFileSync(finalPath, out.content);
-                        } else {
-                            writeFileWithBomLogic(finalPath, out.content);
-                        }
-                    }
-                }
-            } else {
-            	// legacy fallback should now be uneccessery as all compilers should be now on the newer way however
-            	// we will let this in here fornow just incase
-                if (result.hoi4OutputPath && result.hoi4Code) {
-                    const outPath = path.join(config.output_dir, result.hoi4OutputPath);
-                    ensureDirectoryExistence(path.dirname(outPath));
-                    writeFileWithBomLogic(outPath, result.hoi4Code);
-                }
-            }
-            logToMain('info', `✅ Compiled: ${path.basename(normalizedFilePath)}`, SOURCE);
+        if (compilerProcess && compilerProcess.stdin && compilerProcess.stdin.writable) {
+            const absolutePath = path.resolve(filePath);
+            compilerProcess.stdin.write(absolutePath + '\n');
+            logToMain('info', `Sent absolute path to persistent compiler: ${absolutePath}`, SOURCE);
+        } else {
+            logToMain('error', `Compiler process is not running or stdin is unavailable.`, SOURCE);
         }
     } catch (error) {
         logToMain('error', `Compile Error: ${error.message}`, SOURCE);
@@ -230,5 +245,54 @@ async function startWatcher() {
 
     logToMain('info', "Watcher Active and Monitoring.", SOURCE);
 }
+
+
+// --- IPC Directive Router for Main Process Directives ---
+process.on('message', (packet) => {
+    if (!packet || typeof packet !== 'object') return;
+
+    switch (packet.action) {
+        case 'manual-compile':
+            if (packet.filePath) {
+                logToMain('info', `Received explicit manual compile demand for single-file context: ${path.basename(packet.filePath)}`, 'Watcher-IPC');
+                triggerCompilation(packet.filePath);
+            }
+            break;
+
+        case 'manual-recompile-all':
+            logToMain('info', 'Received master workspace-wide rebuild instruction. Initiating complete compiler pass...', 'Watcher-IPC');
+            // Passes the workspace input directory to recompile everything instantly
+            if (config && config.input_dir) {
+                triggerCompilation(config.input_dir);
+            }
+            break;
+            
+        case 'shutdown':
+            logToMain('warn', 'Watcher process received lifecycle shutdown signal from parent app. Terminating persistent compilation sub-server...', 'Watcher-IPC');
+            if (compilerProcess) {
+                try {
+                    compilerProcess.kill('SIGTERM');
+                } catch (e) {
+                    try { compilerProcess.kill('SIGKILL'); } catch(err) {}
+                }
+            }
+            process.exit(0);
+            break;
+
+        default:
+            break;
+    }
+});
+
+// --- Dynamic POSIX OS Termination Interceptors ---
+process.on('SIGTERM', () => {
+    logToMain('warn', 'Watcher Terminating compiler process...', 'Watcher-Lifecycle');
+    if (compilerProcess) {
+        try {
+            compilerProcess.kill('SIGTERM');
+        } catch(e) {}
+    }
+    process.exit(0);
+});
 
 startWatcher();

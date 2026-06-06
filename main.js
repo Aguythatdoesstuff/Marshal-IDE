@@ -313,6 +313,32 @@ function setupAutoUpdater() {
 			};
 		}
 	});
+
+	ipcMain.handle('run-compiler', async (event, { input, workspaceName }) => {
+		try {
+			if (!watcherProcess || !watcherProcess.connected) {
+				const targetName = workspaceName || (currentProjectConfig ? path.basename(currentProjectConfig.project_root) : null);
+				if (targetName) {
+					await startWatcher(targetName);
+				} else {
+					throw new Error("No active workspace watcher found. Compilation engine offline.");
+				}
+			}
+
+			// Forward compile message payload smoothly to the online watcher child process via standard IPC packet channel
+			watcherProcess.send({
+				action: 'manual-compile',
+				filePath: input
+			});
+
+			appLogger?.info(`[Main IPC] Forwarded file compilation request to watcher for: ${path.basename(input)}`, { source: 'Main-IPC-Compiler' });
+			return { success: true };
+		} catch (error) {
+			appLogger?.error(`Manual compilation trigger failed: ${error.message}`, { source: 'Main-IPC-Compiler' });
+			return { success: false, message: error.message };
+		}
+	});
+
 	ipcMain.handle('save-global-settings', async (event, settingsData) => {
 	    let hasWatcherRestarted = false;
 	    try {
@@ -366,25 +392,38 @@ function setupAutoUpdater() {
 		try {
 			appLogger?.info('Initiating project unmount sequence...', { source: 'Main-Config' });
 			
-			// Kill the background watcher process using a termination signal so it cleans up sub-processes
+			// Kill background watcher process. The watcher process will internally run 
+			// process.on('exit') and terminate the persistent C# compiler instantly.
 			if (typeof watcherProcess !== 'undefined' && watcherProcess) {
-				watcherProcess.kill('SIGTERM');
-				appLogger?.info('Sent SIGTERM to watcherProcess. Active file system watcher unmounted successfully.', { source: 'Main-Config' });
-			}
-			else {
-				appLogger?.warn('Watcher is already unnexpectedly inactive!', { source: 'Main-Config' });
+				// Send specific cleanup IPC action or signal
+				if (watcherProcess.connected) {
+					watcherProcess.send({ action: 'shutdown' });
+				}
+				
+				// Enforce definitive termination after brief grace period
+				setTimeout(() => {
+					if (watcherProcess) {
+						watcherProcess.kill('SIGTERM');
+						watcherProcess = null;
+						appLogger?.info('Enforced fallback SIGTERM cleanup for watcherProcess.', { source: 'Main-Config' });
+					}
+				}, 300);
+				
+				appLogger?.info('Sent shutdown sequence to active workspace watcher environment.', { source: 'Main-Config' });
+			} else {
+				appLogger?.warn('Watcher is already unexpectedly inactive!', { source: 'Main-Config' });
 			}
 
-			// Clear memory state bindings
+			// Clear memory state bindings safely
 			currentProjectConfig = null;
 			INPUT_DIR = null;
 			OUTPUT_DIR = null;
 
-			// Navigate the frontend single-page application back to the workspace selection view smoothly
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                appLogger?.info('Navigating frontend back to workspace selection view context.', { source: 'Main-Config' });
-                mainWindow.webContents.send('navigate-to', 'WORKSPACE');
-            }
+			// Navigate frontend smoothly back to view context
+			if (mainWindow && !mainWindow.isDestroyed()) {
+				appLogger?.info('Navigating frontend back to workspace selection view context.', { source: 'Main-Config' });
+				mainWindow.webContents.send('navigate-to', 'WORKSPACE');
+			}
 
 			return { success: true };
 		} catch (error) {
@@ -943,13 +982,30 @@ function setupAutoUpdater() {
 			};
 		});
 
-		ipcMain.handle('recompile-all', async () => {
-			if (watcherProcess && watcherProcess.connected) {
-				watcherProcess.send({ action: 'recompile-all' });
+		ipcMain.handle('recompile-all', async (event, workspaceName) => {
+			try {
+				appLogger?.info(`[Main IPC] Recompile-all requested for workspace: ${workspaceName || 'Active Context'}`, { source: 'Main-IPC-Compiler' });
+
+				// If no current project configuration or watcher is bound, dynamically spin it up first
+				if (!watcherProcess || !watcherProcess.connected) {
+					const targetName = workspaceName || (currentProjectConfig ? path.basename(currentProjectConfig.project_root) : null);
+					if (!targetName) {
+						throw new Error("No active workspace selected or available to recompile.");
+					}
+					appLogger?.info(`[Main IPC] Watcher unavailable for recompile-all. Bootstrapping workspace environment: ${targetName}`, { source: 'Main-IPC-Compiler' });
+					await startWatcher(targetName);
+				}
+
+				// Forward the master full-recompile trigger command down to the active watcher process
+				watcherProcess.send({
+					action: 'manual-recompile-all'
+				});
+
+				appLogger?.info(`[Main IPC] Master compilation directive broadcasted successfully down to workspace watcher.`, { source: 'Main-IPC-Compiler' });
 				return { success: true };
-			} else {
-				console.error("[Main-Process] Cannot recompile: Watcher child process is not running or connected.");
-				throw new Error("Watcher process is unavailable.");
+			} catch (error) {
+				appLogger?.error(`Failed to trigger full workspace recompilation: ${error.message}`, { source: 'Main-IPC-Compiler' });
+				return { success: false, message: error.message };
 			}
 		});
 
@@ -1206,12 +1262,22 @@ function setupAutoUpdater() {
 	});
 
 	app.on('will-quit', async (event) => {
-		if (watcherProcess) watcherProcess.kill('SIGTERM');
+		if (watcherProcess) {
+			try {
+				if (watcherProcess.connected) {
+					watcherProcess.send({ action: 'shutdown' });
+				}
+				watcherProcess.kill('SIGKILL');
+			} catch (e) {
+				// Guard silent failures
+			}
+			watcherProcess = null;
+		}
 		if (!isArchivingAndQuitting) {
-		isArchivingAndQuitting = true;
-		event.preventDefault();
-		await logger.archiveCurrentSession();
-		app.quit();
+			isArchivingAndQuitting = true;
+			event.preventDefault();
+			await logger.archiveCurrentSession();
+			app.quit();
 		}
 	});
 	
