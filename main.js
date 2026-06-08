@@ -632,7 +632,8 @@ function setupAutoUpdater() {
 			output_dir: path.resolve(OUTPUT_DIR), 
 			project_root: currentProjectConfig.project_root,
 			compilers: globalCompilers,
-			mod_name: projectName
+			mod_name: projectName,
+    		log_dir: logger.getLogsRootDir()
 	    });
 	    
 	    watcherProcess = fork(WATCHER_SCRIPT_PATH, [watcherPayload], { 
@@ -1266,10 +1267,12 @@ function setupAutoUpdater() {
 			try {
 				if (watcherProcess.connected) {
 					watcherProcess.send({ action: 'shutdown' });
+					
+					// Disconnect the IPC channel safely so the watcher's 'disconnect' event fires
+					watcherProcess.disconnect();
 				}
-				watcherProcess.kill('SIGKILL');
 			} catch (e) {
-				// Guard silent failures
+				// Guard silent errors if it was already closed
 			}
 			watcherProcess = null;
 		}

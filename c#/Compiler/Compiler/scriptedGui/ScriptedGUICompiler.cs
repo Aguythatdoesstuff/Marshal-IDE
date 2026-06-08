@@ -30,8 +30,6 @@ namespace Compiler.scriptedGui
 
             foreach (var window in PassedData.Windows)
             {
-                int counterGuiEllement = 0;
-
                 // Build common/scripted_gui block for this window
                 sbCommonScriptedGuiTxt.AppendLine($"{indent1}{window.Id} = {{");
                 sbCommonScriptedGuiTxt.AppendLine($"{indent2}window_name = \"{window.Id}\"");
@@ -56,28 +54,42 @@ namespace Compiler.scriptedGui
                 sbCommonScriptedGuiTxt.AppendLine($"{indent2}}}");
 
                 sbCommonScriptedGuiTxt.AppendLine($"{indent2}effects = {{");
+
+                // Accumulate this window's GUI body in memory so we can write once per target file later
+                sbInterfaceGui.AppendLine($"{indent2}name = \"{window.Id}\"");
+                if (window.Draggable) sbInterfaceGui.AppendLine($"{indent2}moveable = yes");
+                sbInterfaceGui.AppendLine($"{indent2}size = {{ width = {window.Size.Value.x} height = {window.Size.Value.y} }}");
+                sbInterfaceGui.AppendLine($"{indent2}position = {{ x = {window.Position.Value.x} y = {window.Position.Value.y} }}");
+                if (window.Sprite != null)
+                {
+                    sbInterfaceGui.AppendLine($"{indent2}background = {{");
+                    sbInterfaceGui.AppendLine($"{indent3}name = \"Background\"");
+                    sbInterfaceGui.AppendLine($"{indent3}quadTextureSprite = \"{window.Sprite}\"");
+                    sbInterfaceGui.AppendLine($"{indent2}}}");
+                }
                 foreach (var element in window.Elements)
                 {
-                    // only buttons currently produce effect blocks
+                    // Effects for buttons (kept in the scripted_gui common file)
                     if (element is ButtonElement btn)
                     {
                         sbCommonScriptedGuiTxt.AppendLine($"{indent3}{btn.Id}_click = {{");
                         sbCommonScriptedGuiTxt.Append(RenderAllowedToString(btn.OnClickRaw, rl => rl.depth + 1, rl => rl.trimmedLine));
                         sbCommonScriptedGuiTxt.AppendLine($"{indent3}}}");
                     }
-                }
-                sbCommonScriptedGuiTxt.AppendLine($"{indent2}}}");
-                sbCommonScriptedGuiTxt.AppendLine("}");
 
-                // Accumulate .gfx progressbar definitions for this window
-                foreach (var element in window.Elements)
-                {
+                    // GFX entries (progressbars)
                     if (element is ProgressBarElement pbe)
                     {
                         sbInterfaceGfx.AppendLine($"{indent1}progressbartype = {{");
-                        sbInterfaceGfx.AppendLine($"{indent2}name = \"{pbe.Id}\"");
-                        sbInterfaceGfx.AppendLine($"{indent2}textureFile1 = \"{pbe.ProgressedSprite}\"");
-                        sbInterfaceGfx.AppendLine($"{indent2}textureFile2 = \"{pbe.UnprogressedSprite}\"");
+                        sbInterfaceGfx.AppendLine($"{indent2}name = \"GFX_{pbe.Id}\"");
+                        if (!string.IsNullOrEmpty(pbe.ProgressedSprite))
+                        {
+                            sbInterfaceGfx.AppendLine($"{indent2}textureFile1 = \"{pbe.ProgressedSprite}\"");
+                        }
+                        if (!string.IsNullOrEmpty(pbe.UnprogressedSprite))
+                        {
+                            sbInterfaceGfx.AppendLine($"{indent2}textureFile2 = \"{pbe.UnprogressedSprite}\"");
+                        }
                         if (pbe.ProgressedColor.HasValue)
                         {
                             var r = pbe.ProgressedColor.Value.r;
@@ -116,23 +128,8 @@ namespace Compiler.scriptedGui
 
                         sbInterfaceGfx.AppendLine($"{indent1}}}");
                     }
-                }
-            
-                // Accumulate this window's GUI body in memory so we can write once per target file later
-                sbInterfaceGui.AppendLine($"{indent2}name = \"{window.Id}\"");
-                if (window.Draggable) sbInterfaceGui.AppendLine($"{indent2}moveable = yes");
-                sbInterfaceGui.AppendLine($"{indent2}size = {{ x = {window.Size.Value.x} y = {window.Size.Value.y} }}");
-                sbInterfaceGui.AppendLine($"{indent2}position = {{ x = {window.Position.Value.x} y = {window.Position.Value.y} }}");
-                if (window.Sprite != null)
-                {
-                    sbInterfaceGui.AppendLine($"{indent2}background = {{");
-                    sbInterfaceGui.AppendLine($"{indent3}name = \"Background\"");
-                    sbInterfaceGui.AppendLine($"{indent3}quadTextureSprite = \"{window.Sprite}\"");
-                    sbInterfaceGui.AppendLine($"{indent2}}}");
-                }
 
-                foreach (var element in window.Elements)
-                {
+                    // GUI body output (preserve element order)
                     if (element is TextElement te)
                     {
                         sbInterfaceGui.AppendLine($"{indent2}instantTextBoxType = {{");
@@ -143,22 +140,17 @@ namespace Compiler.scriptedGui
                         }
                         else
                         {
-                            // text localisation id reference
                             sbInterfaceGui.AppendLine($"{indent3}text = {te.Id}");
-                            sbLocalisationYml.AppendLine($" {te.Id}_gui_ellement_{counterGuiEllement}:0 \"{te.Text}\"");
-                            counterGuiEllement++;
+                            sbLocalisationYml.AppendLine($" {te.Id}:0 \"{te.Text}\"");
                         }
-                        // font is optional for text elements
                         if (!string.IsNullOrEmpty(te.Font))
                         {
                             sbInterfaceGui.AppendLine($"{indent3}font = \"{te.Font}\"");
                         }
-                        // position is required by engine; emit only if present
                         if (te.Position.HasValue)
                         {
                             sbInterfaceGui.AppendLine($"{indent3}position = {{ x = {te.Position.Value.x} y = {te.Position.Value.y} }}");
                         }
-                        // maxWidth/maxHeight should only be emitted when provided
                         if (te.MaxSize.HasValue)
                         {
                             sbInterfaceGui.AppendLine($"{indent3}maxWidth = {te.MaxSize.Value.x}");
@@ -178,10 +170,8 @@ namespace Compiler.scriptedGui
                         if (ie.IsTextScriptedLocalisationId)
                         {
                             sbInterfaceGui.AppendLine($"{indent3}text = {ie.Id}");
-                            sbLocalisationYml.AppendLine($" {ie.Id}_gui_ellement_{counterGuiEllement}:0 \"{ie.Text}\"");
-                            counterGuiEllement++;
+                            sbLocalisationYml.AppendLine($" {ie.Id}:0 \"{ie.Text}\"");
                         }
-                        // icons do not support font; only emit if this was erroneously present and record a non-fatal error
                         if (!string.IsNullOrEmpty(ie.Font))
                         {
                             CompilerErrors.Add(new ValidationError(PassedData.SourceFileName ?? "", 0, $"Icon element {ie.Id} contains font which is not valid for iconType"));
@@ -198,11 +188,21 @@ namespace Compiler.scriptedGui
                     }
                     else if (element is ButtonElement be)
                     {
-                        sbInterfaceGui.AppendLine($"{indent2}iconType = {{");
+                        sbInterfaceGui.AppendLine($"{indent2}buttonType = {{");
                         sbInterfaceGui.AppendLine($"{indent3}name = \"{be.Id}\"");
                         if (!be.IsProperty && !string.IsNullOrEmpty(be.Sprite))
                         {
                             sbInterfaceGui.AppendLine($"{indent3}spriteType = \"{be.Sprite}\"");
+                        }
+                        // Button text/localisation handling - follow TextElement pattern
+                        if (be.IsTextScriptedLocalisationId)
+                        {
+                            sbInterfaceGui.AppendLine($"{indent3}text = \"[{be.DefinesId}]\"");
+                        }
+                        else if (!string.IsNullOrEmpty(be.Text))
+                        {
+                            sbInterfaceGui.AppendLine($"{indent3}text = {be.Id}");
+                            sbLocalisationYml.AppendLine($" {be.Id}:0 \"{be.Text}\"");
                         }
                         if (be.Position.HasValue)
                         {
@@ -210,7 +210,7 @@ namespace Compiler.scriptedGui
                         }
                         if (be.SizePercent != null)
                         {
-                            sbInterfaceGui.AppendLine($"{indent3}scale = {be.SizePercent}");
+                            sbInterfaceGui.AppendLine($"{indent3}scale = {be.SizePercent/100}"); // game engine expects: 1 scale as 100% size etc
                         }
                         sbInterfaceGui.AppendLine($"{indent2}}}");
                     }

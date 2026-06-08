@@ -13,6 +13,11 @@
             Console.WriteLine($"[[IPC]]:{System.Text.Json.JsonSerializer.Serialize(message)}");
         }
 
+        internal static void Log(string type, string data)
+        {
+            Console.WriteLine($"[[IPC]] - [[{type}]]: {data}");
+        }
+
         internal static void FatalError(string msg) => Send("FATAL", new { message = msg });
     }
 }

@@ -61,16 +61,16 @@ async function setupWorkspace() {
         const platform = process.platform;
         const isDev = !process.resourcesPath || !fs.existsSync(path.join(process.resourcesPath, 'published-components'));
 
-        // Resolve binary location safely within standard or electron environments
+        // Use process.cwd() in dev to anchor directly to the project root, bypassing the Vite build folder maze entirely
         const baseDir = isDev
-            ? path.join(__dirname, '..', 'c#', 'published-components', 'compiler')
+            ? path.join(process.cwd(), 'c#', 'published-components', 'compiler')
             : path.join(process.resourcesPath, 'published-components', 'compiler');
 
         let binaryPath;
         if (platform === 'win32') {
-            binaryPath = path.join(baseDir, 'windows', 'compiler.exe');
+            binaryPath = path.join(baseDir, 'windows', 'Compiler.exe'); 
         } else if (platform === 'linux') {
-            binaryPath = path.join(baseDir, 'linux', 'compiler');
+            binaryPath = path.join(baseDir, 'linux', 'Compiler');
         } else {
             throw new Error(`Unsupported OS platform: ${platform}`);
         }
@@ -84,10 +84,9 @@ async function setupWorkspace() {
             }
         }
 
-        const debugDir = path.join(config.project_root, 'metadata');
         const args = [
             `--output=${config.output_dir}`,
-            `--debug=${debugDir}`
+            `--debug=${config.log_dir}`
         ];
 
         logToMain('info', `Spawning persistent compiler process: ${binaryPath}`, SOURCE);
@@ -144,7 +143,11 @@ function triggerCompilation(filePath) {
     try {
         if (compilerProcess && compilerProcess.stdin && compilerProcess.stdin.writable) {
             const absolutePath = path.resolve(filePath);
-            compilerProcess.stdin.write(absolutePath + '\n');
+            if (compilerProcess && compilerProcess.stdin && compilerProcess.stdin.writable) {
+                const safeJsonPath = JSON.stringify(filePath);
+                
+                compilerProcess.stdin.write(`${safeJsonPath}\n`); 
+            }
             logToMain('info', `Sent absolute path to persistent compiler: ${absolutePath}`, SOURCE);
         } else {
             logToMain('error', `Compiler process is not running or stdin is unavailable.`, SOURCE);
@@ -246,6 +249,17 @@ async function startWatcher() {
     logToMain('info', "Watcher Active and Monitoring.", SOURCE);
 }
 
+function walkAndCompile(dirPath) {
+    const files = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const file of files) {
+        const fullPath = path.join(dirPath, file.name);
+        if (file.isDirectory()) {
+            walkAndCompile(fullPath); // Go deeper into subfolders
+        } else {
+            triggerCompilation(fullPath); // Send the actual file!
+        }
+    }
+}
 
 // --- IPC Directive Router for Main Process Directives ---
 process.on('message', (packet) => {
@@ -261,9 +275,10 @@ process.on('message', (packet) => {
 
         case 'manual-recompile-all':
             logToMain('info', 'Received master workspace-wide rebuild instruction. Initiating complete compiler pass...', 'Watcher-IPC');
-            // Passes the workspace input directory to recompile everything instantly
+            
             if (config && config.input_dir) {
-                triggerCompilation(config.input_dir);
+                // Walk the directory and push every single valid file into the C# stdin stream!
+                walkAndCompile(config.input_dir); 
             }
             break;
             

@@ -18,6 +18,9 @@ namespace Compiler
         private static readonly HashSet<string> _createdOutputFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         public static string OutputPath { get; set; }
         public string SourceFileName { get; set; } = string.Empty;
+        // Absolute path to the original source file. Populated by ProcessManager
+        // for cases where compilers need to read or copy the original file.
+        public string SourceAbsolutePath { get; set; } = string.Empty; // maybe cause problems?
 
         /// Calculates the Hearts of Iron IV 'cost' value based on a duration and time unit.
         public static string GetHoi4Cost(double value, string unit)
@@ -73,6 +76,17 @@ namespace Compiler
             else
             {
                 finalName = "output";
+            }
+
+            // Enforce game engine localisation file naming convention for YAML outputs.
+            // All .yml localisation files must end with the _l_english suffix before the extension.
+            if (extension.Equals(".yml", StringComparison.OrdinalIgnoreCase))
+            {
+                const string locSuffix = "_l_english";
+                if (!finalName.EndsWith(locSuffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    finalName = finalName + locSuffix;
+                }
             }
 
             var subfolder = string.IsNullOrWhiteSpace(relativeSubfolder) ? OutputPath : Path.Combine(OutputPath, relativeSubfolder);
@@ -196,10 +210,27 @@ namespace Compiler
                         i++; continue;
                     }
 
-                    // Simple boolean operator blocks
-                    if (lower == "and" || lower == "or" || lower == "not")
+                    // Simple boolean operator blocks. Accept forms where the keyword may
+                    // appear alone ("not") or followed by inline content ("not has_flag = yes").
+                    // If inline content exists, render it as an immediate child inside the
+                    // operator block so the output becomes: not = { has_flag = yes }
+                    // Detect boolean operator lines robustly using regex so we capture
+                    // the operator and any inline remainder regardless of spacing or case.
+                    var opMatch = System.Text.RegularExpressions.Regex.Match(text, "^(\\s*)(and|or|not)\\b(.*)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    if (opMatch.Success)
                     {
-                        sw.WriteLine(Ident(depth) + lower + " = {");
+                        string keyword = opMatch.Groups[2].Value.ToLowerInvariant();
+                        string remainder = opMatch.Groups[3].Value ?? string.Empty;
+                        remainder = remainder.TrimStart();
+
+                        sw.WriteLine(Ident(depth) + keyword + " = {");
+
+                        if (!string.IsNullOrEmpty(remainder))
+                        {
+                            sw.WriteLine(Ident(depth + 1) + remainder);
+                        }
+
+                        // Process any following child lines at the deeper level
                         i = ProcessRange(i + 1, end, depth);
                         sw.WriteLine(Ident(depth) + "}");
                         continue;
@@ -222,13 +253,30 @@ namespace Compiler
                         if (condLines.Count > 0)
                         {
                             int limitIndent = condLines.Min(x => x.depth);
-                            sw.WriteLine(Ident(limitIndent) + "limit = {");
-                            foreach (var cl in condLines)
+
+                            // To ensure the condition lines receive the same conversions as
+                            // regular body content (e.g., converting 'not' into a block),
+                            // temporarily bump their depth by one and run them through
+                            // ProcessRange. This writes the content one level deeper so it
+                            // sits inside the emitted 'limit = { ... }' block.
+                            for (int k = i + 1; k < j; k++)
                             {
-                                // print condition children one level deeper than their original depth so they sit inside limit
-                                sw.WriteLine(Ident(cl.depth + 1) + cl.text);
+                                var t = list[k];
+                                list[k] = (t.depth + 1, t.text);
                             }
+
+                            sw.WriteLine(Ident(limitIndent) + "limit = {");
+                            // Process the adjusted range; parentDepth is limitIndent so
+                            // ProcessRange will treat lines with depth > limitIndent as children.
+                            ProcessRange(i + 1, j, limitIndent);
                             sw.WriteLine(Ident(limitIndent) + "}");
+
+                            // Restore original depths
+                            for (int k = i + 1; k < j; k++)
+                            {
+                                var t = list[k];
+                                list[k] = (t.depth - 1, t.text);
+                            }
                         }
 
                         // Skip a terminating 'then' token if present

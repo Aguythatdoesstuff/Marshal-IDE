@@ -18,6 +18,12 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 - **Dual-Watchdog Heartbeat System**: Bidirectional polling loops checking process tables every 200ms. If the security engine is forcefully terminated via kernel-level `SIGKILL`, the main app instantly drops into a safe-mode emergency shutdown to protect the user environment.
   
 ---
+
+## 🛠 v1.4.0 – Compiler Update
+### Compiler changes
+- **Scripted Gui Scale**: add width and heighth to be a % instead of only coordinates
+
+---
 ## 🔭 Long-term Research & Development
 - **Asset Suite**: 
     - Built-in `.dds` image previewer.

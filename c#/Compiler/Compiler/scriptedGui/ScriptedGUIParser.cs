@@ -48,6 +48,11 @@ namespace Compiler
         public bool IsProperty = false;
         public int? SizePercent = null;
         public List<RawLine> OnClickRaw = new List<RawLine>();
+        // Optional text content for buttons (may be scripted localisation id or literal)
+        public string Text;
+        public bool IsTextScriptedLocalisationId = false;
+        // optional id that links this button's text to a Define entry
+        public string DefinesId;
     }
 
     public class IconElement : GuiElement

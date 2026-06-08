@@ -30,17 +30,16 @@ function deriveOutputFileList(inputPath) {
 
             // --- SPECIAL GFX RULES ---
             if (FILE_EXTENSION === '.dds') {
-                // 1. SPECIFIC PROTECTION: Only skip if it's the 'definition' key.
-                // Do not skip based on "interface" string alone, as images live in gfx/interface/...
-                if (key === 'definition') {
-                    continue; 
-                }
-                
-                // 2. IMAGE FILE: Use .dds extension for the image storage path.
-                if (key === 'images') {
-                    extension = '.dds';
-                }
-            } 
+                // DEFINITION FILE (.gfx) -> goes to interface/handledByMarshalIDE/
+                const definitionDir = path.join('interface', 'handledByMarshalIDE');
+                outputFiles.push(path.join(definitionDir, `${baseName}.gfx`));
+
+                // IMAGE FILE (.dds) -> goes to gfx/interface/handledByMarshalIDE/
+                const imageDir = path.join('gfx', 'interface', 'handledByMarshalIDE');
+                outputFiles.push(path.join(imageDir, `${baseName}.dds`));
+
+                continue; // Skip standard heuristics for .dds files completely
+            }
             // --- EXISTING HEURISTICS ---
             else if (checkDir.includes('localisation')) {
                 extension = '.yml';

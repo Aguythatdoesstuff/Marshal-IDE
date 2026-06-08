@@ -17,7 +17,8 @@ namespace Compiler
             ".focus",
             ".idea",
             ".scriptedgui",
-            ".script"
+            ".script",
+            ".dds"
         };
 
         public void ProcessFiles(IEnumerable<string> filePaths)
@@ -130,20 +131,22 @@ namespace Compiler
                     break;
             }
 
-            if (validator == null) return;
-
-            validator.ValidateFile(absolutePath, Path.GetFileName(absolutePath));
-            lock (AllErrors)
+            // If there is no validator, allow certain raw file types (like .dds) to proceed
+            if (validator != null)
             {
-                AllErrors.AddRange(validator.Errors);
-                var parserErrors = validator.GetParserErrors();
-                foreach (var pe in parserErrors)
+                validator.ValidateFile(absolutePath, Path.GetFileName(absolutePath));
+                lock (AllErrors)
                 {
-                    AllErrors.Add(new ValidationError(pe.FileName, pe.LineNumber, "[PARSER] " + pe.ErrorMessage));
+                    AllErrors.AddRange(validator.Errors);
+                    var parserErrors = validator.GetParserErrors();
+                    foreach (var pe in parserErrors)
+                    {
+                        AllErrors.Add(new ValidationError(pe.FileName, pe.LineNumber, "[PARSER] " + pe.ErrorMessage));
+                    }
                 }
             }
 
-            // Only attempt compilation if no validation or parser errors were produced
+            // Only attempt compilation if no validation or parser errors were produced for this file
             bool hadErrors;
             lock (AllErrors)
             {
@@ -216,6 +219,9 @@ namespace Compiler
                 case ".script":
                     compiler = new Compiler.script.ScriptCompiler();
                     break;
+                case ".dds":
+                    compiler = new DdsCompiler();
+                    break;
                 default:
                     // No compiler implemented for this extension yet
                     return;
@@ -227,6 +233,7 @@ namespace Compiler
                 try
                 {
                     compiler.SourceFileName = Path.GetFileName(absolutePath);
+                    compiler.SourceAbsolutePath = absolutePath;
                 }
                 catch
                 {
@@ -236,33 +243,40 @@ namespace Compiler
                 // If the validator ran a parser, attempt to hand parsed data to the compiler
                 try
                 {
-                    var parserInstance = validator.GetParserInstance();
-                    if (parserInstance is EventParser evParser && compiler is Compiler.@event.EventCompiler evCompiler)
+                    var parserInstance = validator?.GetParserInstance();
+                    if (parserInstance == null)
                     {
-                        evCompiler.PassedData = evParser.LastParsedFile;
+                        // No parser available (expected for raw files like .dds). Skip binding.
                     }
+                    else
+                    {
+                        if (parserInstance is EventParser evParser && compiler is Compiler.@event.EventCompiler evCompiler)
+                        {
+                            evCompiler.PassedData = evParser.LastParsedFile;
+                        }
 
-                    if (parserInstance is IdeaParser iParser && compiler is Compiler.idea.IdeaCompiler iCompiler)
-                    {
-                        iCompiler.PassedData = iParser.LastParsedFile;
-                    }
-                    if (parserInstance is FocusParser fParser && compiler is Compiler.focus.FocusCompiler fCompiler)
-                    {
-                        // pass the parsed file (file name + trees) to the focus compiler
-                        fCompiler.PassedTrees = fParser.LastParsedFile;
-                    }
-                    if (parserInstance is DecisionParser dParser && compiler is Compiler.decision.DecisionCompiler dCompiler)
-                    {
-                        dCompiler.PassedData = dParser.LastParsedFile;
-                    }
-                    
-                    if (parserInstance is ScriptParser sParser && compiler is Compiler.script.ScriptCompiler sCompiler)
-                    {
-                        sCompiler.PassedData = sParser.LastParsedFile;
-                    }
-                    if (parserInstance is ScriptedGUIParser sgParser && compiler is Compiler.scriptedGui.ScriptedGUICompiler sgCompiler)
-                    {
-                        sgCompiler.PassedData = sgParser.LastParsedFile;
+                        if (parserInstance is IdeaParser iParser && compiler is Compiler.idea.IdeaCompiler iCompiler)
+                        {
+                            iCompiler.PassedData = iParser.LastParsedFile;
+                        }
+                        if (parserInstance is FocusParser fParser && compiler is Compiler.focus.FocusCompiler fCompiler)
+                        {
+                            // pass the parsed file (file name + trees) to the focus compiler
+                            fCompiler.PassedTrees = fParser.LastParsedFile;
+                        }
+                        if (parserInstance is DecisionParser dParser && compiler is Compiler.decision.DecisionCompiler dCompiler)
+                        {
+                            dCompiler.PassedData = dParser.LastParsedFile;
+                        }
+
+                        if (parserInstance is ScriptParser sParser && compiler is Compiler.script.ScriptCompiler sCompiler)
+                        {
+                            sCompiler.PassedData = sParser.LastParsedFile;
+                        }
+                        if (parserInstance is ScriptedGUIParser sgParser && compiler is Compiler.scriptedGui.ScriptedGUICompiler sgCompiler)
+                        {
+                            sgCompiler.PassedData = sgParser.LastParsedFile;
+                        }
                     }
                 }
                 catch

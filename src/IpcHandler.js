@@ -251,8 +251,13 @@ function resolveBinaryPath(componentName) {
   // Standard execution working directory lookup
   baseChoices.push(path.join(process.cwd(), 'c#', 'published-components', componentName));
 
-  // 2. Select binary name extension based on Host OS
-  const binaryName = platform === 'win32' ? path.join('windows', `${componentName}.exe`) : path.join('linux', componentName);
+  // Capitalize the first letter for the actual executable file name matching your disk layout
+  const capitalizedExeName = componentName.charAt(0).toUpperCase() + componentName.slice(1);
+
+  // Use lowercase 'componentName' for the folder path, but 'capitalizedExeName' for the actual file
+  const binaryName = platform === 'win32' 
+    ? path.join('windows', `${capitalizedExeName}.exe`) 
+    : path.join('linux', capitalizedExeName);
 
   // 3. Loop through choices and find the one that actually contains the files
   for (const baseDir of baseChoices) {
