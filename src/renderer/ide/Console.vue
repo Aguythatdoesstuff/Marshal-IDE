@@ -2,7 +2,20 @@
   <div class="console-panel">
     <div class="console-header">
       <div class="tab-group">
-        <div class="tab-label">Console</div>
+        <div 
+          :class="['tab-label', { active: activeTab === 'console' }]" 
+          @click="activeTab = 'console'"
+        >
+          Console
+        </div>
+        <div 
+          v-if="showErrorsTab" 
+          :class="['tab-label', { active: activeTab === 'errors' }]" 
+          @click="activeTab = 'errors'"
+        >
+          Errors 
+          <span v-if="errorCount > 0" class="error-badge">{{ errorCount }}</span>
+        </div>
       </div>
 
       <div class="control-group">
@@ -18,11 +31,11 @@
 
     <div v-show="!isMinimized" class="console-body" ref="consoleOutputElement">
       <div class="log-stream-container">
-        <div v-for="(log, idx) in logs" :key="idx" :class="['log-line', log.type]">
+        <div v-for="(log, idx) in displayLogs" :key="idx" :class="['log-line', log.type]">
           <span v-if="log.timestamp" class="log-time">[{{ log.timestamp }}] </span>{{ log.text }}
         </div>
-        <div v-if="logs.length === 0" class="log-line empty-msg">
-          &gt; Console execution buffer cleared.
+        <div v-if="displayLogs.length === 0" class="log-line empty-msg">
+          &gt; {{ activeTab === 'errors' ? 'No syntax or compilation errors detected.' : 'Console execution buffer cleared.' }}
         </div>
       </div>
     </div>
@@ -30,41 +43,73 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
 
-// Define layout properties passed down from master view frame container
-defineProps({
+const props = defineProps({
   isMinimized: {
     type: Boolean,
     default: false
+  },
+  showErrorsTab: {
+    type: Boolean,
+    default: false
+  },
+  customLogs: {
+    type: Array,
+    default: () => null // Added safely to catch Importing.vue state
   }
 });
 
-defineEmits(['toggle-minimize']);
+const emit = defineEmits(['toggle-minimize', 'clear-logs']);
 
 const consoleOutputElement = ref(null);
-const logs = ref([]);
+const localLogs = ref([]);
+const activeTab = ref('console');
+
+// Determines if we are using the external custom prop (Importing) or local state (IDE)
+const actualLogs = computed(() => props.customLogs || localLogs.value);
+
+// Filters the viewport rendering based on the active tab
+const displayLogs = computed(() => {
+  if (activeTab.value === 'errors') {
+    return actualLogs.value.filter(log => log.type === 'error-msg' || log.type === 'error');
+  }
+  return actualLogs.value;
+});
+
+// Provides dynamic count for the badge
+const errorCount = computed(() => {
+  return actualLogs.value.filter(log => log.type === 'error-msg' || log.type === 'error').length;
+});
 
 const clearLogs = () => {
-  logs.value = [];
+  if (props.customLogs) {
+    emit('clear-logs');
+  } else {
+    localLogs.value = [];
+  }
 };
 
-// Captures custom incoming execution logs and triggers autoscroll track
 const showConsoleMessage = (message, type = 'info-msg') => {
-  logs.value.push({
+  // If Importing is routing external logs, don't double inject here
+  if (props.customLogs) return;
+
+  localLogs.value.push({
     timestamp: new Date().toLocaleTimeString(),
     text: message,
     type: type
   });
-  
+};
+
+// Replaces the localized nextTick push to securely watch the reactive model
+watch(() => displayLogs.value.length, () => {
   nextTick(() => {
     if (consoleOutputElement.value) {
       consoleOutputElement.value.scrollTop = consoleOutputElement.value.scrollHeight;
     }
   });
-};
+});
 
-// Maps raw stream structures into formatted UI components
 const handleIncomingLog = (logData) => {
   const level = logData.level ? logData.level.toLowerCase() : 'info';
   let determinedType = 'info-msg';
@@ -77,7 +122,6 @@ const handleIncomingLog = (logData) => {
   showConsoleMessage(formattedMessage, determinedType);
 };
 
-// Event wrapper function to handle the Vue main.js custom browser event
 const handleGlobalStreamEvent = (event) => {
   if (event.detail) {
     handleIncomingLog(event.detail);
@@ -85,21 +129,19 @@ const handleGlobalStreamEvent = (event) => {
 };
 
 onMounted(() => {
-  console.log("[System] Workspace environment successfully loaded into memory layout grid.");
-  
-  // 1. Hook directly into our clean centralized Vue stream
-  window.addEventListener('marshal-runtime-log', handleGlobalStreamEvent);
-
-  // 2. Keep legacy fallback endpoints intact for backward compatibility
-  window.MarshalConsole = {
-    log: showConsoleMessage,
-    handleLog: handleIncomingLog,
-    clear: clearLogs
-  };
+  if (!props.customLogs) {
+    console.log("[System] Workspace environment successfully loaded into memory layout grid.");
+    window.addEventListener('marshal-runtime-log', handleGlobalStreamEvent);
+    
+    window.MarshalConsole = {
+      log: showConsoleMessage,
+      handleLog: handleIncomingLog,
+      clear: clearLogs
+    };
+  }
 });
 
 onUnmounted(() => {
-  // Clean up listener paths to prevent DOM memory leaks
   window.removeEventListener('marshal-runtime-log', handleGlobalStreamEvent);
   if (window.MarshalConsole) delete window.MarshalConsole;
 });
@@ -116,13 +158,13 @@ $primary-blue: var(--primary-blue);
 .console-panel {
   display: flex;
   flex-direction: column;
-  flex: 1;                // Explicitly consume all available room within the footer node
+  flex: 1;                
   height: 100%;
   width: 100%;
   background-color: $editor-bg;
   color: $text-color;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  overflow: hidden;       // Prevents structural double-scrollbar leakages
+  overflow: hidden;       
 }
 
 .console-header {
@@ -140,18 +182,37 @@ $primary-blue: var(--primary-blue);
     display: flex;
     align-items: center;
     height: 100%;
+    gap: 12px;
 
     .tab-label {
       font-size: 11px;
       font-weight: 600;
-      color: $text-color;
+      color: $text-muted;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      border-bottom: 2px solid $primary-blue;
+      border-bottom: 2px solid transparent;
       height: 100%;
       display: flex;
       align-items: center;
       padding: 0 4px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+
+      &:hover { color: #ffffff; }
+      &.active {
+        color: $text-color;
+        border-bottom-color: $primary-blue;
+      }
+
+      .error-badge {
+        margin-left: 6px;
+        background-color: #f44747;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+      }
     }
   }
 
@@ -190,7 +251,7 @@ $primary-blue: var(--primary-blue);
     line-height: 1.5;
   }
 
-.log-line {
+  .log-line {
     white-space: pre-wrap;
     word-break: break-all;
 
@@ -201,9 +262,9 @@ $primary-blue: var(--primary-blue);
     }
 
     &.system-msg { color: #4fc1ff; }
-    &.info-msg { color: $text-muted; }
+    &.info-msg, &.info { color: $text-muted; }
     &.warning-msg { color: #cca700; }
-    &.error-msg { color: #f44747; font-weight: 500; }
+    &.error-msg, &.error { color: #f44747; font-weight: 500; }
     &.empty-msg { color: $text-muted; font-style: italic; opacity: 0.7; }
   }
 }

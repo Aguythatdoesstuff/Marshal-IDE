@@ -72,6 +72,7 @@
           <ConsolePanel 
             class="console-panel-component"
             :is-minimized="isConsoleMinimized"
+            show-errors-tab
             @toggle-minimize="handleToggleMinimize" 
           />
         </div>
