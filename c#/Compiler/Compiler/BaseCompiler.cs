@@ -35,6 +35,8 @@ namespace Compiler
                 // If it's in weeks, 1 cost = 1 week
                 finalCost = value;
             }
+
+
             else
             {
                 // Default to 'days' calculation (1 cost unit = 7 days)
@@ -110,7 +112,7 @@ namespace Compiler
             var encoding = new System.Text.UTF8Encoding(useBOM);
 
             using (var fs = new FileStream(outPath, fileMode, FileAccess.Write, FileShare.Read))
-            using (var sw = new StreamWriter(fs, encoding))
+            using (var sw = new SanitizingStreamWriter(fs, encoding))
             {
                 writeAction(sw, shouldCreate);
             }
@@ -186,7 +188,11 @@ namespace Compiler
                 // As a last resort use ToString
                 if (string.IsNullOrEmpty(text) && item != null) text = item.ToString() ?? string.Empty;
 
-                list.Add((depth, text.TrimEnd()));
+                // Sanitize text now so internal processing (Normalize, regex, comparisons)
+                // does not get confused by invisible/formatting characters.
+                text = SanitizeForOutput(text).TrimEnd();
+
+                list.Add((depth, text));
             }
 
             // Normalize whitespace for comparisons
@@ -309,7 +315,7 @@ namespace Compiler
         {
             if (items == null) return string.Empty;
             using var ms = new MemoryStream();
-            using (var swTemp = new StreamWriter(ms, System.Text.Encoding.UTF8, 1024, true))
+            using (var swTemp = new SanitizingStreamWriter(ms, System.Text.Encoding.UTF8, 1024, true))
             {
                 // reuse the existing protected method which writes the properly converted lines
                 this.WriteAllowedWithConversions(swTemp, items, depthSelector, textSelector);
@@ -317,6 +323,90 @@ namespace Compiler
                 ms.Position = 0;
                 using var sr = new StreamReader(ms);
                 return sr.ReadToEnd();
+            }
+        }
+
+        // Remove invisible/formatting/control characters that should never appear in output
+        private static string SanitizeForOutput(string? input)
+        {
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+
+            var sb = new System.Text.StringBuilder(input.Length);
+            foreach (var c in input)
+            {
+                // Always allow common whitespace characters
+                if (c == '\r' || c == '\n' || c == '\t')
+                {
+                    sb.Append(c);
+                    continue;
+                }
+
+                var category = char.GetUnicodeCategory(c);
+
+                // Skip invisible/formatting chars (e.g., zero-width space/joiner, RTL/LTR marks)
+                if (category == System.Globalization.UnicodeCategory.Format)
+                {
+                    continue;
+                }
+
+                // Skip control characters (except CR/LF/TAB handled above)
+                if (category == System.Globalization.UnicodeCategory.Control)
+                {
+                    continue;
+                }
+
+                sb.Append(c);
+            }
+
+            return sb.ToString();
+        }
+
+        // A StreamWriter subclass that sanitizes strings before writing so callers
+        // using the StreamWriter don't need to remember to sanitize every call.
+        private sealed class SanitizingStreamWriter : StreamWriter
+        {
+            public SanitizingStreamWriter(Stream stream, System.Text.Encoding encoding) : base(stream, encoding)
+            {
+            }
+
+            public SanitizingStreamWriter(Stream stream, System.Text.Encoding encoding, int bufferSize, bool leaveOpen) : base(stream, encoding, bufferSize, leaveOpen)
+            {
+            }
+
+            public override void Write(char value)
+            {
+                // Allow common whitespace control characters
+                if (value == '\r' || value == '\n' || value == '\t')
+                {
+                    base.Write(value);
+                    return;
+                }
+
+                var category = char.GetUnicodeCategory(value);
+                if (category == System.Globalization.UnicodeCategory.Format || category == System.Globalization.UnicodeCategory.Control)
+                {
+                    // drop it
+                    return;
+                }
+
+                base.Write(value);
+            }
+
+            public override void Write(string? value)
+            {
+                base.Write(SanitizeForOutput(value));
+            }
+
+            public override void WriteLine(string? value)
+            {
+                base.WriteLine(SanitizeForOutput(value));
+            }
+
+            public override void Write(char[] buffer, int index, int count)
+            {
+                if (buffer == null) return;
+                var s = new string(buffer, index, count);
+                base.Write(SanitizeForOutput(s));
             }
         }
     }

@@ -40,8 +40,8 @@ namespace Compiler
                 {
                     sw.WriteLine("spriteTypes = {");
                     sw.WriteLine("    spriteType = {");
-                    sw.WriteLine($"        name = GFX_{nameOnly}");
-                    sw.WriteLine($"        texturefile = gfx/interface/handledByMarshalIDE/{sourceFileName}");
+                    sw.WriteLine($"        name = \"GFX_{nameOnly}\"");
+                    sw.WriteLine($"        texturefile = \"gfx/interface/handledByMarshalIDE/{sourceFileName}\"");
                     sw.WriteLine("    }");
                     sw.WriteLine("}");
                 }

@@ -53,6 +53,8 @@ namespace Compiler
         public bool IsTextScriptedLocalisationId = false;
         // optional id that links this button's text to a Define entry
         public string DefinesId;
+        // optional font for button text
+        public string Font;
     }
 
     public class IconElement : GuiElement
@@ -570,6 +572,7 @@ namespace Compiler
                 var f = BaseParser.GetQuotedContent(t.Substring("font".Length).Trim());
                 if (currentElement is TextElement te) te.Font = f;
                 else if (currentElement is IconElement ie) ie.Font = f;
+                else if (currentElement is ButtonElement be) be.Font = f;
                 return;
             }
             if (t.StartsWith("position", StringComparison.OrdinalIgnoreCase))

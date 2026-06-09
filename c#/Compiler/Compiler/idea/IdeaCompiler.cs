@@ -20,7 +20,7 @@ namespace Compiler.idea
             string indent4 = Ident(4);
 
             // Create file and write header + open country block
-            WriteFile("common/ideas/", fileName, ".idea", (sw, created) =>
+            WriteFile("common/ideas/", fileName, ".txt", (sw, created) =>
             {
                 sw.WriteLine("ideas = {");
                 sw.WriteLine($"{indent1}country = {{");
@@ -29,7 +29,7 @@ namespace Compiler.idea
             // Append each idea
             foreach (var idea in PassedData.Ideas)
             {
-                WriteFile("common/ideas/", fileName, ".idea", (sw, created) =>
+                WriteFile("common/ideas/", fileName, ".txt", (sw, created) =>
                 {
                     // Idea header
                     sw.WriteLine();
@@ -69,7 +69,7 @@ namespace Compiler.idea
             }
 
             // Close country and ideas blocks
-            WriteFile("common/ideas/", fileName, ".idea", (sw, created) =>
+            WriteFile("common/ideas/", fileName, ".txt", (sw, created) =>
             {
                 sw.WriteLine($"{indent1}}}");
                 sw.WriteLine("}");

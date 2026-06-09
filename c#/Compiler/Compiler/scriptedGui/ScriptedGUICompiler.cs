@@ -30,7 +30,6 @@ namespace Compiler.scriptedGui
 
             foreach (var window in PassedData.Windows)
             {
-                // Build common/scripted_gui block for this window
                 sbCommonScriptedGuiTxt.AppendLine($"{indent1}{window.Id} = {{");
                 sbCommonScriptedGuiTxt.AppendLine($"{indent2}window_name = \"{window.Id}\"");
                 sbCommonScriptedGuiTxt.AppendLine($"{indent2}context_type = player_context");
@@ -182,7 +181,8 @@ namespace Compiler.scriptedGui
                         }
                         if (ie.SizePercent != null)
                         {
-                            sbInterfaceGui.AppendLine($"{indent3}scale = {ie.SizePercent}");
+                            var iscale = ie.SizePercent.Value / 100.0;
+                            sbInterfaceGui.AppendLine(indent3 + "scale = " + iscale.ToString(System.Globalization.CultureInfo.InvariantCulture));
                         }
                         sbInterfaceGui.AppendLine($"{indent2}}}");
                     }
@@ -197,12 +197,16 @@ namespace Compiler.scriptedGui
                         // Button text/localisation handling - follow TextElement pattern
                         if (be.IsTextScriptedLocalisationId)
                         {
-                            sbInterfaceGui.AppendLine($"{indent3}text = \"[{be.DefinesId}]\"");
+                            sbInterfaceGui.AppendLine($"{indent3}buttonText = \"[{be.DefinesId}]\"");
                         }
                         else if (!string.IsNullOrEmpty(be.Text))
                         {
-                            sbInterfaceGui.AppendLine($"{indent3}text = {be.Id}");
+                            sbInterfaceGui.AppendLine($"{indent3}buttonText = {be.Id}");
                             sbLocalisationYml.AppendLine($" {be.Id}:0 \"{be.Text}\"");
+                        }
+                        if (!string.IsNullOrEmpty(be.Font))
+                        {
+                            sbInterfaceGui.AppendLine($"{indent3}font = \"{be.Font}\"");
                         }
                         if (be.Position.HasValue)
                         {
@@ -210,7 +214,8 @@ namespace Compiler.scriptedGui
                         }
                         if (be.SizePercent != null)
                         {
-                            sbInterfaceGui.AppendLine($"{indent3}scale = {be.SizePercent/100}"); // game engine expects: 1 scale as 100% size etc
+                            var bscale = be.SizePercent.Value / 100.0;
+                            sbInterfaceGui.AppendLine(indent3 + "scale = " + bscale.ToString(System.Globalization.CultureInfo.InvariantCulture)); // game engine expects: 1 scale as 100% size etc
                         }
                         sbInterfaceGui.AppendLine($"{indent2}}}");
                     }
@@ -226,6 +231,12 @@ namespace Compiler.scriptedGui
                         sbInterfaceGui.AppendLine($"{indent2}}}");
                     }
                 }
+
+                // Close effects block and window block in common scripted_gui
+                sbCommonScriptedGuiTxt.AppendLine($"{indent2}}}");
+                sbCommonScriptedGuiTxt.AppendLine($"{indent1}}}");
+
+                // Close per-window block in interface GUI
             }
             // Close gui top-level container
             sbInterfaceGui.AppendLine($"{indent1}}}");
