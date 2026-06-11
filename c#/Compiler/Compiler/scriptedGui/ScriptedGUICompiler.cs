@@ -40,13 +40,21 @@ namespace Compiler.scriptedGui
                 foreach (var property in window.Properties)
                 {
                     sbCommonScriptedGuiTxt.AppendLine($"{indent3}{property.ParentId} = {{");
-                    if (property.Type == Compiler.GuiElementType.ProgressBar)
+                    // support different kinds of window properties
+                    if (property.Kind == Compiler.WindowPropertyKind.ProgressBar)
                     {
                         sbCommonScriptedGuiTxt.AppendLine($"{indent4}frame = {property.Id}");
                     }
-                    else if (property.Type == Compiler.GuiElementType.Icon)
+                    else if (property.Kind == Compiler.WindowPropertyKind.Icon)
                     {
                         sbCommonScriptedGuiTxt.AppendLine($"{indent4}image = \"[{property.Id}]\"");
+                    }
+                    else if (property.Kind == Compiler.WindowPropertyKind.StaticTooltip)
+                    {
+                        // static tooltips are localisation ids, emit as property pointing to the localisation key
+                        sbCommonScriptedGuiTxt.AppendLine($"{indent4}tooltip = \"[{property.Id}]\"");
+                        // also add localisation entry later
+                        sbLocalisationYml.AppendLine($" {property.Id}:0 \"{property.Value}\"");
                     }
                     sbCommonScriptedGuiTxt.AppendLine($"{indent3}}}");
                 }

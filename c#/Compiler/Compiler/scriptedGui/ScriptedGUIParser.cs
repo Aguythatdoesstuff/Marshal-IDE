@@ -120,14 +120,21 @@ namespace Compiler
 
     public class WindowProperty
     {
-        // element type this property belongs to (Icon or ProgressBar)
-        public GuiElementType Type;
+        // kind of property stored for the window (Icon image, ProgressBar var, Static tooltip, etc.)
+        public WindowPropertyKind Kind;
         // generated or derived id for this property (e.g. "text_get_random_image_loc")
         public string Id;
         // parent element id (the element this property belongs to)
         public string ParentId;
         // the raw value following the keyword (unquoted value)
         public string Value;
+    }
+
+    public enum WindowPropertyKind
+    {
+        Icon,
+        ProgressBar,
+        StaticTooltip
     }
 
     public class ScriptedGUI
@@ -497,6 +504,26 @@ namespace Compiler
         private void HandleElementProperty(BaseValidator.PreprocessedLine pl, GuiElement currentElement, Window currentWindow, ref bool inOnClick, ref int onClickBaseDepth)
         {
             var t = pl.TrimmedLine;
+            // support static tooltip lines: treat as a property collected on the window
+            if (t.StartsWith("static tooltip", StringComparison.OrdinalIgnoreCase))
+            {
+                var rem = t.Substring("static tooltip".Length).Trim();
+                string val = rem.StartsWith("\"") ? BaseParser.GetQuotedContent(rem) : rem;
+                // ensure element has id
+                if (currentElement != null && currentWindow != null)
+                {
+                    if (string.IsNullOrEmpty(currentElement.Id)) EnsureElementHasId(currentElement, currentWindow);
+                    var prop = new WindowProperty();
+                    prop.Kind = WindowPropertyKind.StaticTooltip;
+                    // create a unique id for the tooltip based on element id
+                    prop.Id = currentElement.Id + "_static_tt";
+                    prop.ParentId = currentElement.Id;
+                    prop.Value = val;
+                    currentWindow.Properties.Add(prop);
+                    Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Added static tooltip property id={prop.Id} parent={prop.ParentId} value={prop.Value}");
+                }
+                return;
+            }
             if (t.StartsWith("sprite", StringComparison.OrdinalIgnoreCase))
             {
                 var rem = t.Substring("sprite".Length).Trim();
@@ -515,13 +542,13 @@ namespace Compiler
                         ie.IsProperty = true;
                         if (string.IsNullOrEmpty(ie.Id) && currentWindow != null) EnsureElementHasId(ie, currentWindow);
                         var prop = new WindowProperty();
-                        prop.Type = GuiElementType.Icon;
+                        prop.Kind = WindowPropertyKind.Icon;
                         var baseName = rem.Replace(' ', '_');
                         prop.Id = baseName;
                         prop.ParentId = ie.Id;
                         prop.Value = rem;
                         currentWindow.Properties.Add(prop);
-                        Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Added window property type={prop.Type} id={prop.Id} parent={prop.ParentId} value={prop.Value}");
+                        Compiler.Logging.Logger.LogComponent("ScriptedGUI", $"- [PARSER] Added window property kind={prop.Kind} id={prop.Id} parent={prop.ParentId} value={prop.Value}");
                     }
                     else if (currentElement is ButtonElement be)
                     {
@@ -564,6 +591,21 @@ namespace Compiler
                         ie.IsTextScriptedLocalisationId = true;
                     }
                     if (string.IsNullOrEmpty(ie.Id) && currentWindow != null) EnsureElementHasId(ie, currentWindow);
+                }
+                else if (currentElement is ButtonElement be)
+                {
+                    if (rem.StartsWith("\""))
+                    {
+                        be.Text = BaseParser.GetQuotedContent(rem);
+                        be.IsTextScriptedLocalisationId = false;
+                    }
+                    else
+                    {
+                        be.Text = rem;
+                        be.IsTextScriptedLocalisationId = true;
+                        be.DefinesId = rem;
+                        if (string.IsNullOrEmpty(be.Id) && currentWindow != null) EnsureElementHasId(be, currentWindow);
+                    }
                 }
                 return;
             }
@@ -631,7 +673,7 @@ namespace Compiler
                     {
                         if (string.IsNullOrEmpty(pbe.Id)) EnsureElementHasId(pbe, currentWindow);
                         var prop = new WindowProperty();
-                        prop.Type = GuiElementType.ProgressBar;
+                        prop.Kind = WindowPropertyKind.ProgressBar;
                         prop.Id = pbe.VarName;
                         prop.ParentId = pbe.Id;
                         prop.Value = pbe.VarName;
