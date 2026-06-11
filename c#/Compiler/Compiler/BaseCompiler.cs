@@ -248,12 +248,16 @@ namespace Compiler
                         string name = lower == "if" ? "if" : (lower == "else" ? "else" : "else_if");
                         sw.WriteLine(Ident(depth) + name + " = {");
 
-                        // Collect condition lines (everything after this with depth > current depth until a 'then' or a line with depth <= current)
+                        // Collect condition lines for 'if' and 'else if' (everything after this with depth > current depth until a 'then' or a line with depth <= current)
+                        // Do NOT collect condition lines for a plain 'else' - else never has a limit block.
                         int j = i + 1;
                         var condLines = new List<(int depth, string text)>();
-                        while (j < end && list[j].depth > depth && Normalize(list[j].text) != "then")
+                        if (lower != "else")
                         {
-                            condLines.Add(list[j]); j++;
+                            while (j < end && list[j].depth > depth && Normalize(list[j].text) != "then")
+                            {
+                                condLines.Add(list[j]); j++;
+                            }
                         }
 
                         if (condLines.Count > 0)
@@ -289,7 +293,38 @@ namespace Compiler
                         if (j < end && list[j].depth > depth && Normalize(list[j].text) == "then") j++;
 
                         // Process the body of the if/else (all following items with depth > current depth)
-                        j = ProcessRange(j, end, depth);
+                        // For 'if' and 'else if' the body effects should be one indentation level less
+                        // than the temporary limit block handling produced. To avoid treating the
+                        // following 'else' (which has the same depth as the 'if') as a child we
+                        // compute the body range first and temporarily decrement the depths of
+                        // those body lines before processing. This preserves correct scoping
+                        // while producing the desired indentation.
+                        if (lower == "if" || lower == "else if")
+                        {
+                            int bodyStart = j;
+                            int bodyEnd = j;
+                            while (bodyEnd < end && list[bodyEnd].depth > depth) bodyEnd++;
+
+                            // Temporarily decrease depths for proper output indentation
+                            for (int k = bodyStart; k < bodyEnd; k++)
+                            {
+                                var t = list[k];
+                                list[k] = (t.depth - 1, t.text);
+                            }
+
+                            j = ProcessRange(bodyStart, bodyEnd, depth - 1);
+
+                            // Restore original depths
+                            for (int k = bodyStart; k < bodyEnd; k++)
+                            {
+                                var t = list[k];
+                                list[k] = (t.depth + 1, t.text);
+                            }
+                        }
+                        else
+                        {
+                            j = ProcessRange(j, end, depth);
+                        }
 
                         sw.WriteLine(Ident(depth) + "}");
                         i = j;
@@ -315,7 +350,12 @@ namespace Compiler
         {
             if (items == null) return string.Empty;
             using var ms = new MemoryStream();
-            using (var swTemp = new SanitizingStreamWriter(ms, System.Text.Encoding.UTF8, 1024, true))
+            // Use UTF8 without BOM when rendering to an in-memory buffer to avoid
+            // injecting a byte-order-mark into the returned string. Also ensure
+            // the temporary writer normalizes newlines to LF so downstream
+            // callers see consistent line endings identical to the legacy Node
+            // pipeline.
+            using (var swTemp = new SanitizingStreamWriter(ms, new System.Text.UTF8Encoding(false), 1024, true))
             {
                 // reuse the existing protected method which writes the properly converted lines
                 this.WriteAllowedWithConversions(swTemp, items, depthSelector, textSelector);
@@ -367,10 +407,15 @@ namespace Compiler
         {
             public SanitizingStreamWriter(Stream stream, System.Text.Encoding encoding) : base(stream, encoding)
             {
+                // Always emit Unix line endings to match the legacy compiler output
+                // and avoid CRLF <-> LF diffs which cause Git to show full-file
+                // rewrites and can break the Clausewitz parser.
+                this.NewLine = "\n";
             }
 
             public SanitizingStreamWriter(Stream stream, System.Text.Encoding encoding, int bufferSize, bool leaveOpen) : base(stream, encoding, bufferSize, leaveOpen)
             {
+                this.NewLine = "\n";
             }
 
             public override void Write(char value)
@@ -394,19 +439,34 @@ namespace Compiler
 
             public override void Write(string? value)
             {
-                base.Write(SanitizeForOutput(value));
+                if (value == null) return;
+                var s = SanitizeForOutput(value);
+                // Normalize CRLF and CR to LF to match legacy Node output
+                s = s.Replace("\r\n", "\n").Replace("\r", "\n");
+                base.Write(s);
             }
 
             public override void WriteLine(string? value)
             {
-                base.WriteLine(SanitizeForOutput(value));
+                if (value == null)
+                {
+                    base.Write('\n');
+                    return;
+                }
+
+                var s = SanitizeForOutput(value);
+                s = s.Replace("\r\n", "\n").Replace("\r", "\n");
+                base.Write(s);
+                base.Write('\n');
             }
 
             public override void Write(char[] buffer, int index, int count)
             {
                 if (buffer == null) return;
                 var s = new string(buffer, index, count);
-                base.Write(SanitizeForOutput(s));
+                s = SanitizeForOutput(s);
+                s = s.Replace("\r\n", "\n").Replace("\r", "\n");
+                base.Write(s);
             }
         }
     }

@@ -249,7 +249,7 @@ namespace Compiler.scriptedGui
             sbCommonScriptedGuiTxt.AppendLine("}");
 
             // Now write buffers out once per file using WriteFile so the created flag is respected
-            WriteFile("common/scripted_gui", PassedData.SourceFileName, ".txt", (sw, created) =>
+            WriteFile("common/scripted_guis", PassedData.SourceFileName, ".txt", (sw, created) =>
             {
                 if (created) sw.WriteLine("scripted_gui = {");
                 if (sbCommonScriptedGuiTxt.Length > 0) sw.Write(sbCommonScriptedGuiTxt.ToString());
@@ -311,7 +311,7 @@ namespace Compiler.scriptedGui
                 if (sbCommonScriptedLocalisationTxt.Length > 0) sw.Write(sbCommonScriptedLocalisationTxt.ToString());
             });
 
-            WriteFile("localisation/english/scripted_gui/", PassedData.SourceFileName + "_l_english", ".yml", (sw, created) =>
+            WriteFile("localisation/english/scripted_guis/", PassedData.SourceFileName + "_l_english", ".yml", (sw, created) =>
             {
                 if (created) sw.WriteLine("l_english:");
                 if (sbLocalisationYml.Length > 0) sw.Write(sbLocalisationYml.ToString());
