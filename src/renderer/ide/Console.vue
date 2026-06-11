@@ -72,15 +72,15 @@ const actualLogs = computed(() => props.customLogs || localLogs.value);
 // Filters the viewport rendering based on the active tab
 const displayLogs = computed(() => {
   if (activeTab.value === 'errors') {
-    return actualLogs.value.filter(log => log.type === 'error-msg' || log.type === 'error' || log.type === 'compiler-error');
+    return actualLogs.value.filter(log => log.type === 'compiler-error');
   }
-  // Hide compiler errors from the main console tab so they strictly stay in Errors
+  // Standard console tab displays absolutely everything EXCEPT the pretty compiler error rows
   return actualLogs.value.filter(log => log.type !== 'compiler-error');
 });
 
-// Provides dynamic count for the badge
+// Provides dynamic count for the badge based strictly on active compiler errors
 const errorCount = computed(() => {
-  return actualLogs.value.filter(log => log.type === 'error-msg' || log.type === 'error' || log.type === 'compiler-error').length;
+  return actualLogs.value.filter(log => log.type === 'compiler-error').length;
 });
 
 const clearLogs = () => {
@@ -118,8 +118,20 @@ const decodeHumanReadable = (str) => {
   } catch { return str; }
 };
 
+// Track the last file that the sync engine updated to catch empty report targets
+const lastActiveFile = ref('');
+
 const handleIncomingLog = (logData) => {
   const rawMessage = logData.message || '';
+  
+  // Intercept Sync-Engine context clues to know what file is actively building
+  if (logData.source === 'Sync-Engine' || rawMessage.includes('[Sync-Engine]')) {
+    const syncMatch = rawMessage.match(/added\/changed\s+(?:.*[\/\\])?([^\/\\]+)$/);
+    if (syncMatch && syncMatch[1]) {
+      lastActiveFile.value = syncMatch[1];
+    }
+  }
+
   const ipcMarker = '[[IPC]]:';
   const ipcIndex = rawMessage.indexOf(ipcMarker);
 
@@ -131,42 +143,43 @@ const handleIncomingLog = (logData) => {
       if (parsed.type === 'ValidationReport') {
         const payload = parsed.payload;
 
-        // If global 0 errors are reported, wipe ALL compiler errors
-        if (payload && payload.TotalErrors === 0 && (!payload.Files || payload.Files.length === 0)) {
-          localLogs.value = localLogs.value.filter(log => log.type !== 'compiler-error');
-          return;
-        }
+        if (payload) {
+          // If the compiler returns zero errors and an empty files array, wipe errors for the last active file context
+          if (payload.TotalErrors === 0 && (!payload.Files || payload.Files.length === 0) && lastActiveFile.value) {
+            localLogs.value = localLogs.value.filter(log => !(log.type === 'compiler-error' && log.fileRef === lastActiveFile.value));
+          } else if (payload.Files) {
+            payload.Files.forEach(file => {
+              let filePath = file.File || file.FilePath || 'Unknown File';
+              // Normalize backslashes out of paths if needed to match clean targets
+              if (filePath.includes('\\') || filePath.includes('/')) {
+                filePath = filePath.split(/[\\/]/).pop();
+              }
 
-        if (payload && payload.Files) {
-          payload.Files.forEach(file => {
-            const filePath = file.File || file.FilePath || 'Unknown File';
+              // Clear out previous errors linked specifically to this individual file name
+              localLogs.value = localLogs.value.filter(log => !(log.type === 'compiler-error' && log.fileRef === filePath));
 
-            // 1. Wipe existing errors tracked for this specific file
-            localLogs.value = localLogs.value.filter(log => !(log.type === 'compiler-error' && log.fileRef === filePath));
+              // Append new individual human-readable rows into the array tracking state
+              (file.Errors || file.Diagnostics || []).forEach(err => {
+                const errMsg = decodeHumanReadable(err.Message || err.Error || JSON.stringify(err));
+                const lineInfo = err.Line !== undefined ? `Line ${err.Line}` : 'Unknown Line';
 
-            // 2. Add new errors if there are any
-            (file.Errors || file.Diagnostics || []).forEach(err => {
-              const errMsg = decodeHumanReadable(err.Message || err.Error || JSON.stringify(err));
-              const lineInfo = err.Line !== undefined ? `Line ${err.Line}` : 'Unknown Line';
-
-              // Inject directly into localLogs to bypass standard formatting
-              localLogs.value.push({
-                timestamp: new Date().toLocaleTimeString(),
-                text: `[${filePath}] ${lineInfo}: ${errMsg}`,
-                type: 'compiler-error',
-                fileRef: filePath
+                localLogs.value.push({
+                  timestamp: new Date().toLocaleTimeString(),
+                  text: `[${filePath}] ${lineInfo}: ${errMsg}`,
+                  type: 'compiler-error',
+                  fileRef: filePath
+                });
               });
             });
-          });
+          }
         }
-        return; // Successfully intercepted, do not log the raw IPC string
       }
     } catch (e) {
       console.warn("[IDE] Failed to parse compiler IPC message:", e);
     }
   }
 
-  // Standard logging fallback for non-IPC messages
+  // ABSOLUTELY UNTOUCHED RAW FALLTHROUGH: Prints the exact output log string directly into the Console layout array
   const level = logData.level ? logData.level.toLowerCase() : 'info';
   let determinedType = 'info-msg';
   
@@ -174,7 +187,7 @@ const handleIncomingLog = (logData) => {
   else if (level === 'warn' || level === 'warning') determinedType = 'warning-msg';
   else if (level === 'system') determinedType = 'system-msg';
 
-  const formattedMessage = `[${logData.source || 'App'}][${level.toUpperCase()}]: ${decodeHumanReadable(rawMessage)}`;
+  const formattedMessage = `[${logData.source || 'App'}][${level.toUpperCase()}]: ${rawMessage}`;
   showConsoleMessage(formattedMessage, determinedType);
 };
 

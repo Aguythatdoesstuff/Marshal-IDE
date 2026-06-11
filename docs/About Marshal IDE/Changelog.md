@@ -4,13 +4,20 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 
 ## [1.2.0] - ?
 
+### Added
+- **Console**: Added Error tab in the console showing all validation errors caught by compiler helping you find syntax errors and such as much as it can
+- **Compiler Syntax Validation**: Integrated deep syntactic error-checking directly into the compilation pass to catch malformed expressions, structural depth issues, and layout anomalies out of the gate.
+
 ### Fixed
+- **Monaco Rendering Lifecycle**: Fixed an unhandled rendering exception (`Cannot read properties of undefined (reading 'domNode')`) caused by a race condition where global text editor references (`window.editorInstance`) persisted as stale, disposed instances across workspace switches, leading subsequent views to bypass proper initialization and render layers onto a dead layout container.
+- **Window Event Memory Leaks**: Fixed a memory leak where inline arrow functions for the `resize` window event listener could not be correctly targeted by `removeEventListener`, causing layout cycles to execute operations on dead elements after a component unmount.
 - **Logger Timing Accuracy**: Fixed an issue where buffered startup logs and cross-environment streams lost timing fidelity; the logger now accurately preserves micro-delta clocks (+0.00ms) and absolute chronological timestamps regardless of initialization wait sequences.
 - **Navigation Wrapper Lifecycle**: Fixed a bug where clicking "Exit Workspace" forced an full window refresh that reset the app's internal boot initialization state, erroneously dropping users back onto the EULA acceptance screen instead of the workspace selection menu.
 - **Syntax highlights**: Fixed multi line comments not being highlighted.
 - **Console Layout:** Fixed the processing console panel expanding infinitely.
 
 ### Changed
+- **Compiler Stack Refactor**: Completely refactored the pipeline from Node.js into a high-performance C# backend, maximizing compilation velocity, dropping resource overhead, and establishing a strictly modular architecture that is easier to maintain and expand.
 - **Unified Logger Interceptor**: Moved the console interception engine directly into the core logger module, ensuring all standard Node environment outputs are automatically captured across the entire backend lifecycle without manual code setup in the main process thread.
 
 

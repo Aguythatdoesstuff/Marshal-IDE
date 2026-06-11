@@ -310,7 +310,10 @@ const setActiveTab = async (path) => {
       // Wrap in a safe microtask deferred timeout to let the editor frame paint the text first
       setTimeout(() => {
         try {
-          monacoGlobal.editor.setModelLanguage(targetTab.monacoModel, currentLanguageId);
+          // Verify model validity and pass raw reference to escape proxy boundaries
+          if (cleanNativeModel && typeof cleanNativeModel.isDisposed === 'function' && !cleanNativeModel.isDisposed()) {
+            monacoGlobal.editor.setModelLanguage(cleanNativeModel, currentLanguageId);
+          }
         } catch (langErr) {
         }
       }, 0);
@@ -406,6 +409,28 @@ const executeForceCloseTab = (path) => {
   if (tabIndex === -1) return;
 
   const targetTab = openTabs.value[tabIndex];
+  const activeEditor = editorInstance || window.editorInstance;
+
+  // Synchronously detach the model from the active editor BEFORE disposing it
+  if (activeTabPath.value === path && activeEditor && window.monaco) {
+    if (openTabs.value.length > 1) {
+      const nextIndex = tabIndex === openTabs.value.length - 1 ? tabIndex - 1 : tabIndex + 1;
+      const nextTab = openTabs.value[nextIndex];
+      if (nextTab && nextTab.monacoModel) {
+        activeEditor.setModel(toRaw(nextTab.monacoModel));
+      } else {
+        const emptyModel = window.monaco.editor.createModel('', 'plaintext');
+        activeEditor.setModel(emptyModel);
+      }
+      activeTabPath.value = openTabs.value[nextIndex].path;
+    } else {
+      activeTabPath.value = null;
+      const emptyModel = window.monaco.editor.createModel('', 'plaintext');
+      activeEditor.setModel(emptyModel);
+    }
+  }
+
+  // Safe to dispose now that the editor view is completely decoupled
   if (targetTab?.monacoModel?.dispose) {
     targetTab.monacoModel.dispose();
   } else {
@@ -414,18 +439,6 @@ const executeForceCloseTab = (path) => {
   }
 
   openTabs.value.splice(tabIndex, 1);
-  
-  if (activeTabPath.value === path) {
-    if (openTabs.value.length > 0) {
-      setActiveTab(openTabs.value[Math.max(0, tabIndex - 1)].path);
-    } else { 
-      activeTabPath.value = null; 
-      if (editorInstance && window.monaco) {
-        const emptyModel = window.monaco.editor.createModel('', 'plaintext');
-        editorInstance.setModel(emptyModel);
-      }
-    }
-  }
 };
 
 const handleConfirmCloseSave = async () => {
@@ -623,12 +636,14 @@ const commitModalAction = async () => {
   modal.value.visible = false;
 };
 
+const handleWindowResize = () => {
+  const activeEd = editorInstance || window.editorInstance;
+  activeEd?.layout();
+};
+
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalShortcuts);
-  window.addEventListener('resize', () => {
-    const activeEd = editorInstance || window.editorInstance;
-    activeEd?.layout();
-  });
+  window.addEventListener('resize', handleWindowResize);
 
   console.log("[DIAGNOSTIC] onMounted fired. Checking initial loader environment...");
   console.log("[DIAGNOSTIC] Current window.monaco state:", !!window.monaco);
@@ -715,8 +730,14 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleGlobalShortcuts);
-  window.removeEventListener('resize', () => editorInstance?.layout());
-  if (editorInstance) editorInstance.dispose();
+  window.removeEventListener('resize', handleWindowResize);
+  if (editorInstance) {
+    editorInstance.dispose();
+    editorInstance = null;
+  }
+  if (window.editorInstance) {
+    window.editorInstance = null;
+  }
 });
 
 
