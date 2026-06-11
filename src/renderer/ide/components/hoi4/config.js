@@ -125,7 +125,7 @@ export const defineDslLanguages = (monacoInstance) => {
 
   // 3. SCRIPTED GUI LANGUAGE CONFIGURATION
   const scriptedguiLangDef = {
-    primaryKeywords: ['window', 'draggable', 'define', 'template', 'text', 'sprite', 'icon', 'button', 'gridbox', 'checkbox', 'overlap', 'bar', 'with', 'horizontal', 'vertical', 'steps', 'full', 'empty', 'color', 'unprogressed', 'progressed', 'size', 'max', 'position', 'visible', 'format', 'slotsize', 'var', 'array', 'on', 'click', 'font'],
+    primaryKeywords: ['window', 'draggable', 'define', 'template', 'text', 'sprite', 'icon', 'button', 'gridbox', 'checkbox', 'overlap', 'bar', 'with', 'horizontal', 'vertical', 'steps', 'full', 'empty', 'color', 'unprogressed', 'progressed', 'size', 'max', 'position', 'visible', 'format', 'slotsize', 'var', 'array', 'on', 'click', 'font', 'static', 'tooltip'],
     controlKeywords: sharedControlKeywords, scopes: sharedScopes, booleans: sharedBooleans, specialIDs: specialIDsRegex,
     tokenizer: {
       root: [

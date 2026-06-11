@@ -72,14 +72,15 @@ const actualLogs = computed(() => props.customLogs || localLogs.value);
 // Filters the viewport rendering based on the active tab
 const displayLogs = computed(() => {
   if (activeTab.value === 'errors') {
-    return actualLogs.value.filter(log => log.type === 'error-msg' || log.type === 'error');
+    return actualLogs.value.filter(log => log.type === 'error-msg' || log.type === 'error' || log.type === 'compiler-error');
   }
-  return actualLogs.value;
+  // Hide compiler errors from the main console tab so they strictly stay in Errors
+  return actualLogs.value.filter(log => log.type !== 'compiler-error');
 });
 
 // Provides dynamic count for the badge
 const errorCount = computed(() => {
-  return actualLogs.value.filter(log => log.type === 'error-msg' || log.type === 'error').length;
+  return actualLogs.value.filter(log => log.type === 'error-msg' || log.type === 'error' || log.type === 'compiler-error').length;
 });
 
 const clearLogs = () => {
@@ -110,7 +111,62 @@ watch(() => displayLogs.value.length, () => {
   });
 });
 
+const decodeHumanReadable = (str) => {
+  if (!str) return '';
+  try {
+    return str.replace(/\\u([\dA-Fa-f]{4})/g, (m, g) => String.fromCharCode(parseInt(g, 16)));
+  } catch { return str; }
+};
+
 const handleIncomingLog = (logData) => {
+  const rawMessage = logData.message || '';
+  const ipcMarker = '[[IPC]]:';
+  const ipcIndex = rawMessage.indexOf(ipcMarker);
+
+  if (ipcIndex !== -1) {
+    try {
+      const jsonStr = rawMessage.substring(ipcIndex + ipcMarker.length);
+      const parsed = JSON.parse(jsonStr);
+
+      if (parsed.type === 'ValidationReport') {
+        const payload = parsed.payload;
+
+        // If global 0 errors are reported, wipe ALL compiler errors
+        if (payload && payload.TotalErrors === 0 && (!payload.Files || payload.Files.length === 0)) {
+          localLogs.value = localLogs.value.filter(log => log.type !== 'compiler-error');
+          return;
+        }
+
+        if (payload && payload.Files) {
+          payload.Files.forEach(file => {
+            const filePath = file.File || file.FilePath || 'Unknown File';
+
+            // 1. Wipe existing errors tracked for this specific file
+            localLogs.value = localLogs.value.filter(log => !(log.type === 'compiler-error' && log.fileRef === filePath));
+
+            // 2. Add new errors if there are any
+            (file.Errors || file.Diagnostics || []).forEach(err => {
+              const errMsg = decodeHumanReadable(err.Message || err.Error || JSON.stringify(err));
+              const lineInfo = err.Line !== undefined ? `Line ${err.Line}` : 'Unknown Line';
+
+              // Inject directly into localLogs to bypass standard formatting
+              localLogs.value.push({
+                timestamp: new Date().toLocaleTimeString(),
+                text: `[${filePath}] ${lineInfo}: ${errMsg}`,
+                type: 'compiler-error',
+                fileRef: filePath
+              });
+            });
+          });
+        }
+        return; // Successfully intercepted, do not log the raw IPC string
+      }
+    } catch (e) {
+      console.warn("[IDE] Failed to parse compiler IPC message:", e);
+    }
+  }
+
+  // Standard logging fallback for non-IPC messages
   const level = logData.level ? logData.level.toLowerCase() : 'info';
   let determinedType = 'info-msg';
   
@@ -118,7 +174,7 @@ const handleIncomingLog = (logData) => {
   else if (level === 'warn' || level === 'warning') determinedType = 'warning-msg';
   else if (level === 'system') determinedType = 'system-msg';
 
-  const formattedMessage = `[${logData.source || 'App'}][${level.toUpperCase()}]: ${logData.message}`;
+  const formattedMessage = `[${logData.source || 'App'}][${level.toUpperCase()}]: ${decodeHumanReadable(rawMessage)}`;
   showConsoleMessage(formattedMessage, determinedType);
 };
 
@@ -264,7 +320,7 @@ $primary-blue: var(--primary-blue);
     &.system-msg { color: #4fc1ff; }
     &.info-msg, &.info { color: $text-muted; }
     &.warning-msg { color: #cca700; }
-    &.error-msg, &.error { color: #f44747; font-weight: 500; }
+    &.error-msg, &.error, &.compiler-error { color: #f44747; font-weight: 500; }
     &.empty-msg { color: $text-muted; font-style: italic; opacity: 0.7; }
   }
 }
