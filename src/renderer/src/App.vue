@@ -43,36 +43,34 @@
           <span class="version-badge">Latest Update</span>
         </div>
         <div class="modal-body">
-          <p>Here's a quick look at the main features and enhancements added to Marshal IDE:</p>
+          <p>Here's a quick look at the main features and technical enhancements in this update:</p>
           <div class="changelog-scrollable">
             
             <div class="changelog-section">
               <h3>Added</h3>
               <ul class="features-list">
-                <li><strong>Tabbed Interface:</strong> Added full support for multi-file workflows, allowing you to open, view, and switch between multiple scripts simultaneously.</li>
-                <li><strong>Smart File Creation Wizard:</strong> Rewrote the "New File" workflow. Instead of forcing automatic extensions, the IDE now features an extension dropdown menu with <strong>Context-Aware Defaults</strong> (selecting a folder auto-selects the recommended compiler extension).</li>
-                <li><strong>Isolated Language Architecture:</strong> Extracted over 300 lines of massive Regex-based syntax highlighters out of the main view tier into config files, laying the groundwork to support future Paradox game engines.</li>
-                <li><strong>Visual File Browser:</strong> Color-coded file icons (e.g., Green for Focuses, Red for Events) for better spatial recognition.</li>
+                <li><strong>Console:</strong> Added Error tab in the console showing all validation errors caught by compiler to help identify syntax errors during development.</li>
+                <li><strong>Compiler Syntax Validation:</strong> Integrated deep syntactic error-checking directly into the compilation pass to catch malformed expressions and structural issues immediately.</li>
               </ul>
             </div>
 
-            <div class="changelog-section">
+            <div class="changelog-section section-fixed">
+              <h3>Fixed</h3>
+              <ul class="features-list">
+                <li><strong>Monaco Rendering Lifecycle:</strong> Fixed an unhandled rendering exception (<code>domNode</code> error) caused by race conditions when switching workspaces.</li>
+                <li><strong>Window Event Memory Leaks:</strong> Resolved an issue where window resize listeners persisted after component unmount, causing unnecessary layout cycles.</li>
+                <li><strong>Logger Timing Accuracy:</strong> Startup logs now accurately preserve micro-delta clocks (+0.00ms) and chronological timestamps.</li>
+                <li><strong>Navigation Wrapper Lifecycle:</strong> Fixed a bug where "Exit Workspace" erroneously triggered a full boot reset, dropping users back to the EULA screen.</li>
+                <li><strong>Syntax Highlights:</strong> Fixed multi-line comments not being highlighted correctly in the editor.</li>
+                <li><strong>Console Layout:</strong> Resolved an issue where the processing console panel would expand infinitely beyond its container.</li>
+              </ul>
+            </div>
+
+            <div class="changelog-section section-changed">
               <h3>Changed</h3>
               <ul class="features-list">
-                <li><strong>Frontend Architecture Overhaul:</strong> Fully refactored the frontend stack to use <strong>Vue.js</strong> and <strong>Sass</strong>, paired with a CSS audit and cleanup for drastically improved codebase maintenance.</li>
-                <li><strong>Optimized Monaco Core:</strong> Improved and streamlined the Monaco Editor initialization process for better overall editor stability.</li>
-                <li><strong>UX & Fluidity Enhancements:</strong> Fine-tuned responsiveness across the board to ensure animations, transitions, and interactions feel faster and more fluent.</li>
-                <li><strong>Console Performance & Controls:</strong> Features lag-free resizing with instant mouse movement mapping alongside highly visible buttons to show/hide the panel.</li>
-                <li><strong>Prominent Asset Importing:</strong> Redesigned the "Import Img" placement and button to make core workspace actions instantly recognizable.</li>
-              </ul>
-            </div>
-
-            <div class="changelog-section">
-              <h3>Performance & Tools</h3>
-              <ul class="features-list">
-                <li><strong>Intelligent Sync Engine:</strong> Optimizations to intelligently choose what files were modified since the last session, substantially reducing workspace start times for large mods on lower-end PCs.</li>
-                <li><strong>Mod Importer Tool:</strong> Added an importer tool to easily migrate vanilla HoI4 mods into a Marshal IDE workspace.</li>
-                <li><strong>Version-Linked Modals:</strong> This "What's New" window will now automatically alert you to major updates upon first launch!</li>
+                <li><strong>Compiler Stack Refactor:</strong> Completely refactored the pipeline from Node.js into a high-performance C# backend for maximum velocity and modularity.</li>
+                <li><strong>Unified Logger Interceptor:</strong> Moved the interception engine into the core logger module, ensuring all backend outputs are automatically captured.</li>
               </ul>
             </div>
 
@@ -280,7 +278,7 @@ body, html {
   background-color: #1e1e1e;
   border: 1px solid #333;
   border-radius: 8px;
-  width: 550px;
+  width: 580px; /* Slightly wider to accommodate technical text */
   max-width: 90vw;
   max-height: 85vh;
   display: flex;
@@ -290,109 +288,76 @@ body, html {
   color: #e0e0e0;
   animation: modalSlideUp 0.3s ease-out;
 
+  .modal-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Prevents content from forcing the modal wrapper to overflow screen limits */
+  }
+
   .changelog-scrollable {
     overflow-y: auto;
-    padding-right: 8px;
-    max-height: 50vh;
+    padding-right: 12px;
+    flex: 1; /* Dynamically shrinks or grows based on display height, keeping the footer locked inside */
 
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: #444;
-      border-radius: 3px;
-    }
-    &::-webkit-scrollbar-thumb:hover {
-      background: #555;
-    }
+    &::-webkit-scrollbar { width: 6px; }
+    &::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    &::-webkit-scrollbar-thumb:hover { background: #555; }
   }
 
   .changelog-section {
-    margin-bottom: 20px;
+    margin-bottom: 22px;
     
     h3 {
-      font-size: 13px;
+      font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #007acc;
-      margin: 0 0 10px 0;
+      letter-spacing: 1.2px;
+      color: #007acc; /* Added Section Color */
+      margin: 0 0 12px 0;
       border-bottom: 1px solid #2d2d2d;
-      padding-bottom: 4px;
+      padding-bottom: 6px;
     }
+
+    &.section-fixed h3 { color: #d19a66; } /* Distinct color for Fixed */
+    &.section-changed h3 { color: #98c379; } /* Distinct color for Changed */
   }
 
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #333;
-    padding-bottom: 15px;
-    margin-bottom: 15px;
+  .features-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
 
-    h2 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .version-badge {
-      background-color: #107c10;
-      color: #fff;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-  }
-
-  .modal-body {
-    p {
-      font-size: 14px;
+    li {
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 14px;
+      font-size: 13.5px;
       line-height: 1.5;
-      color: #aaa;
-      margin-bottom: 20px;
-    }
+      color: #ccc;
 
-    .features-list {
-      list-style-type: none;
-      padding: 0;
-      margin: 0 0 25px 0;
-
-      li {
-        position: relative;
-        padding-left: 20px;
-        margin-bottom: 12px;
-        font-size: 14px;
-        line-height: 1.4;
-
-        &::before {
-          content: "•";
-          position: absolute;
-          left: 0;
-          color: #007acc;
-          font-size: 18px;
-          top: -2px;
-        }
-
-        strong {
-          color: #fff;
-        }
+      &::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: #555;
+        font-size: 18px;
+        top: -1px;
       }
+
+      strong { color: #fff; font-weight: 600; }
+      code { background: #2d2d2d; padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 12px; color: #e06c75; }
     }
   }
-
   .modal-footer {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center; /* Centers the button horizontally */
+    margin-top: 28px;        /* Adds breathing room between the content list and the button */
 
     .dismiss-btn {
       background-color: #007acc;
       color: white;
       border: none;
-      padding: 10px 20px;
+      padding: 12px 28px;    /* Slightly expanded padding for cleaner proportions */
       border-radius: 4px;
       cursor: pointer;
       font-weight: 600;
