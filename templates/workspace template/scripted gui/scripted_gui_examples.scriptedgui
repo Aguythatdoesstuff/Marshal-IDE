@@ -1,4 +1,4 @@
-draggable window "info_window"
+draggable window info_window
     size x700 y600 
     position x430 y270
     sprite "GFX_tiled_window"
@@ -23,7 +23,7 @@ draggable window "info_window"
         position x270 y50
 
 
-draggable window "confirmation_popup"             
+draggable window confirmation_popup
     size x400 y200 
     position x550 y350                
     sprite "GFX_tiled_window"                
@@ -75,7 +75,7 @@ draggable window "confirmation_popup"
 
 
 
-draggable window "main_window"
+draggable window main_window
     size x700 y600
     position x430 y270
     sprite "GFX_tiled_window"

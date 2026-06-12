@@ -1,5 +1,5 @@
 country event country_event.1
-    title "The Stability Death Spiral"
+    name "The Stability Death Spiral"
     desc "The government is losing control. Protests have turned into riots, and the military is divided. We must act before the nation tears itself apart."
     sprite "GFX_report_event_001"
 
@@ -17,7 +17,7 @@ country event country_event.1
         add_stability = -0.50
 
 news event news_event.1
-    title "The Stability Death Spiral"
+    name "The Stability Death Spiral"
     desc "A country lost control into a death spiral ending up in civilwar!"
     sprite "GFX_report_event_FIN_continuation_war"
     major = yes

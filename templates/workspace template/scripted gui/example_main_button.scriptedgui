@@ -1,5 +1,5 @@
 # top center of the screen, inbetween notifications and officer corp top bar button
-window "open_main_window"
+window open_main_window
     size x50 y50
     position x93 y8     
     visible
