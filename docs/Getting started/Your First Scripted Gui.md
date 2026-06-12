@@ -13,7 +13,7 @@ Creating a window is as simple as declaring its type.
 
 ```marshal
 # A basic draggable window
-draggable window "my_cool_window_id"
+draggable window my_cool_window_id
     size x1573 y900
     position x130 y85     
     sprite "GFX_tiled_window"
@@ -81,7 +81,7 @@ Inside your window, stack the text, icon, and button on top of each other. When 
 
 
 ```
-draggable window "minigame_1"
+draggable window minigame_1
     size x700 y600
     position x430 y270
     sprite "GFX_tiled_window"
@@ -142,15 +142,16 @@ You can pair this with Dynamic Text so the price turns Red if the player can't a
 define text price_button_basic_pp
     if
         has_political_power > 49
+        num_of_civilian_factories > 1
         then
-            text "§G50§"
+            text "§G50§" # green
     else
-        text "§R50§"
+        text "§R50§" # red
 ```
 ### 5. Dynamic Flavor Text (The Random Yap Generator)
 You can use a variable that changes daily (via On Actions) to cycle through random flavor text in your main menu.
 ```
-define text random_yap_bullshit
+define text random_yap
     if
         check_variable = { text = 1 }
         then
@@ -177,14 +178,14 @@ define text random_yap_bullshit
 # Inside the GUI:
 ```
 text
-    text random_yap_bullshit
+    text random_yap
     font "hoi_36header"
     position x100 y450
     max size x700 y600
 
 ```
 ### 6. Summary of GUI Best Practices
-Stacking Elements: In Marshal, elements are drawn in the order they appear. Put backgrounds first, icons second, and text/buttons on top.
+Stacking Elements: In the game engine, elements are drawn in the order they appear. Put backgrounds first, icons second, and text/buttons on top.
 
 Percentages vs Pixels: size 100% works for icons/sprites, but windows and max size bounds for text should use exact pixel logic (x500 y300).
 

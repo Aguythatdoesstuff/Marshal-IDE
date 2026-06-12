@@ -63,22 +63,5 @@ country idea command_distraction
     
 ```
 
-### 5. Transpiler Intelligence & Custom Types
-The Marshal transpiler is designed to be "type-agnostic." On paper, you can type anything before the idea or event keywords, and the transpiler will attempt to build it.
-
-Example:
-
-Code snippet
-
-femboy idea cool_id
-    name "Technical Flexibility"
-    modifier = { stability_factor = 0.05 }
-
-femboy event cool_event.1
-    title "The Transpiler is too smart"
-    desc "This will actually compile."
-[!WARNING]
-While the code above will compile perfectly into a validly structured .txt file, Hearts of Iron IV will have a stroke trying to understand what a femboy = { ... } idea type block is. The game engine only looks for specific Paradox headers (like country, industrial_manufacturer, etc.). Only use custom prefixes if you are 100% sure the game engine (or a specific mod dependency) is looking for that specific wrapper.
-
-### 6. Compiling
+### 5. Compiling
 When you save your file, Marshal transpiles these blocks into the standard common/ideas/ format. It automatically groups country ideas into the correct category wrappers so the game engine can read them instantly.

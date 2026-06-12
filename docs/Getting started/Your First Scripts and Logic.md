@@ -79,16 +79,14 @@ In your logic files, you would check the player's selection like this:
 on action
     on_startup = {
         effect = {
-            if {
-                limit { 
-                    has_game_rule = { 
-                        rule = enable_france 
-                        option = disable 
-                    } 
-                }
-                # The actual logic goes here
-                FRA = { set_cosmetic_tag = FRA_DISABLED_TAG }
-            }
+            if
+                has_game_rule = { 
+                    rule = enable_france 
+                    option = disable 
+                } 
+                then
+                    # The actual logic goes here
+                    FRA = { set_cosmetic_tag = FRA_DISABLED_TAG }
         }
     }
 ```

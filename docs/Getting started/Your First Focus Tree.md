@@ -8,9 +8,8 @@ National Focuses in Marshal Script move away from the massive nested blocks of v
 You can define a **Default Tree** (for all countries meeting a factor) or a **Country Specific Tree** linked to a specific tag (remember to correctly override vanilla files!).
 
 #### Default Tree Template
-```marshal
+```
 default tree generic_tree
-    name "Generic Focus Tree"
     reset_on_civilwar = no
     country = {
         factor = 1
@@ -20,18 +19,14 @@ default tree generic_tree
     }
 ```
 Country Specific Template
-```marshal
+```
 tree german_tree_id for GER
-    name "German Empire Tree"
     reset_on_civilwar = yes
 ```
 ### 2. Creating a Focus
 Inside the tree block, focuses are defined using the focus keyword followed by the ID and the duration.
-```marshal
+```
 focus pro_west_path takes 70 days
-    name "The Atlantic Outreach"
-    sprite "GFX_focus_generic_approach_the_west"
-    
     # Requirements and Exclusions
     require political_effort
     prevents pro_east_path

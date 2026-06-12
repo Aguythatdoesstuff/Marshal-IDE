@@ -17,7 +17,7 @@ Inside your `events/` folder, create a new file. The IDE will automatically hand
 
 ```marshal
 country event stability_spiral.1
-    title "The Stability Death Spiral"
+    name "The Stability Death Spiral"
     desc "The government is losing control. Protests have turned into riots."
     sprite "GFX_report_event_civil_war"
 
@@ -34,14 +34,14 @@ News events use the exact same logic, just with a different header:
 
 ```marshal
 news event world_news.1
-    title "Global Economic Collapse"
+    name "Global Economic Collapse"
     desc "Markets across the globe have plummeted..."
     sprite "GFX_news_event_market"
 
     option "A dark day for humanity"
 ```
 ### 4. Why This is Better Than Vanilla
- - No Localization Files: You never need to open a .yml file. Just type your text in quotes for title, desc, or option, and Marshal generates the localization keys automatically.
+ - No Localization Files: You never need to open a .yml file. Just type your text in quotes for name, desc, or option, and Marshal generates the localization keys automatically.
 
  - Automatic Namespaces: The compiler handles event namespaces globally. You can put all your events in one file or spread them across many; Marshal ensures the game reads them correctly.
 
