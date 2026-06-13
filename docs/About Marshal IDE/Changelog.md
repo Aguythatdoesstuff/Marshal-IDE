@@ -2,7 +2,7 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
-## [1.2.0] - ?
+## [1.2.0] - 2026-06-13
 
 ### Added
 - **Console**: Added Error tab in the console showing all validation errors caught by compiler helping you find syntax errors and such as much as it can
