@@ -3,6 +3,10 @@
 This document outlines the planned trajectory for Marshal IDE. Note: Features marked as "Researching" are experimental.
 
 ## 🛠 v1.3.0 – Security Update
+### UX changes
+- **Interactive Update Lifecycle Modal:** Introduce a streamlined application update modal. Users will now receive clear, actionable notifications when an update is ready, featuring a one-click "Restart & Update" button to apply patches instantly.
+- **Visual Workspace Personalization:** Add a dedicated Themes & Appearance tab in Global Application Settings. Users can now customize the IDE environment with selectable accent colors and define custom token colors for syntax highlighting.
+
 ### Out-of-Process Behavioral Security Engine (.NET 10)
 - **Zero-Trust Monitoring (Dependency Attacks & Zero-Days)**: Implementation of a bare-metal native C# watchdog engine to isolate runtime components from the OS.
 - **Dynamic File System Sandboxing**: Automatic monitoring of the `userdata` directory config files to dynamically whitelist project workspace paths without IPC overhead.
@@ -13,6 +17,10 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ---
 
 ## 🛠 v1.4.0 – Compiler Update
+### UX changes
+- **In-Line "Jump to Error" Navigation:** Error listings in the bottom console are now fully interactive. Clicking a validation error line instantly targets the specific file tab, opens it, and - drops the editor cursor directly onto the offending line for immediate fixing
+- **Persistent Tab States Across Sessions:** The IDE now caches open tab layouts per project. Switching workspaces or reopening a mod instantly restores the exact files that were open, in their precise tab order.
+- **Drag-and-Drop Sidebar Image Importing:** Expanded the asset workflow by allowing users to drag .dds files directly from the OS file manager and drop them anywhere onto the left-hand PROJECT FILES sidebar. The IDE automatically routes them into the project's background GFX directory and refreshes the tree instantly.
 ### Compiler changes
 - **Scripted Gui Scale**: add width and heighth to be a % instead of only coordinates
 
@@ -23,8 +31,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
     - Integrated JPEG/PNG to `.dds` converter.
 - **Workflow Tools**:
     - Integrated Git GUI for version control.
-    - Legacy Mod Importer to convert vanilla-style code into Marshal DSL.
-    - Improved DSL code validation.
 - ### DSL Expansions
     - **MIO Support**: Dedicated DSL for Military Industrial Organizations.
     - **Country Definitions**: Streamlined syntax for defining new nations and tags.
