@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Compiler
 {
@@ -245,8 +246,21 @@ namespace Compiler
                     genericOwner = null; genericBaseDepth = 0;
                     string coordsPart = pl.TrimmedLine.Substring("position ".Length).Trim();
                     var coords = coordsPart.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (coords.Length >= 1) currentFocus.positionX = coords[0];
-                    if (coords.Length >= 2) currentFocus.positionY = coords[1];
+
+                    // Extract only the integer part from tokens like 'x127' or 'y273'.
+                    if (coords.Length >= 1)
+                    {
+                        var m = Regex.Match(coords[0], "-?\\d+");
+                        if (m.Success) currentFocus.positionX = m.Value;
+                        else currentFocus.positionX = coords[0];
+                    }
+                    if (coords.Length >= 2)
+                    {
+                        var m = Regex.Match(coords[1], "-?\\d+");
+                        if (m.Success) currentFocus.positionY = m.Value;
+                        else currentFocus.positionY = coords[1];
+                    }
+
                     continue;
                 }
 

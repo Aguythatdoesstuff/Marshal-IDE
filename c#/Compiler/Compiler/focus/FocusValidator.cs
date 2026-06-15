@@ -179,7 +179,7 @@ namespace Compiler
                             Errors.Add(new ValidationError(
                                 fileName,
                                 lineNumber,
-                                $"ERROR! INVALID TIME UNIT: '{unitPart}' is unrecognizeValid units are: day, days, week, weeks."
+                                $"ERROR! INVALID TIME UNIT: '{unitPart}' is unrecognized. Valid units are: day, days, week, weeks."
                             ));
                         }
                     }

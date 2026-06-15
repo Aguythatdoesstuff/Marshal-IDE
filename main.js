@@ -212,11 +212,11 @@ function setupAutoUpdater() {
         
         if (pendingUpdateInfo?.forced) {
             appLogger?.warn("Forcing installation of critical update...");
-            // false: do not run after install (immediately), true: force run after install
             autoUpdater.quitAndInstall(false, true); 
         } else {
-            appLogger?.info("Standard update ready. It will install automatically on next quit.");
-            mainWindow?.webContents.send('update-ready-silent', { version: info.version });
+            appLogger?.info("Standard update ready. Presenting user interactive install choices.");
+            // Notify frontend that the download is finished and ready to install
+            mainWindow?.webContents.send('update-ready-interactive', { version: info.version });
         }
     });
 
@@ -233,6 +233,12 @@ function setupAutoUpdater() {
     // Keep IPC handlers for manual overrides if needed
     ipcMain.on('start-update-download', () => {
         autoUpdater.downloadUpdate();
+    });
+
+    // Execute instant install request from user interface click choice
+    ipcMain.handle('execute-immediate-install', () => {
+        appLogger?.info("User requested immediate update execution. Restarting application...");
+        autoUpdater.quitAndInstall(false, true);
     });
 }
 

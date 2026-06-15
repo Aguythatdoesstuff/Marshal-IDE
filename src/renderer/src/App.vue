@@ -49,31 +49,26 @@
             <div class="changelog-section">
               <h3>Added</h3>
               <ul class="features-list">
-                <li><strong>Console:</strong> Added Error tab in the console showing all validation errors caught by compiler to help identify syntax errors during development.</li>
-                <li><strong>Compiler Syntax Validation:</strong> Integrated deep syntactic error-checking directly into the compilation pass to catch malformed expressions and structural issues immediately.</li>
+                <li><strong>Update Management:</strong> Added available update modal.</li>
               </ul>
             </div>
 
             <div class="changelog-section section-fixed">
               <h3>Fixed</h3>
               <ul class="features-list">
-                <li><strong>Monaco Rendering Lifecycle:</strong> Fixed an unhandled rendering exception (<code>domNode</code> error) caused by race conditions when switching workspaces.</li>
-                <li><strong>Window Event Memory Leaks:</strong> Resolved an issue where window resize listeners persisted after component unmount, causing unnecessary layout cycles.</li>
-                <li><strong>Logger Timing Accuracy:</strong> Startup logs now accurately preserve micro-delta clocks (+0.00ms) and chronological timestamps.</li>
-                <li><strong>Navigation Wrapper Lifecycle:</strong> Fixed a bug where "Exit Workspace" erroneously triggered a full boot reset, dropping users back to the EULA screen.</li>
-                <li><strong>Syntax Highlights:</strong> Fixed multi-line comments not being highlighted correctly in the editor.</li>
-                <li><strong>Console Layout:</strong> Resolved an issue where the processing console panel would expand infinitely beyond its container.</li>
+                <li><strong>Focus Localization:</strong> Fixed spelling mistake in error message if the time unit in a focus are incorrect.</li>
+                <li><strong>Focus Tree Parser:</strong> Fixed the focus tree parser parsing the position coordinates incorrectly.</li>
               </ul>
             </div>
 
-            <div class="changelog-section section-changed">
-              <h3>Changed</h3>
-              <ul class="features-list">
-                <li><strong>Compiler Stack Refactor:</strong> Completely refactored the pipeline from Node.js into a high-performance C# backend for maximum velocity and modularity.</li>
-                <li><strong>Unified Logger Interceptor:</strong> Moved the interception engine into the core logger module, ensuring all backend outputs are automatically captured.</li>
-              </ul>
+          </div>
+          
+          <div v-if="updateIsReadyToInstall" class="update-prompt-box">
+            <p><strong>An update is ready!</strong> Would you like to install and restart now to apply changes?</p>
+            <div class="prompt-actions">
+              <button @click="triggerAppUpdate" class="install-now-btn">Update Now</button>
+              <button @click="updateIsReadyToInstall = false" class="defer-btn">Later</button>
             </div>
-
           </div>
         </div>
         <div class="modal-footer">
@@ -110,10 +105,18 @@ export default {
       logoUrl: logoIcon,
       showWhatsNewModal: false,
       pendingWhatsNew: false,
-      appVersion: ''
+      appVersion: '',
+      updateIsReadyToInstall: false
     }
   },
   async mounted() {
+    // Listen for downloaded background updates ready for immediate execution
+    if (window.api && window.api.on) {
+      window.api.on('update-ready-interactive', () => {
+        this.updateIsReadyToInstall = true;
+        this.showWhatsNewModal = true; // Ensure they see the prompt container
+      });
+    }
     if (localStorage.getItem('FORCE_SCREEN') === 'WIKI') {
       this.currentScreen = 'WIKI';
       localStorage.removeItem('FORCE_SCREEN');
@@ -166,6 +169,15 @@ export default {
           await window.api.invoke('dismiss-whats-new');
         } catch (error) {
           console.error("Failed to dismiss What's New modal:", error);
+        }
+      }
+    },
+    async triggerAppUpdate() {
+      if (window.api && window.api.invoke) {
+        try {
+          await window.api.invoke('execute-immediate-install');
+        } catch (error) {
+          console.error("Failed to invoke immediate installation routine:", error);
         }
       }
     }
@@ -320,6 +332,50 @@ body, html {
 
     &.section-fixed h3 { color: #d19a66; } /* Distinct color for Fixed */
     &.section-changed h3 { color: #98c379; } /* Distinct color for Changed */
+  }
+
+  .update-prompt-box {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #142c42;
+    border: 1px solid #007acc;
+    border-radius: 6px;
+    text-align: center;
+
+    p {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      color: #e0e0e0;
+    }
+
+    .prompt-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+
+      .install-now-btn {
+        background-color: #98c379;
+        color: #1e1e1e;
+        border: none;
+        padding: 6px 16px;
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 12.5px;
+        &:hover { background-color: #82b065; }
+      }
+
+      .defer-btn {
+        background-color: transparent;
+        color: #aaa;
+        border: 1px solid #444;
+        padding: 6px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12.5px;
+        &:hover { color: #fff; border-color: #666; }
+      }
+    }
   }
 
   .features-list {

@@ -2,6 +2,16 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
+## [1.2.1] - 2026-06-15
+
+### Added
+- **Update Management**: Added available update modal.
+
+### Fixed
+- **Focus Localization**: Fixed spelling mistake in error message if the time unit in a focus are incorrect.
+- **Focus Tree Parser**: Fixed the focus tree parser parsing the position coordinates incorrectly.
+
+
 ## [1.2.0] - 2026-06-13
 
 ### Added
