@@ -23,6 +23,12 @@ namespace Compiler
 
         public void ProcessFiles(IEnumerable<string> filePaths)
         {
+            // Reset per-run state so output files are treated as not-yet-created
+            // at the start of each processing pass. This ensures the first write
+            // to a given output path will truncate/create the file rather than
+            // append to content produced by a prior run in the same process.
+            BaseCompiler.ResetCreatedOutputFiles();
+
             AllErrors.Clear();
 
             var tasks = new List<System.Threading.Tasks.Task>();

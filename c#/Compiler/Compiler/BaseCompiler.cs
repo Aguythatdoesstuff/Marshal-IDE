@@ -118,6 +118,8 @@ namespace Compiler
             }
         }
 
+
+
         public static string Ident(int level)
         {
             if (level <= 0) return string.Empty;
@@ -137,6 +139,20 @@ namespace Compiler
         }
 
         public abstract void Compile();
+
+        /// <summary>
+        /// Clears the internal tracker of output files that have been created during
+        /// the current process run. Call at the start of a full processing pass so
+        /// files are created/truncated on first write within that pass instead of
+        /// being treated as already-created and appended to.
+        /// </summary>
+        public static void ResetCreatedOutputFiles()
+        {
+            lock (_writtenFilesLock)
+            {
+                _createdOutputFiles.Clear();
+            }
+        }
 
         /// Writes a collection of parsed lines (items that expose a depth and trimmedLine)
         /// to the StreamWriter while converting simple syntax keywords into bracketed
