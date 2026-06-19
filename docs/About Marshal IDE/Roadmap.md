@@ -2,25 +2,18 @@
 
 This document outlines the planned trajectory for Marshal IDE. Note: Features marked as "Researching" are experimental.
 
-## 🛠 v1.3.0 – Security Update
-### UX changes
-- **Interactive Update Lifecycle Modal:** Introduce a streamlined application update modal. Users will now receive clear, actionable notifications when an update is ready, featuring a one-click "Restart & Update" button to apply patches instantly.
-- **Visual Workspace Personalization:** Add a dedicated Themes & Appearance tab in Global Application Settings. Users can now customize the IDE environment with selectable accent colors and define custom token colors for syntax highlighting.
-
-### Out-of-Process Behavioral Security Engine (.NET 10)
-- **Zero-Trust Monitoring (Dependency Attacks & Zero-Days)**: Implementation of a bare-metal native C# watchdog engine to isolate runtime components from the OS.
-- **Dynamic File System Sandboxing**: Automatic monitoring of the `userdata` directory config files to dynamically whitelist project workspace paths without IPC overhead.
-- **Least-Privilege Enforcement**: Strict scoping of the Mod Importer (`importer.exe`) to read-only access within user-defined asset paths, and write-only access to localized workspace outputs.
-- **Extension Filtering**: OS-level file handle interception to block components from reading unauthorized code files (`.js`, `.cs`, etc.), using a strict `SIGINT` → `SIGKILL` escalation path upon violation.
-- **Dual-Watchdog Heartbeat System**: Bidirectional polling loops checking process tables every 200ms. If the security engine is forcefully terminated via kernel-level `SIGKILL`, the main app instantly drops into a safe-mode emergency shutdown to protect the user environment.
-  
----
-
-## 🛠 v1.4.0 – Compiler Update
+## 🛠 v1.3.0 – UX Update
 ### UX changes
 - **In-Line "Jump to Error" Navigation:** Error listings in the bottom console are now fully interactive. Clicking a validation error line instantly targets the specific file tab, opens it, and - drops the editor cursor directly onto the offending line for immediate fixing
 - **Persistent Tab States Across Sessions:** The IDE now caches open tab layouts per project. Switching workspaces or reopening a mod instantly restores the exact files that were open, in their precise tab order.
 - **Drag-and-Drop Sidebar Image Importing:** Expanded the asset workflow by allowing users to drag .dds files directly from the OS file manager and drop them anywhere onto the left-hand PROJECT FILES sidebar. The IDE automatically routes them into the project's background GFX directory and refreshes the tree instantly.
+- **Visual Workspace Personalization:** Add a dedicated Themes & Appearance tab in Global Application Settings. Users can now customize the IDE environment with selectable accent colors and define custom token colors for syntax highlighting.
+
+### Compiler changes
+- **Parser**: Shared coordinate saving method for parser, pass over what the syntax is eg: "position" OR "max size" and the raw line itself, and it will return X coordinates and Y coordinates!(this will make all parser work similarly)
+- **Validator**: Make the validators Save the data they check, they check if the ID is correct? also save the ID so that the parser doesn't have to do that exact same thing!(and maybe have a minor difference that leads to a hard to find bug)
+
+## 🛠 v1.4.0 – Compiler Update
 ### Compiler changes
 - **Scripted Gui Scale**: add width and heighth to be a % instead of only coordinates
 

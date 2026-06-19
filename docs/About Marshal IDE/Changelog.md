@@ -2,7 +2,7 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
-## [1.?.?] - ?
+## [1.3.0] - ?
 ### Fixed
 - **Compiler wide:** Fixed the compiler not overriding the files in the output afther first compilation and instead constantly appending lines(Caused duplication code)
 
