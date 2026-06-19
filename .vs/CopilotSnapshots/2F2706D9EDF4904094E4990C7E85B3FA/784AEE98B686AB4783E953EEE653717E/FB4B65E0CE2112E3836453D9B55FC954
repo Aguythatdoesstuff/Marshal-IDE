@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 
@@ -112,7 +112,7 @@ namespace Compiler
             var encoding = new System.Text.UTF8Encoding(useBOM);
 
             using (var fs = new FileStream(outPath, fileMode, FileAccess.Write, FileShare.Read))
-            using (var sw = new StreamWriter(fs, encoding) { NewLine = "\n" })
+            using (var sw = new SanitizingStreamWriter(fs, encoding))
             {
                 writeAction(sw, shouldCreate);
             }
@@ -371,7 +371,7 @@ namespace Compiler
             // the temporary writer normalizes newlines to LF so downstream
             // callers see consistent line endings identical to the legacy Node
             // pipeline.
-            using (var swTemp = new StreamWriter(ms, new System.Text.UTF8Encoding(false), 1024, true) { NewLine = "\n" })
+            using (var swTemp = new SanitizingStreamWriter(ms, new System.Text.UTF8Encoding(false), 1024, true))
             {
                 // reuse the existing protected method which writes the properly converted lines
                 this.WriteAllowedWithConversions(swTemp, items, depthSelector, textSelector);
@@ -417,8 +417,22 @@ namespace Compiler
             return sb.ToString();
         }
 
-        // StreamWriter instances are configured at call sites to use Unix newlines ("\n").
-        // The previous SanitizingStreamWriter type only set NewLine and did not sanitize
-        // content, so it was removed in favor of using StreamWriter directly.
+        // A StreamWriter subclass that sanitizes strings before writing so callers
+        // using the StreamWriter don't need to remember to sanitize every call.
+        private sealed class SanitizingStreamWriter : StreamWriter
+        {
+            public SanitizingStreamWriter(Stream stream, System.Text.Encoding encoding) : base(stream, encoding)
+            {
+                // Always emit Unix line endings to match the legacy compiler output
+                // and avoid CRLF <-> LF diffs which cause Git to show full-file
+                // rewrites and can break the Clausewitz parser.
+                this.NewLine = "\n";
+            }
+
+            public SanitizingStreamWriter(Stream stream, System.Text.Encoding encoding, int bufferSize, bool leaveOpen) : base(stream, encoding, bufferSize, leaveOpen)
+            {
+                this.NewLine = "\n";
+            }
+        }
     }
 }

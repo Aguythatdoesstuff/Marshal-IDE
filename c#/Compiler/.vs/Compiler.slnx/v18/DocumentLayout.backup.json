@@ -98,7 +98,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 16,
+          "SelectedChildIndex": 15,
           "Children": [
             {
               "$type": "Bookmark",
@@ -115,10 +115,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
             },
             {
               "$type": "Bookmark",
@@ -206,8 +202,7 @@
               "RelativeToolTip": "Compiler\\ProcessManager.cs",
               "ViewState": "AgIAAA0AAAAAAAAAAAAwwDUBAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-04T17:11:11.657Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-04T17:11:11.657Z"
             },
             {
               "$type": "Document",
@@ -243,8 +238,7 @@
               "RelativeToolTip": "Compiler\\script\\ScriptCompiler.cs",
               "ViewState": "AgIAAF8AAAAAAAAAAAAIwE0AAABVAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-04T17:58:22.432Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-04T17:58:22.432Z"
             },
             {
               "$type": "Document",
@@ -254,7 +248,7 @@
               "RelativeDocumentMoniker": "Compiler\\BaseCompiler.cs",
               "ToolTip": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\BaseCompiler.cs",
               "RelativeToolTip": "Compiler\\BaseCompiler.cs",
-              "ViewState": "AgIAAGAAAAAAAAAAAAAYwNkAAAAcAAAAAAAAAA==",
+              "ViewState": "AgIAAJQBAAAAAAAAAAAIwKYBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-06-02T19:03:23.698Z",
               "EditorCaption": ""
@@ -353,8 +347,7 @@
               "RelativeToolTip": "Compiler\\script\\ScriptParser.cs",
               "ViewState": "AgIAAC0AAAAAAAAAAAA2wAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-04T18:31:30.771Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-04T18:31:30.771Z"
             },
             {
               "$type": "Document",
@@ -378,8 +371,7 @@
               "RelativeToolTip": "Compiler\\focus\\FocusParser.cs",
               "ViewState": "AgIAAPMAAAAAAAAAAAAiwAQBAAAtAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-04T17:07:43.777Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-04T17:07:43.777Z"
             },
             {
               "$type": "Document",
