@@ -5,6 +5,7 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 ## [1.3.0] - ?
 ### Fixed
 - **Compiler wide:** Fixed the compiler not overriding the files in the output afther first compilation and instead constantly appending lines(Caused duplication code)
+- **Focus Compiler:** Fixed the focus compiler outputting the prevents and requires blocks as id = some_focus_id instead of focus = some_focus_id
 
 
 ## [1.2.1] - 2026-06-15

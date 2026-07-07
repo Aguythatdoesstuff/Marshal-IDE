@@ -57,11 +57,11 @@ namespace Compiler.focus
                     sbFocus.AppendLine($"{indent2}y = {focus.positionY}");
                     foreach (var require in focus.requireIds)
                     {
-                        sbFocus.AppendLine($"{indent2}prerequisite = {{ id = {require} }}");
+                        sbFocus.AppendLine($"{indent2}prerequisite = {{ focus = {require} }}");
                     }
                     foreach (var prevents in focus.preventsIds)
                     {
-                        sbFocus.AppendLine($"{indent2}mutually_exclusive = {{ id = {prevents} }}");
+                        sbFocus.AppendLine($"{indent2}mutually_exclusive = {{ focus = {prevents} }}");
                     }
                     if (!string.IsNullOrEmpty(focus.followPositionOf))
                     {
