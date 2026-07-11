@@ -1,6 +1,10 @@
 # Future Updates & Roadmap
 
 This document outlines the planned trajectory for Marshal IDE. Note: Features marked as "Researching" are experimental.
+## 🛠 v1.2.2 – UX Update
+### Fixes
+- **importer:** Fixing importer to output correct dsl afther the new compiler refractor it now outputs incorrect syntax that gives errors
+- **compiler:** Fixing compilers calculated final cost to be correct (final cost = -0.02)
 
 ## 🛠 v1.3.0 – UX Update
 ### UX changes
