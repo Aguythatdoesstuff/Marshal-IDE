@@ -30,7 +30,7 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Logger Timing Accuracy**: Fixed an issue where buffered startup logs and cross-environment streams lost timing fidelity; the logger now accurately preserves micro-delta clocks (+0.00ms) and absolute chronological timestamps regardless of initialization wait sequences.
 - **Navigation Wrapper Lifecycle**: Fixed a bug where clicking "Exit Workspace" forced an full window refresh that reset the app's internal boot initialization state, erroneously dropping users back onto the EULA acceptance screen instead of the workspace selection menu.
 - **Syntax highlights**: Fixed multi line comments not being highlighted.
-- **Console Layout:** Fixed the processing console panel expanding infinitely.
+- **Console Layout:** Fixed the processing console panel expanding infinitely.(inside the importing page)
 
 ### Changed
 - **Compiler Stack Refactor**: Completely refactored the pipeline from Node.js into a high-performance C# backend, maximizing compilation velocity, dropping resource overhead, and establishing a strictly modular architecture that is easier to maintain and expand.
