@@ -16,7 +16,7 @@ namespace Compiler
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
             // Handle standalone "on action" literal (No ID attached)
-            if (trimmedLine == "on action")
+            if (trimmedLine.Equals("on action", StringComparison.OrdinalIgnoreCase))
             {
                 // Enforce that this root-level syntax appears at depth 0.
                 if (currentDepth != 0)
@@ -36,13 +36,13 @@ namespace Compiler
             }
 
             // Handle block headers that require a strict ID
-            bool isScriptedEffect = trimmedLine.StartsWith("scripted effect ");
-            bool isGameRule = trimmedLine.StartsWith("game rule ");
+            bool isScriptedEffect = trimmedLine.StartsWith("scripted effect", StringComparison.OrdinalIgnoreCase);
+            bool isGameRule = trimmedLine.StartsWith("game rule", StringComparison.OrdinalIgnoreCase);
 
             if (isScriptedEffect || isGameRule)
             {
                 // Isolate the ID by slicing off the prefix length
-                int prefixLength = isScriptedEffect ? "scripted effect ".Length : "game rule ".Length;
+                int prefixLength = isScriptedEffect ? "scripted effect".Length : "game rule".Length;
                 string identifier = trimmedLine.Substring(prefixLength).Trim();
 
                 // Strict validation: Must be lower_case_snake_case with no spaces, braces, or special characters

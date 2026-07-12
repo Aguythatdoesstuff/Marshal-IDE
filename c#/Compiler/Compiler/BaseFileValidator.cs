@@ -245,12 +245,18 @@ namespace Compiler
             // ALOT easier to strip out a not necessery for syntax closing bracket then to handle it later on in the pipeline!
             if (line.Trim() == "}") return string.Empty;
 
-            // Fix Unicode hidden spaces and formatting blocks
+            // Remove zero-width characters that can break quoted-string handling
             line = line.Replace("\u200B", "")   // Zero-Width Space
                        .Replace("\u200C", "")   // Zero-Width Non-Joiner
                        .Replace("\u200D", "")   // Zero-Width Joiner
-                       .Replace("\uFEFF", "")   // Byte Order Mark (BOM) if embedded mid-file
-                       .Replace("\u00A0", " "); // Non-Breaking Space -> convert to regular space
+                       .Replace("\uFEFF", "");  // Byte Order Mark (BOM) if embedded mid-file
+
+            // Convert various non-breaking / narrow no-break spaces to a normal ASCII space
+            // so indentation/counting and StartsWith checks behave predictably.
+            line = line.Replace("\u00A0", " ") // NO-BREAK SPACE
+                       .Replace("\u202F", " ") // NARROW NO-BREAK SPACE
+                       .Replace("\u2007", " ") // FIGURE SPACE (sometimes used as NBSP)
+                       .Replace("\u205F", " "); // MEDIUM MATHEMATICAL SPACE
 
             return line;
         }

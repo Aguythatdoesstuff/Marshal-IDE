@@ -205,7 +205,7 @@ namespace importer
                         if (elem.Kind == "instantTextBoxType")
                         {
                             var text = (instantTextBoxType)elem.Obj;
-                            lines.Add($"    text \"{text.Id}\"");
+                            lines.Add($"    text {text.Id}");
                             if (IsBracketed(text.textLoc))
                             {
                                 var id = StripBrackets(text.textLoc);
@@ -252,7 +252,7 @@ namespace importer
                         else if (elem.Kind == "buttonType")
                         {
                             var btn = (buttonType)elem.Obj;
-                            lines.Add($"    button \"{btn.Id}\"");
+                            lines.Add($"    button {btn.Id}");
                             if (IsBracketed(btn.textLoc))
                             {
                                 var id = StripBrackets(btn.textLoc);
@@ -339,9 +339,9 @@ namespace importer
                             if (gfx != null)
                             {
                                 if (gfx.IsHorizontal)
-                                    lines.Add($"    horizontal bar with {gfx.steps} steps \"{ic.Id}\"");
+                                    lines.Add($"    horizontal bar with {gfx.steps} steps {ic.Id}");
                                 else
-                                    lines.Add($"    vertical bar with {gfx.steps} steps \"{ic.Id}\"");
+                                    lines.Add($"    vertical bar with {gfx.steps} steps {ic.Id}");
                                 if (!string.IsNullOrWhiteSpace(gfx.sizeX) || !string.IsNullOrWhiteSpace(gfx.sizeY))
                                     lines.Add($"        size x{gfx.sizeX} y{gfx.sizeY}");
                                 lines.Add($"        position x{ic.positionX ?? "0"} y{ic.positionY ?? "0"}");
@@ -387,7 +387,7 @@ namespace importer
                                 continue;
                             }
 
-                            lines.Add($"    icon \"{ic.Id}\"");
+                            lines.Add($"    icon {ic.Id}");
                             if (!string.IsNullOrWhiteSpace(ic.spriteType))
                             {
                                 if (IsBracketed(ic.spriteType))

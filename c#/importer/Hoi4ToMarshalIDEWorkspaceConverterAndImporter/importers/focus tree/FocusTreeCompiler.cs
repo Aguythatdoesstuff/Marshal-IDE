@@ -118,7 +118,7 @@ namespace importer
                         string optionLoc = ResolveLoc(context, option.NameLocKey);
 
                         // Write the option header (e.g. default option "enable")
-                        lines.Add($"    {"focus"} \"{option.Id}\" takes {option.CostDays} days");
+                        lines.Add($"    {"focus"} {option.Id} takes {option.CostDays} days");
                         if (!string.IsNullOrEmpty(option.Id))
                         {
                             string NameLoc = ResolveLoc(context, option.Id);

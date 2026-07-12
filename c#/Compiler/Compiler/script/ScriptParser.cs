@@ -71,10 +71,10 @@ namespace Compiler
                         currentRaw = null;
                     }
 
-                    if (pl.TrimmedLine.StartsWith("scripted effect ", StringComparison.OrdinalIgnoreCase))
+                    if (pl.TrimmedLine.StartsWith("scripted effect", StringComparison.OrdinalIgnoreCase))
                     {
                         var se = new ScriptedEffect();
-                        se.id = pl.TrimmedLine.Substring("scripted effect ".Length).Trim();
+                        se.id = pl.TrimmedLine.Substring("scripted effect".Length).Trim();
                         ScriptedEffects.Add(se);
                         current = se;
                         currentType = "scripted effect";
@@ -82,10 +82,10 @@ namespace Compiler
                         currentRaw = null;
                         continue;
                     }
-                    else if (pl.TrimmedLine.StartsWith("game rule ", StringComparison.OrdinalIgnoreCase))
+                    else if (pl.TrimmedLine.StartsWith("game rule", StringComparison.OrdinalIgnoreCase))
                     {
                         var gr = new GameRule();
-                        gr.id = pl.TrimmedLine.Substring("game rule ".Length).Trim();
+                        gr.id = pl.TrimmedLine.Substring("game rule".Length).Trim();
                         GameRules.Add(gr);
                         current = gr;
                         currentType = "game rule";
@@ -103,10 +103,10 @@ namespace Compiler
                         currentRaw = null;
                         continue;
                     }
-                    else if (pl.TrimmedLine.StartsWith("scripted trigger ", StringComparison.OrdinalIgnoreCase))
+                    else if (pl.TrimmedLine.StartsWith("scripted trigger", StringComparison.OrdinalIgnoreCase))
                     {
                         var st = new ScriptedTrigger();
-                        st.id = pl.TrimmedLine.Substring("scripted trigger ".Length).Trim();
+                        st.id = pl.TrimmedLine.Substring("scripted trigger".Length).Trim();
                         ScriptedTriggers.Add(st);
                         current = st;
                         currentType = "scripted trigger";
