@@ -30,6 +30,8 @@ namespace importer
             public string NameLocKey { get; set; }
             public string DescLocKey { get; set; }
             public string FileName { get; set; }
+            public string priority { get; set; } = string.Empty;
+            public string cost { get; set; } = string.Empty;
             public List<ScriptedLine> Lines { get; set; } = new List<ScriptedLine>();
         }
 
@@ -94,6 +96,20 @@ namespace importer
                 {
                     decision.Sprite = cleanValue;
                     DebugLogger.Log("DecisionsImport", fileName, LogLevel.Info, $"- Mapping Sprite: {cleanValue} for Decision {decision.Id}");
+                    return;
+                }
+
+                if (depth == 2 && cleanKey == "priority" && op == "=")
+                {
+                    decision.priority = cleanValue;
+                    DebugLogger.Log("DecisionsImport", fileName, LogLevel.Info, $"- Mapping Priority: {cleanValue} for Decision {decision.Id}");
+                    return;
+                }
+
+                if (depth == 2 && cleanKey == "cost" && op == "=")
+                {
+                    decision.cost = cleanValue;
+                    DebugLogger.Log("DecisionsImport", fileName, LogLevel.Info, $"- Mapping cost: {cleanValue} for Decision {decision.Id}");
                     return;
                 }
 

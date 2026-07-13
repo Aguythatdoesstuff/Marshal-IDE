@@ -27,6 +27,7 @@ namespace importer
             public string NameLocKey { get; set; }
             public string DescLocKey { get; set; }
             public string FileName { get; set; }
+            public string priority { get; set; }
             public List<ScriptedLine> Lines { get; set; } = new List<ScriptedLine>();
         }
 
@@ -74,6 +75,13 @@ namespace importer
                 {
                     category.Sprite = cleanValue;
                     DebugLogger.Log("CategoryImport", "", LogLevel.Info, $"Mapping Sprite: {cleanValue} for Category {category.Id}");
+                    return;
+                }
+
+                if (depth == 1 && cleanKey == "priority" && op == "=")
+                {
+                    category.priority = cleanValue;
+                    DebugLogger.Log("CategoryImport", "", LogLevel.Info, $"Mapping Priority: {cleanValue} for Category {category.Id}");
                     return;
                 }
 

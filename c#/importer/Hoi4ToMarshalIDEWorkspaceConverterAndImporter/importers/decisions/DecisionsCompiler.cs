@@ -84,6 +84,10 @@ namespace importer
                     {
                         lines.Add($"    sprite \"{category.Sprite}\"");
                     }
+                    if (!string.IsNullOrEmpty(category.priority))
+                    {
+                        lines.Add($"    priority {category.priority}");
+                    }
 
                     // Dump any raw category lines (adjust indentation according to their depth)
                     foreach (var l in category.Lines)
@@ -109,6 +113,14 @@ namespace importer
                     if (!string.IsNullOrEmpty(dec.Sprite))
                     {
                         lines.Add($"        sprite \"{dec.Sprite}\"");
+                    }
+                    if (!string.IsNullOrEmpty(dec.priority))
+                    {
+                        lines.Add($"        priority {dec.priority}");
+                    }
+                    if (!string.IsNullOrEmpty(dec.cost))
+                    {
+                        lines.Add($"        cost {dec.cost}");
                     }
 
                     // Dump raw decision lines

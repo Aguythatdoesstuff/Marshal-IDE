@@ -95,12 +95,29 @@ namespace Compiler
 
                         for (int i = 0; i < FileLines.Count; i++)
                         {
-                            string raw = FileLines[i];
+                            string raw = FileLines[i] ?? string.Empty;
+                            int rawLen = raw.Length;
+                            int depth = GetLeadingSpaceCount(raw) / 4;
+                            string visualRaw;
+                            try
+                            {
+                                visualRaw = raw.Replace(" ", "[SPACE]").Replace("\t", "[TAB]");
+                            }
+                            catch
+                            {
+                                visualRaw = raw;
+                            }
+                            int lineNumber = i + 1;
+
+                            try
+                            {
+                                Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] Preprocess: Line {lineNumber}: RawLen={rawLen}, Depth={depth}, Visual='{visualRaw}'");
+                            }
+                            catch { }
+
                             if (string.IsNullOrWhiteSpace(raw)) continue;
 
-                            int depth = GetLeadingSpaceCount(raw) / 4;
                             string trimmed = raw.Trim();
-                            int lineNumber = i + 1;
 
                             // 1. Count literal net unclosed braces on this specific line
                             int lineOpens = 0, lineCloses = 0;
@@ -117,17 +134,41 @@ namespace Compiler
                             // 2. Before adding the line, close any literal tracking blocks whose indentation depth we have passed or met
                             while (openBlockDepths.Count > 0 && depth <= openBlockDepths.Peek())
                             {
+                                try
+                                {
+                                    var stackBefore = string.Join(",", openBlockDepths.Reverse());
+                                    Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] Preprocess: Line {lineNumber}: depth {depth} <= openBlockDepths.Peek() ({openBlockDepths.Peek()}). Stack before pop: {stackBefore}");
+                                }
+                                catch { }
+
                                 int closedDepth = openBlockDepths.Pop();
                                 preprocessed.Add(new PreprocessedLine("}", closedDepth, lineNumber, fileName));
+
+                                try
+                                {
+                                    var stackAfter = openBlockDepths.Count > 0 ? string.Join(",", openBlockDepths.Reverse()) : "<empty>";
+                                    Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] Preprocess: Line {lineNumber}: Popped depth {closedDepth}. Stack after pop: {stackAfter}");
+                                }
+                                catch { }
                             }
 
                             // 3. Add the actual current line to the stream
+                            try
+                            {
+                                Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] Preprocess: Adding preprocessed line {lineNumber}: Depth={depth}, Text='{trimmed}'");
+                            }
+                            catch { }
                             preprocessed.Add(new PreprocessedLine(trimmed, depth, lineNumber, fileName));
 
                             // 4. If this line explicitly opens a literal block context, track its depth on the stack
                             if (netOpens > 0)
                             {
                                 openBlockDepths.Push(depth);
+                                try
+                                {
+                                    Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] Preprocess: Line {lineNumber}: netOpens={netOpens}. Pushed depth {depth}. Stack now: {string.Join(",", openBlockDepths.Reverse())}");
+                                }
+                                catch { }
                             }
                         }
 
@@ -135,6 +176,11 @@ namespace Compiler
                         while (openBlockDepths.Count > 0)
                         {
                             int closedDepth = openBlockDepths.Pop();
+                            try
+                            {
+                                Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] Preprocess: End-of-file flush: Popped depth {closedDepth}");
+                            }
+                            catch { }
                             preprocessed.Add(new PreprocessedLine("}", closedDepth, FileLines.Count, fileName));
                         }
 
@@ -142,6 +188,12 @@ namespace Compiler
                         {
                             var parser = Parser;
                             _lastParserUsed = parser;
+                            try
+                            {
+                                // Provide parsers a preprocessed preview for diagnostic purposes
+                                BaseParser.LogPreprocessedLines(preprocessed);
+                            }
+                            catch { }
                             parser.ParseFile(filePath, fileName, preprocessed);
 
                             FileLines = new List<string>();
@@ -243,7 +295,16 @@ namespace Compiler
             if (string.IsNullOrEmpty(line)) return string.Empty;
 
             // ALOT easier to strip out a not necessery for syntax closing bracket then to handle it later on in the pipeline!
-            if (line.Trim() == "}") return string.Empty;
+            if (line.Trim() == "}")
+            {
+                try
+                {
+                    var visual = line.Replace(" ", "[SPACE]").Replace("\t", "[TAB]");
+                    Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] SanitizeLine: Stripping standalone closing brace. Original=" + visual);
+                }
+                catch { }
+                return string.Empty;
+            }
 
             // Remove zero-width characters that can break quoted-string handling
             line = line.Replace("\u200B", "")   // Zero-Width Space
@@ -253,7 +314,7 @@ namespace Compiler
 
             // Convert various non-breaking / narrow no-break spaces to a normal ASCII space
             // so indentation/counting and StartsWith checks behave predictably.
-            line = line.Replace("\u00A0", " ") // NO-BREAK SPACE
+            line = line.Replace("\u00A0", "    ") // NO-BREAK SPACE (ide displays a single non breaking space as a tab)
                        .Replace("\u202F", " ") // NARROW NO-BREAK SPACE
                        .Replace("\u2007", " ") // FIGURE SPACE (sometimes used as NBSP)
                        .Replace("\u205F", " "); // MEDIUM MATHEMATICAL SPACE
@@ -315,9 +376,25 @@ namespace Compiler
                 string line = FileLines[CurrentLineIndex];
                 int lineNumber = CurrentLineIndex + 1;
 
-                if (string.IsNullOrWhiteSpace(line)) continue;
-
+                // Compute leading-space count and a visible representation for diagnostics
                 int spaceCount = GetLeadingSpaceCount(line);
+                string visualLine;
+                try
+                {
+                    visualLine = (line ?? string.Empty).Replace(" ", "[SPACE]").Replace("\t", "[TAB]");
+                }
+                catch
+                {
+                    visualLine = line ?? string.Empty;
+                }
+
+                try
+                {
+                    Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLines: Line {lineNumber}: RawLen={(line?.Length ?? 0)}, SpaceCount={spaceCount}, Visual='{visualLine}'");
+                }
+                catch { }
+
+                if (string.IsNullOrWhiteSpace(line)) continue;
 
                 if (spaceCount % 4 != 0)
                 {
@@ -353,6 +430,12 @@ namespace Compiler
         {
             bool lineRecognized = false;
 
+            try
+            {
+                Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLineContent START: Line {lineNumber}: ExpectedDepth={ExpectedDepth}, CurrentDepth={currentDepth}, Trimmed='{trimmedLine}'");
+            }
+            catch { }
+
             // Special-case: allow certain root-level constructs to reset expected depth
             // when they legitimately appear at depth 0. If they appear indented we
             // report a clear error but continue by adjusting ExpectedDepth so
@@ -372,6 +455,7 @@ namespace Compiler
 
                 // Treat as recognized and expect inner content one level deeper
                 ExpectedDepth = currentDepth + 1;
+                try { Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLineContent: Line {lineNumber}: Matched root '{matchedRoot.Trim()}'. New ExpectedDepth={ExpectedDepth}"); } catch { }
                 return;
             }
 
@@ -393,12 +477,14 @@ namespace Compiler
                 {
                     lineRecognized = true;
                     ExpectedDepth = currentDepth + 1; // block opens
+                    try { Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLineContent: Line {lineNumber}: Assignment opens block. New ExpectedDepth={ExpectedDepth}"); } catch { }
                     return;
                 }
 
                 // Otherwise treat as a single-line pass-through assignment.
                 lineRecognized = true;
                 ExpectedDepth = currentDepth; // no change in nesting for one-liners
+                try { Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLineContent: Line {lineNumber}: One-line assignment. ExpectedDepth remains {ExpectedDepth}"); } catch { }
                 return;
             }
 
@@ -414,6 +500,7 @@ namespace Compiler
                 {
                     ExpectedDepth = followingDepth;
                 }
+                try { Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLineContent: Line {lineNumber}: Handled by custom validator. New ExpectedDepth={ExpectedDepth}"); } catch { }
                 return;
             }
 
@@ -639,6 +726,7 @@ namespace Compiler
                 }
 
                 ExpectedDepth = expectedAfter;
+                try { Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLineContent: Line {lineNumber}: After open/close accounting. expectedBefore={expectedBefore}, lineOpens={lineOpens}, lineCloses={lineCloses}, ExpectedDepth now={ExpectedDepth}"); } catch { }
             }
 
             if (!lineRecognized)
@@ -660,6 +748,7 @@ namespace Compiler
             {
                 ExpectedDepth = nextDepth;
             }
+            try { Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLineContent END: Line {lineNumber}: Final ExpectedDepth={ExpectedDepth}"); } catch { }
         }
 
         protected static bool IsQuotedString(string s)

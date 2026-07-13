@@ -56,8 +56,14 @@
             <div class="changelog-section section-fixed">
               <h3>Fixed</h3>
               <ul class="features-list">
-                <li><strong>Focus Localization:</strong> Fixed spelling mistake in error message if the time unit in a focus are incorrect.</li>
-                <li><strong>Focus Tree Parser:</strong> Fixed the focus tree parser parsing the position coordinates incorrectly.</li>
+                <li><strong>Compiler wide:</strong> Fixed the compiler not overriding the files in the output after first compilation and instead constantly appending lines (caused duplicate code).</li>
+                <li><strong>Compiler wide:</strong> Standardized Unicode whitespace normalization (<code>\u00A0</code>, <code>\u202F</code>, etc.) to prevent hidden non-breaking spaces from breaking indentation checks and triggering false "Unknown root-level script header" errors.</li>
+                <li><strong>Compiler wide:</strong> Fixed an indentation depth calculation bug by explicitly expanding literal tabs (<code>\t</code>) into 4 standard spaces at the start of line sanitization, preventing lines from incorrectly reading as depth 0 and breaking the block stack state machine.</li>
+                <li><strong>Focus Compiler:</strong> Fixed the focus compiler outputting the prevents and requires blocks as id = some_focus_id instead of focus = some_focus_id</li>
+                <li><strong>Compiler:</strong> Fixed compilers calculated final cost to be correct (final cost = -0.02)</li>
+                <li><strong>Importer:</strong> Fixed importer outputting ID's incorrectly for national focuses and scripted gui GUI elements.</li>
+                <li><strong>Importer:</strong> Fixed decision importing logic to correctly preserve and output cost priority values instead of saving raw unparsed line remnants.</li>
+                <li><strong>Importer:</strong> Fixed national focus importing to dynamically track the country scope context and append the necessary <code>for [country id]</code> scoping identifiers.</li>
               </ul>
             </div>
 

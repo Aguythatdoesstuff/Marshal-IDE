@@ -88,7 +88,7 @@ namespace importer
                     }
                     else
                     {
-                        lines.Add($"tree {even.Id}");
+                        lines.Add($"tree {even.Id} for {even.Tag}");
                     }
 
                     // 2. Resolve and write Name

@@ -53,6 +53,7 @@ namespace importer
             public string NameLocKey { get; set; } // e.g., RULE_ENABLE_FRANCE
             public string DescLocKey { get; set; } // e.g., GROUP_ENABLE_FRANCE
             public string FileName { get; set; }
+            public string Tag { get; set; } // e.g., FRA
             public Boolean IsDefault { get; set; }
             // Raw lines at the focus tree root (depth 1) that aren't otherwise parsed
             public List<ScriptedLine> Lines { get; } = new List<ScriptedLine>();
@@ -75,10 +76,7 @@ namespace importer
                 string rawValueTrimmed = value?.Trim() ?? "";
                 string cleanValue = rawValueTrimmed.Trim('\"', '\'');
                 string cleanKey = key?.Trim() ?? "";
-                if (depth == 0 && cleanKey == "add_namespace" && op == "=")
-                {
-                    return; // useless data we dont need but hoi4 does
-                }
+
                 // 1. Root Level: Start of FocusTree (Depth 0)
                 if (depth == 0 && op == "=" && (string.IsNullOrEmpty(rawValueTrimmed) || rawValueTrimmed == "{"))
                 {
@@ -88,7 +86,14 @@ namespace importer
                     DebugLogger.Log("Compiler", "", LogLevel.Info, $">>> Started FocusTree type: {FocusTreeType}");
                     return;
                 }
+                if (key == "original_tag" && op == "=" && !string.IsNullOrEmpty(value))
+                {
+                    string tag = cleanKey.Replace("_FocusTree", "");
 
+                    _currentFocusTree.Value.Tag = value.Trim();
+                    DebugLogger.Log("Compiler", "", LogLevel.Info, $">>> Started FocusTree country tag: {value.Trim()}");
+                    return;
+                }
                 var FocusTreeValue = _currentFocusTree.Value;
                 if (FocusTreeValue == null) return;
 

@@ -2,13 +2,16 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
-## [1.2.2] - ?
+## [1.2.2] - 2026-07-13
 ### Fixed
 - **Compiler wide:** - Fixed the compiler not overriding the files in the output after first compilation and instead constantly appending lines (caused duplicate code).
   - Standardized Unicode whitespace normalization (`\u00A0`, `\u202F`, etc.) to prevent hidden non-breaking spaces from breaking indentation checks and triggering false "Unknown root-level script header" errors.
+  - Fixed an indentation depth calculation bug by explicitly expanding literal tabs (`\t`) into 4 standard spaces at the start of line sanitization, preventing lines from incorrectly reading as depth 0 and breaking the block stack state machine.
 - **Focus Compiler:** Fixed the focus compiler outputting the prevents and requires blocks as id = some_focus_id instead of focus = some_focus_id
 - **compiler:** Fixed compilers calculated final cost to be correct (final cost = -0.02)
 - **Importer:** Fixed importer outputting ID's incorrectly for national focuses and scripted gui GUI elements
+  - Fixed decision importing logic to correctly preserve and output cost priority values instead of saving raw unparsed line remnants.
+  - Fixed national focus importing to dynamically track the country scope context and append the necessary `for [country id]` scoping identifiers.
 
 ## [1.2.1] - 2026-06-15
 
