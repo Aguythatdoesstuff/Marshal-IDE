@@ -84,11 +84,11 @@ namespace importer
                     // 1. Write the focus Header
                     if (even.IsDefault)
                     {
-                        lines.Add($"default tree {even.Id}");
+                        lines.Add($"default tree {even.Id.ToLower()}");
                     }
                     else
                     {
-                        lines.Add($"tree {even.Id} for {even.Tag}");
+                        lines.Add($"tree {even.Id.ToLower()} for {even.Tag}");
                     }
 
                     // 2. Resolve and write Name
@@ -118,7 +118,7 @@ namespace importer
                         string optionLoc = ResolveLoc(context, option.NameLocKey);
 
                         // Write the option header (e.g. default option "enable")
-                        lines.Add($"    {"focus"} {option.Id} takes {option.CostDays} days");
+                        lines.Add($"    focus {option.Id.ToLower()} takes {option.CostDays} days");
                         if (!string.IsNullOrEmpty(option.Id))
                         {
                             string NameLoc = ResolveLoc(context, option.Id);
@@ -132,6 +132,12 @@ namespace importer
                         if (!string.IsNullOrEmpty(option.Sprite))
                         {
                             lines.Add($"        sprite \"{option.Sprite}\"");
+                        }
+                        if (option.X.HasValue || option.Y.HasValue)
+                        {
+                            var x = option.X.GetValueOrDefault(0);
+                            var y = option.Y.GetValueOrDefault(0);
+                            lines.Add($"        position x{x} y{y}");
                         }
                         // Write the raw focused logic inside the option
                         foreach (var l in option.Lines)

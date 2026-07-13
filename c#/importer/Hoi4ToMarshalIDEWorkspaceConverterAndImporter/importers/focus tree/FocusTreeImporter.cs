@@ -80,13 +80,14 @@ namespace importer
                 // 1. Root Level: Start of FocusTree (Depth 0)
                 if (depth == 0 && op == "=" && (string.IsNullOrEmpty(rawValueTrimmed) || rawValueTrimmed == "{"))
                 {
-                    string FocusTreeType = cleanKey.Replace("_FocusTree", "");
+                    //string FocusTreeType = cleanKey.Replace("_FocusTree", "");
 
-                    _currentFocusTree.Value = new FocusTree { Type = FocusTreeType, FileName = fileName };
-                    DebugLogger.Log("Compiler", "", LogLevel.Info, $">>> Started FocusTree type: {FocusTreeType}");
+                    _currentFocusTree.Value = new FocusTree {FileName = fileName };
+                    //_currentFocusTree.Value = new FocusTree { Type = FocusTreeType, FileName = fileName };
+                    //DebugLogger.Log("Compiler", "", LogLevel.Info, $">>> Started FocusTree type: {FocusTreeType}");
                     return;
                 }
-                if (key == "original_tag" && op == "=" && !string.IsNullOrEmpty(value))
+                if ((key == "original_tag" || key == "tag") && op == "=" && !string.IsNullOrEmpty(value))
                 {
                     string tag = cleanKey.Replace("_FocusTree", "");
 

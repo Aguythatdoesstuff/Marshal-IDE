@@ -12,6 +12,7 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Importer:** Fixed importer outputting ID's incorrectly for national focuses and scripted gui GUI elements
   - Fixed decision importing logic to correctly preserve and output cost priority values instead of saving raw unparsed line remnants.
   - Fixed national focus importing to dynamically track the country scope context and append the necessary `for [country id]` scoping identifiers.
+  - Fixed importer not outputting x and y coordinates for all focuses.
 
 ## [1.2.1] - 2026-06-15
 
