@@ -2,6 +2,10 @@
 
 This document outlines the planned trajectory for Marshal IDE. Note: Features marked as "Researching" are experimental.
 
+## 🛠 v1.2.3 – Bug fixes
+- **Fix importer:** Fix importer not importing x and y coordinates for focuses.
+  - **Fix importer:** Fix importers other bugs when importing test mod.
+
 ## 🛠 v1.3.0 – UX Update
 ### UX changes
 - **Tailwind CSS Architecture Migration:** Replace the legacy Sass preprocessor setup with Tailwind CSS. Leverage utility-first classes to drastically accelerate frontend layout changes, while utilizing Tailwind's compiler to purge unused styles and generate a highly optimized, lightweight production CSS bundle.
