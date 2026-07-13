@@ -49,7 +49,7 @@
             <div class="changelog-section">
               <h3>Added</h3>
               <ul class="features-list">
-                <li><strong>Update Management:</strong> Added available update modal.</li>
+                <li><strong>Nothing...</strong></li>
               </ul>
             </div>
 
