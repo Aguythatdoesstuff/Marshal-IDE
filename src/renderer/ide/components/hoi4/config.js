@@ -113,7 +113,7 @@ export const defineDslLanguages = (monacoInstance) => {
     controlKeywords: sharedControlKeywords, scopes: sharedScopes, booleans: sharedBooleans, specialIDs: specialIDsRegex,
     tokenizer: {
       root: [
-        [/\b(picture\s+sprite|on\s+click|remove\s+effect)\b/, 'primary.keyword']
+        [/\b(picture\s+sprite|on\s+click|remove\s+effect)\b/, 'primary.keyword'],
         [/(category|decision)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'id.declaration']],
         [/[a-zA-Z_$][\w$]*/, { cases: { '@primaryKeywords': 'primary.keyword', '@controlKeywords': 'control.keyword', '@scopes': 'constant.scope', '@booleans': 'constant.boolean', '@default': 'id.general' } }],
         [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#{/, { token: 'comment.block', next: '@blockComment' }], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
@@ -162,7 +162,8 @@ export const defineDslLanguages = (monacoInstance) => {
     controlKeywords: sharedControlKeywords, scopes: sharedScopes, booleans: sharedBooleans, specialIDs: specialIDsRegex,
     tokenizer: {
       root: [
-        [/((?:country|laws)\s+)?(idea)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'primary.keyword', 'white', 'id.declaration']],
+        [/^([a-zA-Z_$][\w$]*)(\s+)(idea)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'primary.keyword', 'white', 'id.declaration']],
+        [/^(idea)(\s+)([a-zA-Z_$][\w$]*)/, ['primary.keyword', 'white', 'id.declaration']],
         [/[a-zA-Z_$][\w$]*/, { cases: { '@primaryKeywords': 'primary.keyword', '@controlKeywords': 'control.keyword', '@scopes': 'constant.scope', '@booleans': 'constant.boolean', '@default': 'id.general' } }],
         [/@specialIDs/, 'id.special'], [/\s+/, 'white'], [/#{/, { token: 'comment.block', next: '@blockComment' }], [/#.*$/, 'comment'], [/[0-9]+/, 'number'], [/[{}()\[\]]/, 'brackets'], [/[=><\+\-\*\/&|@:?.]+/, 'operator'],
         [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]

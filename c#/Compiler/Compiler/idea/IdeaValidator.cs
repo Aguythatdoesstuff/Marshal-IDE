@@ -17,9 +17,9 @@ namespace Compiler
 
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
-            // Handle idea definitions. We only support 'country idea <id>' as the
-            // documentation mandates.
-            if (trimmedLine.StartsWith("country idea ", StringComparison.OrdinalIgnoreCase))
+            // Handle idea definitions of the form '<type> idea <id>' where type can be any token.
+            var sepIndex = trimmedLine.IndexOf(" idea ", StringComparison.OrdinalIgnoreCase);
+            if (sepIndex >= 0)
             {
                 // Enforce root-level header for ideas
                 if (currentDepth != 0)
@@ -27,17 +27,36 @@ namespace Compiler
                     Errors.Add(new ValidationError(
                         fileName,
                         lineNumber,
-                        $"ERROR! ROOT-LEVEL SYNTAX AT NON-ZERO DEPTH: 'country idea' must be at depth 0, but found at depth {currentDepth}."
+                        $"ERROR! ROOT-LEVEL SYNTAX AT NON-ZERO DEPTH: '<type> idea' must be at depth 0, but found at depth {currentDepth}."
                     ));
                 }
 
-                string id = trimmedLine.Substring("country idea ".Length).Trim();
+                var typeToken = trimmedLine.Substring(0, sepIndex).Trim();
+                var id = trimmedLine.Substring(sepIndex + " idea ".Length).Trim();
+
+                if (string.IsNullOrEmpty(typeToken))
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        "ERROR! MISSING IDEA TYPE: expected '<type> idea <id>' with a non-empty type token."
+                    ));
+                }
+                else if (!IsValidId(typeToken, fileName, lineNumber, ComponentName, DotsAllowed))
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID IDEA TYPE: '{typeToken}'. Idea types must follow the same rules as IDs (lowercase, alphanumeric, underscores, no spaces)."
+                    ));
+                }
+
                 if (string.IsNullOrEmpty(id))
                 {
                     Errors.Add(new ValidationError(
                         fileName,
                         lineNumber,
-                        "ERROR! MISSING IDEA ID: 'country idea' requires an identifier (lowercase, alphanumeric and underscores)."
+                        "ERROR! MISSING IDEA ID: '<type> idea' requires an identifier (lowercase, alphanumeric and underscores)."
                     ));
                 }
                 else if (!IsValidId(id, fileName, lineNumber, ComponentName, DotsAllowed))

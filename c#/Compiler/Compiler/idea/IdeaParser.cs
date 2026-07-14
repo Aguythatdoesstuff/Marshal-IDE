@@ -3,10 +3,6 @@ using System.Collections.Generic;
 
 namespace Compiler
 {
-    public enum IdeaType
-    {
-        Country
-    }
 
     public class IdeaModifier
     {
@@ -15,7 +11,8 @@ namespace Compiler
 
     public class Idea
     {
-        public IdeaType ideaType; // currently only Country
+        // dynamic idea type stored in 'type' string
+        public string type;
         public string id;
         public string name;
         public string desc;
@@ -58,27 +55,32 @@ namespace Compiler
             {
                 var pl = preprocessedLines[i];
 
-                // Detect idea header at root
-                if (pl.Depth == 0 && pl.TrimmedLine.StartsWith("country idea ", StringComparison.OrdinalIgnoreCase))
+                // Detect idea header at root - support dynamic types in the form '<type> idea <id>'
+                if (pl.Depth == 0)
                 {
-                    if (currentIdea != null)
+                    var sepIndex = pl.TrimmedLine.IndexOf(" idea ", StringComparison.OrdinalIgnoreCase);
+                    if (sepIndex >= 0)
                     {
-                        Ideas.Add(currentIdea);
+                        if (currentIdea != null)
+                        {
+                            Ideas.Add(currentIdea);
+                        }
+
+                        currentIdea = new Idea();
+                        currentIdea.rawLines.Clear();
+                        currentIdea.modifier = new IdeaModifier();
+
+                        // extract type and id
+                        currentIdea.type = pl.TrimmedLine.Substring(0, sepIndex).Trim();
+                        currentIdea.id = pl.TrimmedLine.Substring(sepIndex + " idea ".Length).Trim();
+
+                        // reset states
+                        activeBlock = null;
+                        currentBlockRaw = null;
+                        inGeneric = false;
+                        currentGenericRaw = null;
+                        continue;
                     }
-
-                    currentIdea = new Idea();
-                    currentIdea.ideaType = IdeaType.Country;
-                    currentIdea.rawLines.Clear();
-                    currentIdea.modifier = new IdeaModifier();
-
-                    currentIdea.id = pl.TrimmedLine.Substring("country idea ".Length).Trim();
-
-                    // reset states
-                    activeBlock = null;
-                    currentBlockRaw = null;
-                    inGeneric = false;
-                    currentGenericRaw = null;
-                    continue;
                 }
 
                 if (currentIdea == null)

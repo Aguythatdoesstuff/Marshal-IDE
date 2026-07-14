@@ -17,7 +17,10 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Decision Icons & Pictures Support:** Update compiler and importer logic to correctly handle the two distinct asset types within decisions:
   - **Icon:** The small graphic displayed to the left of the category or decision name. The engine handles this dynamically, so it does *not* strictly require the `GFX_` prefix.
   - **Picture:** The larger graphic displayed to the left of a category's description. The engine is strict here, meaning it *requires* the `GFX_` prefix to resolve properly.
-- **Required Actions:** Update the compiler to explicitly support both the `icon` and `picture` syntax definitions, and ensure the importer accurately distinguishes between them (treating `icon` as prefix-optional and `picture` as prefix-mandatory) during processing.
+- **Required Actions:** Update the compiler to explicitly support both the `icon` and `picture` syntax definitions, and ensure the 
+importer accurately distinguishes between them (treating `icon` as prefix-optional and `picture` as prefix-mandatory) during processing.
+### Added
+- **New Idea Category Support:** Added compiler and importer support for the `hidden_ideas` / `hidden_idea` idea type to allow properly defining and parsing hidden national ideas.(idea types are now dynamic and you are able to make custom idea types no problem and no validation except the basics)
 
 ## [1.2.1] - 2026-06-15
 

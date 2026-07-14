@@ -4,8 +4,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 
 ## 🛠 v1.2.2 – Bug fixes
 - **Fix importer:** Fix importers other bugs when importing test mod.
-  - **Fix Validation False Positives:** Fix a bug in the compiler validation logic that incorrectly throws indentation errors when parsing valid script blocks. The validator must be updated to correctly calculate indentation levels and stop failing on perfectly valid formatting inside complex scopes like `start_civil_war` blocks (such as nested `PREV` and `PREV.PREV` calls).
-  - **New Idea Category Support:** Add compiler and importer support for the `hidden_ideas` / `hidden_idea` idea type to allow properly defining and parsing hidden national ideas.
 
 ## 🛠 v1.3.0 – UX Update
 ### UX changes
