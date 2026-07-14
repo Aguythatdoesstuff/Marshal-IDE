@@ -49,24 +49,31 @@
             <div class="changelog-section">
               <h3>Added</h3>
               <ul class="features-list">
-                <li><strong>Nothing...</strong></li>
+                <li><strong>New Idea Category Support:</strong> Added compiler and importer support for the <code>hidden_ideas</code> / <code>hidden_idea</code> idea type to allow properly defining and parsing hidden national ideas. (Idea types are now dynamic and you are able to make custom idea types no problem and no validation except the basics)</li>
               </ul>
             </div>
-
             <div class="changelog-section section-fixed">
               <h3>Fixed</h3>
               <ul class="features-list">
                 <li><strong>Compiler wide:</strong> Fixed the compiler not overriding the files in the output after first compilation and instead constantly appending lines (caused duplicate code).</li>
                 <li><strong>Compiler wide:</strong> Standardized Unicode whitespace normalization (<code>\u00A0</code>, <code>\u202F</code>, etc.) to prevent hidden non-breaking spaces from breaking indentation checks and triggering false "Unknown root-level script header" errors.</li>
                 <li><strong>Compiler wide:</strong> Fixed an indentation depth calculation bug by explicitly expanding literal tabs (<code>\t</code>) into 4 standard spaces at the start of line sanitization, preventing lines from incorrectly reading as depth 0 and breaking the block stack state machine.</li>
+                <li><strong>ID Encoding &amp; Case Validation:</strong> Adjust compiler validation to allow alphanumeric characters, underscores, and periods (<code>.</code>) in focus/object IDs (e.g., <code>GER_cdu_2.0</code>). By default, permit full capitalization across all IDs. For IDs utilizing non-ASCII special characters/umlauts (e.g., <code>GER_grünes_zeitalte</code>), allow compilation but emit a warning regarding UTF-8 parsing and trigger risks.</li>
                 <li><strong>Focus Compiler:</strong> Fixed the focus compiler outputting the prevents and requires blocks as id = some_focus_id instead of focus = some_focus_id</li>
                 <li><strong>Compiler:</strong> Fixed compilers calculated final cost to be correct (final cost = -0.02)</li>
                 <li><strong>Importer:</strong> Fixed importer outputting ID's incorrectly for national focuses and scripted gui GUI elements.</li>
                 <li><strong>Importer:</strong> Fixed decision importing logic to correctly preserve and output cost priority values instead of saving raw unparsed line remnants.</li>
                 <li><strong>Importer:</strong> Fixed national focus importing to dynamically track the country scope context and append the necessary <code>for [country id]</code> scoping identifiers.</li>
+                <li><strong>Importer:</strong> Fixed importer not outputting x and y coordinates for all focuses.</li>
+                <li><strong>Decision Icons &amp; Pictures Support:</strong> Update compiler and importer logic to correctly handle the two distinct asset types within decisions:
+                  <ul>
+                    <li><strong>Icon:</strong> The small graphic displayed to the left of the category or decision name. The engine handles this dynamically, so it does <em>not</em> strictly require the <code>GFX_</code> prefix.</li>
+                    <li><strong>Picture:</strong> The larger graphic displayed to the left of a category's description. The engine is strict here, meaning it <em>requires</em> the <code>GFX_</code> prefix to resolve properly.</li>
+                  </ul>
+                </li>
+                <li><strong>Required Actions:</strong> Update the compiler to explicitly support both the <code>icon</code> and <code>picture</code> syntax definitions, and ensure the importer accurately distinguishes between them (treating <code>icon</code> as prefix-optional and `picture` as prefix-mandatory) during processing.</li>
               </ul>
             </div>
-
           </div>
           
           <div v-if="updateIsReadyToInstall" class="update-prompt-box">
