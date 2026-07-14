@@ -1,15 +1,21 @@
 category  trigger_event_category
     name "trigger event"
     desc "trigger event"
-    sprite "GFX_RAJ_decision_investment_mils_icon"
-    priority 100000000000000
+
+    # the small image on the left side of the decision
+    sprite "RAJ_decision_investment_mils_icon" # the GFX_(or GFX_decision_category_) prefix on this line is NOT mandatory
+
+    # the big picture you see when you inside the decision
+    picture sprite "GFX_RAJ_decision_investment_mils_icon"
+
+    priority 1000
     allowed
         always = yes
     
     decision trigger_event
         name "trigger event"
         desc "trigger event"
-        sprite "GFX_RAJ_decision_investment_civs_icon"
+        sprite "RAJ_decision_investment_civs_icon"
         cost 69
         available
             not

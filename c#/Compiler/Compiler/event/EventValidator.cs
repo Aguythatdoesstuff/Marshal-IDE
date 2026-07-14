@@ -34,7 +34,7 @@ namespace Compiler
                 string prefix = isCountryEvent ? "country event " : "news event ";
                 string eventId = trimmedLine.Substring(prefix.Length).Trim();
 
-                if (!IsValidEventId(eventId))
+                if (!IsValidEventId(eventId, fileName, lineNumber, ComponentName))
                 {
                     Errors.Add(new ValidationError(
                         fileName,

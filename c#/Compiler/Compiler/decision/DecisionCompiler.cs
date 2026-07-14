@@ -28,35 +28,54 @@ namespace Compiler.decision
             {
                 // categories file content
                 sbCategories.AppendLine($"{cat.id} = {{");
-                sbCategories.AppendLine($"{indent1}icon = {cat.sprite}");
+                if (cat.sprite != null) sbCategories.AppendLine($"{indent1}icon = {cat.sprite}");
+                if (cat.pictureSprite != null) sbCategories.AppendLine($"{indent1}picture = {cat.pictureSprite}");
                 sbCategories.AppendLine($"{indent1}priority = {cat.priority}");
-                sbCategories.AppendLine($"{indent1}allowed = {{");
-                sbCategories.Append(RenderAllowedToString(cat.allowed, rl => rl.depth, rl => rl.trimmedLine));
-                sbCategories.AppendLine($"{indent1}}}");
-                sbCategories.AppendLine($"{indent1}available = {{");
-                sbCategories.Append(RenderAllowedToString(cat.available, rl => rl.depth, rl => rl.trimmedLine));
-                sbCategories.AppendLine($"{indent1}}}");
+                if (cat.allowed != null && cat.allowed.Any())
+                {
+                    sbCategories.AppendLine($"{indent1}allowed = {{");
+                    sbCategories.Append(RenderAllowedToString(cat.allowed, rl => rl.depth, rl => rl.trimmedLine));
+                    sbCategories.AppendLine($"{indent1}}}");
+                }
+                if (cat.available != null && cat.available.Any())
+                {
+                    sbCategories.AppendLine($"{indent1}available = {{");
+                    sbCategories.Append(RenderAllowedToString(cat.available, rl => rl.depth, rl => rl.trimmedLine));
+                    sbCategories.AppendLine($"{indent1}}}");
+                }
                 sbCategories.AppendLine($"}}");
 
                 // decisions file: header for this category
                 sbDecisions.AppendLine($"{cat.id} = {{");
-                // add decisions
-                foreach (var cat2 in cat.decisions)
+                // add decisions (if any)
+                if (cat.decisions != null && cat.decisions.Any())
                 {
-                    sbDecisions.AppendLine($"{indent1}{cat2.id} = {{");
-                    sbDecisions.AppendLine($"{indent2}icon = {cat2.sprite}");
-                    sbDecisions.AppendLine($"{indent2}cost = {cat2.cost}");
-                    sbDecisions.AppendLine($"{indent1}priority = {cat2.priority}");
-                    sbDecisions.AppendLine($"{indent2}allowed = {{");
-                    sbDecisions.Append(RenderAllowedToString(cat2.allowed, rl => rl.depth, rl => rl.trimmedLine));
-                    sbDecisions.AppendLine($"{indent2}}}");
-                    sbDecisions.AppendLine($"{indent2}available = {{");
-                    sbDecisions.Append(RenderAllowedToString(cat2.available, rl => rl.depth, rl => rl.trimmedLine));
-                    sbDecisions.AppendLine($"{indent2}}}");
-                    sbDecisions.AppendLine($"{indent2}complete_effect = {{");
-                    sbDecisions.Append(RenderAllowedToString(cat2.onClick, rl => rl.depth, rl => rl.trimmedLine));
-                    sbDecisions.AppendLine($"{indent2}}}");
-                    sbDecisions.AppendLine($"{indent1}}}");
+                    foreach (var cat2 in cat.decisions)
+                    {
+                        sbDecisions.AppendLine($"{indent1}{cat2.id} = {{");
+                        if (cat2.sprite != null) sbDecisions.AppendLine($"{indent2}icon = {cat2.sprite}");
+                        sbDecisions.AppendLine($"{indent2}cost = {cat2.cost}");
+                        sbDecisions.AppendLine($"{indent1}priority = {cat2.priority}");
+                        if (cat2.allowed != null && cat2.allowed.Any())
+                        {
+                            sbDecisions.AppendLine($"{indent2}allowed = {{");
+                            sbDecisions.Append(RenderAllowedToString(cat2.allowed, rl => rl.depth, rl => rl.trimmedLine));
+                            sbDecisions.AppendLine($"{indent2}}}");
+                        }
+                        if (cat2.available != null && cat2.available.Any())
+                        {
+                            sbDecisions.AppendLine($"{indent2}available = {{");
+                            sbDecisions.Append(RenderAllowedToString(cat2.available, rl => rl.depth, rl => rl.trimmedLine));
+                            sbDecisions.AppendLine($"{indent2}}}");
+                        }
+                        if (cat2.onClick != null && cat2.onClick.Any())
+                        {
+                            sbDecisions.AppendLine($"{indent2}complete_effect = {{");
+                            sbDecisions.Append(RenderAllowedToString(cat2.onClick, rl => rl.depth, rl => rl.trimmedLine));
+                            sbDecisions.AppendLine($"{indent2}}}");
+                        }
+                        sbDecisions.AppendLine($"{indent1}}}");
+                    }
                 }
                 // close category block
                 sbDecisions.AppendLine($"}}");

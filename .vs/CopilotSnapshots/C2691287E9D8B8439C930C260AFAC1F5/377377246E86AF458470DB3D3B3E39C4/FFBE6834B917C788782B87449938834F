@@ -1,0 +1,346 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+namespace Compiler
+{
+    public class FocusValidator : BaseValidator
+    {
+        // Provide concrete parser so validator hands validated content to parser
+        protected override BaseParser Parser => new FocusParser();
+
+        // Require 'name', 'desc', and 'sprite' to appear only at depths 1 or 2 for focus files
+        protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = new[] { 1, 2 },
+            ["desc"] = new[] { 1, 2 },
+            ["sprite"] = new[] { 1, 2 },
+        };
+
+        protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
+        {
+
+            if (trimmedLine.StartsWith("follow position of"))
+            {
+                string optionValue = trimmedLine.Substring("follow position of".Length).Trim();
+
+                if (!IsValidId(optionValue, fileName, lineNumber, ComponentName, DotsAllowed))
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! UNALLOWED ID DETECTED: '{optionValue}'. IDs must be strictly lowercase, alphanumeric, and contain no spaces or braces."
+                    ));
+                }
+
+                // Step up the expected depth for whatever logic is written INSIDE this option block
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+            // ==========================================
+            // HANDLE TREE DEFINITIONS (DEPTH 0)
+            // ==========================================
+            bool isDefaultTree = trimmedLine.StartsWith("default tree ");
+            bool isNormalTree = trimmedLine.StartsWith("tree ") && !isDefaultTree;
+
+            if (isDefaultTree || isNormalTree)
+            {
+                if (currentDepth != 0)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! ROOT-LEVEL SYNTAX AT NON-ZERO DEPTH: Tree definitions must be at depth 0, but found at depth {currentDepth}."
+                    ));
+                }
+
+                if (isDefaultTree)
+                {
+                    string treeId = trimmedLine.Substring("default tree ".Length).Trim();
+                    if (!IsValidId(treeId, fileName, lineNumber, ComponentName, DotsAllowed))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID DEFAULT TREE ID: '{treeId}' must be a valid identifier."
+                        ));
+                    }
+                }
+                else // Country Specific Tree (e.g., "tree ukraine_focus for UKR")
+                {
+                    string headerContent = trimmedLine.Substring("tree ".Length).Trim();
+
+                    // Locate the "for" keyword separating the tree ID and Country Tag
+                    int forIndex = headerContent.LastIndexOf(" for ", StringComparison.OrdinalIgnoreCase);
+
+                    if (forIndex == -1)
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! MISSING COUNTRY TAG CLAUSE: Country-specific trees require a target tag using syntax: 'tree [id] for [TAG]'."
+                        ));
+                    }
+                    else
+                    {
+                        string treeId = headerContent.Substring(0, forIndex).Trim();
+                        string countryTag = headerContent.Substring(forIndex + " for ".Length).Trim();
+
+                        if (!IsValidId(treeId, fileName, lineNumber, ComponentName))
+                        {
+                            Errors.Add(new ValidationError(
+                                fileName,
+                                lineNumber,
+                                $"ERROR! INVALID TREE ID: '{treeId}' must be a valid identifier."
+                            ));
+                        }
+
+                        if (!IsValidCountryId(countryTag))
+                        {
+                            Errors.Add(new ValidationError(
+                                fileName,
+                                lineNumber,
+                                $"ERROR! INVALID COUNTRY TAG: '{countryTag}' must be exactly 3 alphanumeric characters long."
+                            ));
+                        }
+                    }
+                }
+
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+
+            // ==========================================
+            // HANDLE FOCUS DEFINITIONS (DEPTH 1)
+            // ==========================================
+            if (trimmedLine.StartsWith("focus "))
+            {
+                if (currentDepth != 1)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID SYNTAX DEPTH: 'focus' declarations must be at depth 1, but found at depth {currentDepth}."
+                    ));
+                }
+
+                string content = trimmedLine.Substring("focus ".Length).Trim();
+                int takesIndex = content.IndexOf(" takes ", StringComparison.OrdinalIgnoreCase);
+
+                if (takesIndex == -1)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID FOCUS SYNTAX: Missing time duration expression. Syntax requires 'focus [id] takes [X] days/weeks'."
+                    ));
+                }
+                else
+                {
+                    string focusId = content.Substring(0, takesIndex).Trim();
+                    string timingExpression = content.Substring(takesIndex + " takes ".Length).Trim();
+
+                        if (!IsValidId(focusId, fileName, lineNumber, ComponentName))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID FOCUS ID: '{focusId}' must be a valid identifier."
+                        ));
+                    }
+
+                    // Split duration parts (e.g., "70" and "days")
+                    string[] timeParts = timingExpression.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (timeParts.Length != 2)
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID DURATION FORMAT: Expected syntax '[number] days/weeks', but received '{timingExpression}'."
+                        ));
+                    }
+                    else
+                    {
+                        string numberPart = timeParts[0];
+                        string unitPart = timeParts[1].ToLower();
+
+                        if (!IsInt(numberPart))
+                        {
+                            Errors.Add(new ValidationError(
+                                fileName,
+                                lineNumber,
+                                $"ERROR! INVALID DURATION VALUE: '{numberPart}' must be a valid continuous integer."
+                            ));
+                        }
+
+                        if (unitPart != "day" && unitPart != "days" && unitPart != "week" && unitPart != "weeks")
+                        {
+                            Errors.Add(new ValidationError(
+                                fileName,
+                                lineNumber,
+                                $"ERROR! INVALID TIME UNIT: '{unitPart}' is unrecognized. Valid units are: day, days, week, weeks."
+                            ));
+                        }
+                    }
+                }
+
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+
+            // ==========================================
+            // HANDLE POSITION COORDINATES
+            // ==========================================
+            if (trimmedLine.StartsWith("position "))
+            {
+                string coordsPart = trimmedLine.Substring("position ".Length).Trim();
+                string[] coords = coordsPart.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (coords.Length != 2)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID COORDINATE BOUNDS: Position declarations require an X and a Y axis value (e.g., 'position x10 y-2')."
+                    ));
+                }
+                else
+                {
+                    string xCoord = coords[0];
+                    string yCoord = coords[1];
+
+                    if (!IsValidCoordinate(xCoord, 'x'))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID X VALUE: '{xCoord}' must begin with 'x' followed directly by an integer."
+                        ));
+                    }
+
+                    if (!IsValidCoordinate(yCoord, 'y'))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID Y VALUE: '{yCoord}' must begin with 'y' followed directly by an integer."
+                        ));
+                    }
+                }
+
+                return true;
+            }
+
+            // ==========================================
+            // HANDLE REQUIRE / PREVENTS BLOCKS
+            // ==========================================
+            if (trimmedLine.StartsWith("require", StringComparison.OrdinalIgnoreCase) || trimmedLine.StartsWith("prevents", StringComparison.OrdinalIgnoreCase))
+            {
+                bool isRequire = trimmedLine.StartsWith("require", StringComparison.OrdinalIgnoreCase);
+                string keyword = isRequire ? "require" : "prevents";
+
+                // Allow these headers at depth 1 or 2 (typically inside a focus)
+                if (currentDepth != 1 && currentDepth != 2)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID SYNTAX DEPTH: '{keyword}' must be at depth 1 or 2, but found at depth {currentDepth}."
+                    ));
+                }
+
+                string remainder = trimmedLine.Length > keyword.Length ? trimmedLine.Substring(keyword.Length).Trim() : string.Empty;
+
+                if (!string.IsNullOrEmpty(remainder))
+                {
+                    // "require <id>" or "prevents <id>" form: only a single id allowed on same line
+                    var tokens = remainder.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (tokens.Length != 1)
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! MALFORMED {keyword.ToUpper()} HEADER: Provide a single id on the same line, or omit it and place ids indented on the following lines."
+                        ));
+                    }
+                    else if (!IsValidId(tokens[0], fileName, lineNumber, ComponentName))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID ID IN {keyword.ToUpper()}: '{tokens[0]}' is not a valid identifier."
+                        ));
+                    }
+
+                    ExpectedDepth = currentDepth + 1;
+                    return true;
+                }
+                else
+                {
+                    // Block form: ensure there is at least one indented id following this header
+                    int nextDepth = GetDepthAt(1);
+                    string nextLine = GetLineAt(1);
+                    string nextTrim = nextLine?.Trim();
+
+                    if (nextDepth <= currentDepth || string.IsNullOrWhiteSpace(nextTrim))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! EMPTY {keyword.ToUpper()} BLOCK: '{keyword}' must include at least one id either on the same line or indented on the following line(s)."
+                        ));
+                    }
+
+                    ExpectedDepth = currentDepth + 1;
+                    return true;
+                }
+            }
+
+            // Accept standalone id lines when they are children of a require/prevents header
+            if (IsValidId(trimmedLine, fileName, lineNumber, ComponentName))
+            {
+                // Walk upward to find a parent header at exactly one depth level above
+                // the current line. This ensures any number of sibling ids inside the
+                // require/prevents block are accepted (not only the first one).
+                int offset = -1;
+                while (true)
+                {
+                    string candidateLine = GetLineAt(offset);
+                    if (candidateLine == null) break;
+                    if (string.IsNullOrWhiteSpace(candidateLine))
+                    {
+                        offset--;
+                        continue;
+                    }
+
+                    int candidateDepth = GetDepthAt(offset);
+                    string candidateTrim = candidateLine.Trim();
+
+                    if (candidateDepth == currentDepth - 1 &&
+                        (candidateTrim.StartsWith("require", StringComparison.OrdinalIgnoreCase) || candidateTrim.StartsWith("prevents", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return true; // valid child identifier under require/prevents
+                    }
+
+                    // If we reached a line less deep than the header level we're looking for,
+                    // stop searching because there's no enclosing require/prevents header.
+                    if (candidateDepth < currentDepth - 1) break;
+
+                    offset--;
+                }
+            }
+
+            // ==========================================
+            // HANDLE BLOCK BLOCK HOOKS (on complete)
+            // ==========================================
+            if (trimmedLine == "on complete")
+            {
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+
+            return false;
+        }
+    }
+}

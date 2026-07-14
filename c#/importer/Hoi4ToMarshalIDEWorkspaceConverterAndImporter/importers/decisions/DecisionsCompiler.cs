@@ -84,6 +84,10 @@ namespace importer
                     {
                         lines.Add($"    sprite \"{category.Sprite}\"");
                     }
+                    if (!string.IsNullOrEmpty(category.PictureSprite))
+                    {
+                        lines.Add($"    picture sprite \"{category.PictureSprite}\"");
+                    }
                     if (!string.IsNullOrEmpty(category.priority))
                     {
                         lines.Add($"    priority {category.priority}");

@@ -188,12 +188,6 @@ namespace Compiler
                         {
                             var parser = Parser;
                             _lastParserUsed = parser;
-                            try
-                            {
-                                // Provide parsers a preprocessed preview for diagnostic purposes
-                                BaseParser.LogPreprocessedLines(preprocessed);
-                            }
-                            catch { }
                             parser.ParseFile(filePath, fileName, preprocessed);
 
                             FileLines = new List<string>();
@@ -414,6 +408,10 @@ namespace Compiler
         // If true, this validator allows unquoted ID-style sprites like: sprite button4_gfx
         // Default false; specific child validators may override to enable this.
         protected virtual bool AllowSpriteId => false;
+
+        // If true, identifier helpers allow '.' characters inside IDs (e.g., GER_cdu_2.0).
+        // Default true as dots are allowed and considered good practice for some IDs.
+        protected virtual bool DotsAllowed => true;
 
         // Mapping of special block prefixes to allowed depths. Specialized validators
         // MUST override this to provide allowed depths for tokens like "name", "desc",
@@ -637,15 +635,16 @@ namespace Compiler
                         else
                         {
                             // Quoted GFX_... form required when quotes are present
-                if (remainder.StartsWith("\"") && remainder.EndsWith("\""))
+                            if (remainder.StartsWith("\"") && remainder.EndsWith("\""))
                 {
                     string inner = remainder.Substring(1, remainder.Length - 2);
-                    if (!IsValidGfxName(inner))
+                    // Standard 'sprite' lines no longer strictly require GFX_ prefix; allow either form
+                    if (!IsValidGfxName(inner, false, fileName, lineNumber, ComponentName))
                     {
                         Errors.Add(new ValidationError(
                             fileName,
                             lineNumber,
-                            $"Invalid quoted sprite name: '{inner}'. Quoted sprite names must start with 'GFX_' and contain only id characters (A-Za-z0-9_) after the prefix."
+                            $"Invalid quoted sprite name: '{inner}'. Quoted sprite names must either start with 'GFX_' or be a valid id containing only letters, digits or underscores. If a 'GFX_' prefix is present it must be uppercase."
                         ));
                     }
 
@@ -674,15 +673,15 @@ namespace Compiler
                                 else
                                 {
                                 // Same rules as ScriptValidator ID: lowercase alphanumeric and underscores
-                                if (!IsValidId(remainder))
+                                if (!IsValidId(remainder, fileName, lineNumber, ComponentName, DotsAllowed))
                                 {
                                     // Allow an unquoted GFX_ form in GUI define contexts: GFX_ followed by a lowercase id
-                                    if (!(remainder.StartsWith("GFX_") && IsValidGfxName(remainder)))
+                                    if (!(remainder.StartsWith("GFX_") && IsValidGfxName(remainder, false, fileName, lineNumber, ComponentName)))
                                     {
                                         Errors.Add(new ValidationError(
                                             fileName,
                                             lineNumber,
-                                            $"Invalid sprite ID: '{remainder}'. IDs must be lowercase, alphanumeric, and may contain underscores, or use a GFX_... name."
+                                            $"Invalid sprite ID: '{remainder}'. IDs must be alphanumeric and may contain underscores, or use a GFX_... name. GFX_ prefix (if used) must be uppercase."
                                         ));
                                     }
                                 }
@@ -756,22 +755,80 @@ namespace Compiler
             return s.Length >= 2 && s.StartsWith("\"") && s.EndsWith("\"");
         }
 
-        protected static bool IsValidGfxName(string s)
+        protected static bool IsValidGfxName(string s, bool requiresPrefix = true, string fileName = null, int lineNumber = 0, string component = null)
         {
-            // Require GFX_ prefix followed by id characters (letters, digits, or underscore).
-            // Allow both uppercase and lowercase letters because some sprite names include country codes or other uppercase segments.
-            return Regex.IsMatch(s, "^GFX_[A-Za-z0-9_]+$");
+            if (string.IsNullOrEmpty(s)) return false;
+            component ??= "Validator";
+
+            // Check ASCII and warn if necessary (non-blocking)
+            bool asciiOk = true;
+            foreach (char c in s)
+            {
+                if (c > 127) { asciiOk = false; break; }
+            }
+            if (!asciiOk)
+            {
+                Compiler.Logging.Logger.LogWarning(component, $"{fileName}:{lineNumber} - NON-ASCII CHARACTERS DETECTED: '{s}' contains non-ASCII characters which may cause unexpected engine behavior.");
+            }
+
+            // If prefix is required, enforce uppercase 'GFX_' then id chars
+            if (requiresPrefix)
+            {
+                return Regex.IsMatch(s, "^GFX_[A-Za-z0-9_]+$");
+            }
+
+            // When prefix is optional, accept either a bare id or an explicitly-prefixed GFX_ name.
+            // If the explicit prefix is present, it must be uppercase 'GFX_'.
+            if (s.StartsWith("GFX_"))
+            {
+                return Regex.IsMatch(s, "^GFX_[A-Za-z0-9_]+$");
+            }
+
+            return Regex.IsMatch(s, "^[A-Za-z0-9_]+$");
         }
 
-        protected static bool IsValidId(string s)
+        // If dotsAllowed is true, IDs may contain '.' characters (e.g., GER_cdu_2.0).
+        // Default dotsAllowed = true for compatibility with common identifier formats.
+        protected static bool IsValidId(string s, string fileName = null, int lineNumber = 0, string component = null, bool dotsAllowed = true)
         {
-            return Regex.IsMatch(s, "^[a-z0-9_]+$");
+            component ??= "Validator";
+            if (string.IsNullOrEmpty(s)) return false;
+
+            // Check ASCII and warn if necessary
+            bool asciiOk = true;
+            foreach (char c in s)
+            {
+                if (c > 127) { asciiOk = false; break; }
+            }
+            if (!asciiOk)
+            {
+                Compiler.Logging.Logger.LogWarning(component, $"{fileName}:{lineNumber} - NON-ASCII CHARACTERS DETECTED: '{s}' contains non-ASCII characters which may cause unexpected engine behavior.");
+            }
+
+            // Allow both uppercase and lowercase letters for IDs. Optionally allow dots
+            // as a separator character when dotsAllowed is true.
+            var pattern = dotsAllowed ? "^[A-Za-z0-9_\\.]+$" : "^[A-Za-z0-9_]+$";
+            return Regex.IsMatch(s, pattern);
         }
 
-        protected static bool IsValidEventId(string s)
+        protected static bool IsValidEventId(string s, string fileName = null, int lineNumber = 0, string component = null)
         {
-            // Lowercase snake case, followed by a dot, followed by one or more digits
-            return Regex.IsMatch(s, "^[a-z0-9_]+\\.[0-9]+$");
+            component ??= "Validator";
+            if (string.IsNullOrEmpty(s)) return false;
+
+            // Warn on non-ASCII inside event id
+            bool asciiOk = true;
+            foreach (char c in s)
+            {
+                if (c > 127) { asciiOk = false; break; }
+            }
+            if (!asciiOk)
+            {
+                Compiler.Logging.Logger.LogWarning(component, $"{fileName}:{lineNumber} - NON-ASCII CHARACTERS DETECTED: '{s}' contains non-ASCII characters which may cause unexpected engine behavior.");
+            }
+
+            // Allow both upper/lower letters for the id segment, followed by a dot and digits
+            return Regex.IsMatch(s, "^[A-Za-z0-9_]+\\.[0-9]+$");
         }
 
         // Validates country tag rules: exactly 3 characters, alphanumeric only

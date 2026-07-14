@@ -24,6 +24,7 @@ namespace importer
         {
             public string Id { get; set; }
             public string Sprite { get; set; }
+            public string PictureSprite { get; set; }
             public string NameLocKey { get; set; }
             public string DescLocKey { get; set; }
             public string FileName { get; set; }
@@ -77,7 +78,13 @@ namespace importer
                     DebugLogger.Log("CategoryImport", "", LogLevel.Info, $"Mapping Sprite: {cleanValue} for Category {category.Id}");
                     return;
                 }
-
+                if (depth == 1 && cleanKey == "picture" && op == "=")
+                {
+                    category.PictureSprite = cleanValue;
+                    DebugLogger.Log("CategoryImport", "", LogLevel.Info, $"Mapping Picture Sprite: {cleanValue} for Category {category.Id}");
+                    return;
+                }
+                
                 if (depth == 1 && cleanKey == "priority" && op == "=")
                 {
                     category.priority = cleanValue;

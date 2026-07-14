@@ -49,7 +49,7 @@ namespace Compiler
             if (immediateVar.Success)
             {
                 string id = immediateVar.Groups[1].Value;
-                if (!IsValidId(id))
+                if (!IsValidId(id, fileName, lineNumber, ComponentName, DotsAllowed))
                 {
                     Errors.Add(new ValidationError(fileName, lineNumber, $"Invalid var id: '{id}'. var quoted value must be a valid id."));
                 }
@@ -78,7 +78,7 @@ namespace Compiler
             if (topVarMatch.Success)
             {
                 string id = topVarMatch.Groups[1].Value;
-                if (!IsValidId(id))
+                if (!IsValidId(id, fileName, lineNumber, ComponentName, DotsAllowed))
                 {
                     Errors.Add(new ValidationError(fileName, lineNumber, $"Invalid var id: '{id}'. var quoted value must be a valid id."));
                 }
@@ -98,7 +98,7 @@ namespace Compiler
                         Errors.Add(new ValidationError(fileName, lineNumber, "Malformed text: unexpected content outside quoted string."));
                     }
                 }
-                else if (!IsValidId(remainder))
+                else if (!IsValidId(remainder, fileName, lineNumber, ComponentName, DotsAllowed))
                 {
                     Errors.Add(new ValidationError(fileName, lineNumber, $"Malformed text: '{remainder}' is not a valid id or quoted string."));
                 }
@@ -344,7 +344,7 @@ namespace Compiler
                         idToCheck = tokens[0];
                     }
 
-                    if (!string.IsNullOrEmpty(idToCheck) && !IsValidId(idToCheck))
+                    if (!string.IsNullOrEmpty(idToCheck) && !IsValidId(idToCheck, fileName, lineNumber, ComponentName, DotsAllowed))
                     {
                         Errors.Add(new ValidationError(fileName, lineNumber, $"Malformed {matched}: '{idToCheck}' is not a valid id."));
                     }

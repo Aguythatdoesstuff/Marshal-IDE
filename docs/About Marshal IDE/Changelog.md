@@ -7,12 +7,17 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Compiler wide:** - Fixed the compiler not overriding the files in the output after first compilation and instead constantly appending lines (caused duplicate code).
   - Standardized Unicode whitespace normalization (`\u00A0`, `\u202F`, etc.) to prevent hidden non-breaking spaces from breaking indentation checks and triggering false "Unknown root-level script header" errors.
   - Fixed an indentation depth calculation bug by explicitly expanding literal tabs (`\t`) into 4 standard spaces at the start of line sanitization, preventing lines from incorrectly reading as depth 0 and breaking the block stack state machine.
+- **ID Encoding & Case Validation:** Adjust compiler validation to allow alphanumeric characters, underscores, and periods (`.`) in focus/object IDs (e.g., `GER_cdu_2.0`). By default, permit full capitalization across all IDs. For IDs utilizing non-ASCII special characters/umlauts (e.g., `GER_grünes_zeitalte`), allow compilation but emit a warning regarding UTF-8 parsing and trigger risks.
 - **Focus Compiler:** Fixed the focus compiler outputting the prevents and requires blocks as id = some_focus_id instead of focus = some_focus_id
 - **compiler:** Fixed compilers calculated final cost to be correct (final cost = -0.02)
 - **Importer:** Fixed importer outputting ID's incorrectly for national focuses and scripted gui GUI elements
   - Fixed decision importing logic to correctly preserve and output cost priority values instead of saving raw unparsed line remnants.
   - Fixed national focus importing to dynamically track the country scope context and append the necessary `for [country id]` scoping identifiers.
   - Fixed importer not outputting x and y coordinates for all focuses.
+- **Decision Icons & Pictures Support:** Update compiler and importer logic to correctly handle the two distinct asset types within decisions:
+  - **Icon:** The small graphic displayed to the left of the category or decision name. The engine handles this dynamically, so it does *not* strictly require the `GFX_` prefix.
+  - **Picture:** The larger graphic displayed to the left of a category's description. The engine is strict here, meaning it *requires* the `GFX_` prefix to resolve properly.
+- **Required Actions:** Update the compiler to explicitly support both the `icon` and `picture` syntax definitions, and ensure the importer accurately distinguishes between them (treating `icon` as prefix-optional and `picture` as prefix-mandatory) during processing.
 
 ## [1.2.1] - 2026-06-15
 

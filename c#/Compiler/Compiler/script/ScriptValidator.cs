@@ -46,7 +46,7 @@ namespace Compiler
                 string identifier = trimmedLine.Substring(prefixLength).Trim();
 
                 // Strict validation: Must be lower_case_snake_case with no spaces, braces, or special characters
-                if (!IsValidId(identifier))
+                if (!IsValidId(identifier, fileName, lineNumber, ComponentName, DotsAllowed))
                 {
                     Errors.Add(new ValidationError(
                         fileName,

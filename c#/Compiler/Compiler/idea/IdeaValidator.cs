@@ -40,7 +40,7 @@ namespace Compiler
                         "ERROR! MISSING IDEA ID: 'country idea' requires an identifier (lowercase, alphanumeric and underscores)."
                     ));
                 }
-                else if (!IsValidId(id))
+                else if (!IsValidId(id, fileName, lineNumber, ComponentName, DotsAllowed))
                 {
                     Errors.Add(new ValidationError(
                         fileName,

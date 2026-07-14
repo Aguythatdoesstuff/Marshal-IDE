@@ -18,9 +18,47 @@ namespace Compiler
             ["name"] = new[] { 1, 2 },
             ["desc"] = new[] { 1, 2 },
             ["sprite"] = new[] { 1, 2 },
+            ["picture sprite"] = new[] { 1 },
         };
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
+            // Handle category-only picture sprite attribute
+            if (trimmedLine.StartsWith("picture sprite", StringComparison.OrdinalIgnoreCase))
+            {
+                // picture sprite is category-only; depth 1 expected. If found at depth 2 it's inside a decision and must error.
+                if (currentDepth == 2)
+                {
+                    Errors.Add(new ValidationError(fileName, lineNumber, "ERROR! 'picture sprite' is only allowed in category scope and must not appear inside a decision block."));
+                    return true;
+                }
+
+                // Extract the value after 'picture sprite'
+                string remainder = trimmedLine.Length > "picture sprite".Length ? trimmedLine.Substring("picture sprite".Length).Trim() : string.Empty;
+
+                if (string.IsNullOrEmpty(remainder) || !IsQuotedString(remainder))
+                {
+                    Errors.Add(new ValidationError(fileName, lineNumber, "Malformed picture sprite: expected a quoted GFX_ identifier after 'picture sprite'."));
+                    return true;
+                }
+
+                string inner = remainder.Substring(1, remainder.Length - 2);
+
+                // picture sprite strictly requires GFX_ prefix; helper will emit any non-ASCII warnings
+                if (!IsValidGfxName(inner, true, fileName, lineNumber, ComponentName))
+                {
+                    Errors.Add(new ValidationError(fileName, lineNumber, $"Invalid picture sprite name: '{inner}'. picture sprite requires a quoted name beginning with 'GFX_'."));
+                }
+
+                // Ensure nothing exists outside the quoted string
+                string outside = RemoveQuotedContent(remainder);
+                if (!string.IsNullOrWhiteSpace(outside))
+                {
+                    Errors.Add(new ValidationError(fileName, lineNumber, "Malformed picture sprite: unexpected content outside quoted string."));
+                }
+
+                ExpectedDepth = currentDepth;
+                return true;
+            }
             if (trimmedLine.StartsWith("priority") || trimmedLine.StartsWith("cost"))
             {
                 // Determine which keyword we are currently dealing with
@@ -95,13 +133,14 @@ namespace Compiler
                 int prefixLength = isCategory ? "category ".Length : "decision ".Length;
                 string identifier = trimmedLine.Substring(prefixLength).Trim();
 
-                // Validate using the helper
-                if (!IsValidId(identifier))
+                // Validate using the helper (IDs are now case-insensitive / allow uppercase letters).
+                // The helper will emit a non-blocking warning if the identifier contains non-ASCII characters.
+                if (!IsValidId(identifier, fileName, lineNumber, ComponentName, DotsAllowed))
                 {
                     Errors.Add(new ValidationError(
                         fileName,
                         lineNumber,
-                        $"ERROR! UNALLOWED ID DETECTED: '{identifier}'. IDs must be strictly lowercase, alphanumeric, and contain no spaces or braces."
+                        $"ERROR! UNALLOWED ID DETECTED: '{identifier}'. IDs must be alphanumeric (A-Z, a-z, 0-9, and underscores), and contain no spaces or braces."
                     ));
                 }
 

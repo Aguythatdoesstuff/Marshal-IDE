@@ -93,6 +93,14 @@ namespace Compiler.Logging
             WriteToActiveChunk(component.ToUpperInvariant(), message);
         }
 
+        public static void LogWarning(string component, string message)
+        {
+            EnsureInit();
+            if (string.IsNullOrWhiteSpace(component)) component = "COMPONENT";
+            // Write warnings under a WARN-<COMPONENT> prefix so they are easy to locate
+            WriteToActiveChunk($"WARN-{component.ToUpperInvariant()}", message);
+        }
+
         private static void WriteToActiveChunk(string prefix, string message)
         {
             var ts = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff");

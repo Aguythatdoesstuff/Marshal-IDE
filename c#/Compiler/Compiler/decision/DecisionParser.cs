@@ -9,6 +9,7 @@ namespace Compiler
         public string name;
         public string desc;
         public string sprite;
+        public string pictureSprite; // Add this field here
         public long priority; // priority must be an integer (validator enforces numeric content)
         public List<RawLine> allowed = new List<RawLine>();
         public List<RawLine> available = new List<RawLine>();
@@ -143,7 +144,21 @@ namespace Compiler
                     continue;
                 }
 
-                // Handle name/desc/sprite at category (depth 1) or decision (depth >=2)
+                // Handle name/desc/sprite and category-only picture sprite
+                // at category (depth 1) or decision (depth >=2)
+                if (pl.TrimmedLine.StartsWith("picture sprite", StringComparison.OrdinalIgnoreCase))
+                {
+                    var val = GetQuotedContent(pl.TrimmedLine.Substring("picture sprite".Length).Trim());
+                    if (pl.Depth == 1)
+                    {
+                        currentCategory.pictureSprite = val;
+                    }
+                    else
+                    {
+                        Errors.Add(new ParsingError(fileName, pl.LineNumber, "'picture sprite' is only allowed in category scope."));
+                    }
+                    continue;
+                }
                 if (pl.TrimmedLine.StartsWith("name", StringComparison.OrdinalIgnoreCase))
                 {
                     var val = GetQuotedContent(pl.TrimmedLine.Substring("name".Length).Trim());

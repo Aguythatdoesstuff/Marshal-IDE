@@ -24,7 +24,7 @@ namespace Compiler
             {
                 string optionValue = trimmedLine.Substring("follow position of".Length).Trim();
 
-                if (!IsValidId(optionValue))
+                if (!IsValidId(optionValue, fileName, lineNumber, ComponentName, DotsAllowed))
                 {
                     Errors.Add(new ValidationError(
                         fileName,
@@ -57,7 +57,7 @@ namespace Compiler
                 if (isDefaultTree)
                 {
                     string treeId = trimmedLine.Substring("default tree ".Length).Trim();
-                    if (!IsValidId(treeId))
+                    if (!IsValidId(treeId, fileName, lineNumber, ComponentName, DotsAllowed))
                     {
                         Errors.Add(new ValidationError(
                             fileName,
@@ -86,7 +86,7 @@ namespace Compiler
                         string treeId = headerContent.Substring(0, forIndex).Trim();
                         string countryTag = headerContent.Substring(forIndex + " for ".Length).Trim();
 
-                        if (!IsValidId(treeId))
+                        if (!IsValidId(treeId, fileName, lineNumber, ComponentName, DotsAllowed))
                         {
                             Errors.Add(new ValidationError(
                                 fileName,
@@ -140,7 +140,7 @@ namespace Compiler
                     string focusId = content.Substring(0, takesIndex).Trim();
                     string timingExpression = content.Substring(takesIndex + " takes ".Length).Trim();
 
-                    if (!IsValidId(focusId))
+                        if (!IsValidId(focusId, fileName, lineNumber, ComponentName, DotsAllowed))
                     {
                         Errors.Add(new ValidationError(
                             fileName,
@@ -264,7 +264,7 @@ namespace Compiler
                             $"ERROR! MALFORMED {keyword.ToUpper()} HEADER: Provide a single id on the same line, or omit it and place ids indented on the following lines."
                         ));
                     }
-                    else if (!IsValidId(tokens[0]))
+                    else if (!IsValidId(tokens[0], fileName, lineNumber, ComponentName, DotsAllowed))
                     {
                         Errors.Add(new ValidationError(
                             fileName,
@@ -298,7 +298,7 @@ namespace Compiler
             }
 
             // Accept standalone id lines when they are children of a require/prevents header
-            if (IsValidId(trimmedLine))
+            if (IsValidId(trimmedLine, fileName, lineNumber, ComponentName, DotsAllowed))
             {
                 // Walk upward to find a parent header at exactly one depth level above
                 // the current line. This ensures any number of sibling ids inside the
