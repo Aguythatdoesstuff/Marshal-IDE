@@ -2,9 +2,6 @@
 
 This document outlines the planned trajectory for Marshal IDE. Note: Features marked as "Researching" are experimental.
 
-## 🛠 v1.2.2 – Bug fixes
-- **Fix importer:** Fix importers other bugs when importing test mod.
-
 ## 🛠 v1.3.0 – UX Update
 ### UX changes
 - **Tailwind CSS Architecture Migration:** Replace the legacy Sass preprocessor setup with Tailwind CSS. Leverage utility-first classes to drastically accelerate frontend layout changes, while utilizing Tailwind's compiler to purge unused styles and generate a highly optimized, lightweight production CSS bundle.
@@ -12,10 +9,14 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 - **Persistent Tab States Across Sessions:** The IDE now caches open tab layouts per project. Switching workspaces or reopening a mod instantly restores the exact files that were open, in their precise tab order.
 - **Drag-and-Drop Sidebar Image Importing:** Expanded the asset workflow by allowing users to drag .dds files directly from the OS file manager and drop them anywhere onto the left-hand PROJECT FILES sidebar. The IDE automatically routes them into the project's background GFX directory and refreshes the tree instantly.
 - **Visual Workspace Personalization:** Add a dedicated Themes & Appearance tab in Global Application Settings. Users can now customize the IDE environment with selectable accent colors and define custom token colors for syntax highlighting.
+- **Console warning tab:** Add a warning tab inside the console that will show all warnings the compiler has(less important things that dont have to be fixed but are recommended to be fixed)
 
 ### Compiler changes
 - **Parser**: Shared coordinate saving method for parser, pass over what the syntax is eg: "position" OR "max size" and the raw line itself, and it will return X coordinates and Y coordinates!(this will make all parser work similarly)
 - **Validator**: Make the validators Save the data they check, they check if the ID is correct? also save the ID so that the parser doesn't have to do that exact same thing!(and maybe have a minor difference that leads to a hard to find bug)
+
+## Fixes
+- **Compiler & Importer:** Fix and investigate more importer and compiler bugs
 
 ## 🛠 v1.4.0 – Compiler Update
 ### Compiler changes

@@ -2,7 +2,7 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
-## [1.2.2] - 2026-07-13
+## [1.2.2] - 2026-07-14
 ### Fixed
 - **Compiler wide:** - Fixed the compiler not overriding the files in the output after first compilation and instead constantly appending lines (caused duplicate code).
   - Standardized Unicode whitespace normalization (`\u00A0`, `\u202F`, etc.) to prevent hidden non-breaking spaces from breaking indentation checks and triggering false "Unknown root-level script header" errors.
