@@ -1153,67 +1153,95 @@ function setupAutoUpdater() {
 			return { success: true, canceled: false, filePath: filePaths[0] };
 		});
 
+		// --- main.js ---
+
 		ipcMain.handle('import-image', async (event, args) => {
-            if (!INPUT_DIR) return { success: false, message: "No project loaded." };
+			appLogger?.info(`[Main-Import] Handler called with args: ${JSON.stringify(args)}`, { source: 'Main-Import' });
 
-            try {
-                let filePaths = [];
-                
-                // If specific targets are passed via programmatic drops/arguments
-                if (args?.sourcePath) {
-                    filePaths = Array.isArray(args.sourcePath) ? args.sourcePath : [args.sourcePath];
-                } else {
-                    // Open dialog layout restricted strictly to raw .dds assets
-                    const result = await dialog.showOpenDialog({
-                        title: 'Select Images to Import',
-                        properties: ['openFile', 'multiSelections'], 
-                        filters: [
-                            { name: 'DirectDraw Surface Images', extensions: ['dds'] }
-                        ]
-                    });
+			if (!INPUT_DIR) {
+				appLogger?.error('[Main-Import] Failed: INPUT_DIR is not defined/loaded', { source: 'Main-Import' });
+				return { success: false, message: "No project loaded." };
+			}
 
-                    if (result.canceled || result.filePaths.length === 0) {
-                        return { success: false, message: "Import cancelled by user." };
-                    }
-                    filePaths = result.filePaths;
-                }
+			try {
+				let filePaths = [];
+				
+				// Extract paths if passed via args object, direct string, or array
+				const directSource = args?.sourcePath || (typeof args === 'string' ? args : null) || (Array.isArray(args) ? args : null);
 
-                const gfxDir = path.join(INPUT_DIR, 'GFX');
-                await fs.ensureDir(gfxDir);
+				if (directSource) {
+					filePaths = Array.isArray(directSource) ? directSource : [directSource];
+					appLogger?.info(`[Main-Import] Received direct source paths: ${JSON.stringify(filePaths)}`, { source: 'Main-Import' });
+				} else {
+					appLogger?.info('[Main-Import] No sourcePath provided. Triggering openDialog...', { source: 'Main-Import' });
+					
+					const result = await dialog.showOpenDialog({
+						title: 'Select Images to Import',
+						properties: ['openFile', 'multiSelections'], 
+						filters: [
+							{ name: 'DirectDraw Surface Images', extensions: ['dds'] }
+						]
+					});
 
-                const importedFiles = [];
+					if (result.canceled || result.filePaths.length === 0) {
+						appLogger?.info('[Main-Import] Dialog cancelled or no files selected.', { source: 'Main-Import' });
+						return { success: false, message: "Import cancelled by user." };
+					}
 
-                // Iterate over every file chosen in the native prompt selection matrix
-                for (const sourcePath of filePaths) {
-                    // Only apply a forced custom filename string argument if exactly 1 file was targeted
-                    let newFileName = (filePaths.length === 1 && args?.newFileName) ? args.newFileName : null;
-                    
-                    if (!newFileName) {
-                        newFileName = path.basename(sourcePath)
-                            .replace(/\s+/g, '_') 
-                            .replace(/\.[^/.]+$/, "") + ".dds"; 
-                    }
+					filePaths = result.filePaths;
+					appLogger?.info(`[Main-Import] Dialog selected files: ${JSON.stringify(filePaths)}`, { source: 'Main-Import' });
+				}
 
-                    const destPath = path.join(gfxDir, newFileName);
-                    await fs.copy(sourcePath, destPath);
+				const gfxDir = path.join(INPUT_DIR, 'GFX');
+				appLogger?.info(`[Main-Import] Target GFX Directory: ${gfxDir}`, { source: 'Main-Import' });
+				
+				await fs.ensureDir(gfxDir);
 
-                    const relativePath = path.join('GFX', newFileName).replace(/\\/g, '/');
-                    await updateManifest('add', relativePath);
+				const importedFiles = [];
 
-                    appLogger?.info(`Imported image asset: ${newFileName} straight to GFX folder`, { source: 'Main-Import' });
-                    importedFiles.push({ path: destPath, fileName: newFileName });
-                }
-                
-                return { 
-                    success: true, 
-                    imported: importedFiles 
-                };
+				for (const sourcePath of filePaths) {
+					appLogger?.info(`[Main-Import] Processing sourcePath: "${sourcePath}" (Type: ${typeof sourcePath})`, { source: 'Main-Import' });
 
-            } catch (error) {
-                appLogger?.error(`Failed to process batch image import sequence: ${error.message}`, { source: 'Main-Import' });
-                return { success: false, message: error.message };
-            }
-        });
+					if (!sourcePath || typeof sourcePath !== 'string') {
+						appLogger?.warn(`[Main-Import] Skipping invalid source path entry: ${sourcePath}`, { source: 'Main-Import' });
+						continue;
+					}
+
+					let newFileName = (filePaths.length === 1 && args?.newFileName) ? args.newFileName : null;
+					
+					if (!newFileName) {
+						const baseName = path.basename(sourcePath);
+						newFileName = baseName
+							.replace(/\s+/g, '_') 
+							.replace(/\.[^/.]+$/, "") + ".dds"; 
+					}
+
+					const destPath = path.join(gfxDir, newFileName);
+					appLogger?.info(`[Main-Import] Copying from "${sourcePath}" to "${destPath}"`, { source: 'Main-Import' });
+
+					await fs.copy(sourcePath, destPath);
+
+					const relativePath = path.join('GFX', newFileName).replace(/\\/g, '/');
+					appLogger?.info(`[Main-Import] Updating manifest for: ${relativePath}`, { source: 'Main-Import' });
+					
+					await updateManifest('add', relativePath);
+
+					appLogger?.info(`[Main-Import] Successfully imported asset: ${newFileName}`, { source: 'Main-Import' });
+					importedFiles.push({ path: destPath, fileName: newFileName });
+				}
+
+				appLogger?.info(`[Main-Import] Batch sequence finished. Imported count: ${importedFiles.length}`, { source: 'Main-Import' });
+				
+				return { 
+					success: true, 
+					imported: importedFiles 
+				};
+
+			} catch (error) {
+				appLogger?.error(`[Main-Import] Error during import execution: ${error.stack || error.message}`, { source: 'Main-Import' });
+				return { success: false, message: error.message };
+			}
+		});
 		ipcMain.handle('import-project', async () => {
 			try {
 				const { filePaths } = await dialog.showOpenDialog({
