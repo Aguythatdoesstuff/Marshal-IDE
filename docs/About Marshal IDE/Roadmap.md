@@ -6,8 +6,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ### UX changes
 - **Persistent Tab States Across Sessions:** The IDE now caches open tab layouts per project. Switching workspaces or reopening a mod instantly restores the exact files that were open, in their precise tab order.
 
-- **Drag-and-Drop Sidebar Image Importing:** Expanded the asset workflow by allowing users to drag .dds files directly from the OS file manager and drop them anywhere onto the left-hand PROJECT FILES sidebar. The IDE automatically routes them into the project's background GFX directory and refreshes the tree instantly.
-
 
 
 - **Tailwind CSS Architecture Migration:** Replace the legacy Sass preprocessor setup with Tailwind CSS. Leverage utility-first classes to drastically accelerate frontend layout changes, while utilizing Tailwind's compiler to purge unused styles and generate a highly optimized, lightweight production CSS bundle.

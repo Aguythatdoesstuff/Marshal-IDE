@@ -9,6 +9,11 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 
 - **Console warning tab:** Add a warning tab inside the console that will show all warnings the compiler has(less important things that dont have to be fixed but are recommended to be fixed)
 
+- **Drag-and-Drop Sidebar Image Importing:** Expanded the asset workflow by allowing users to drag .dds files directly from the OS file manager and drop them anywhere onto the left-hand PROJECT FILES sidebar. The IDE automatically routes them into the project's background GFX directory and refreshes the tree instantly.
+
+## Fixed
+
+- **file rename:** Fixed the ide renaming a fail AND making the file be moved to the root of the input path instead of staying where it is originally at and being renamed.
 
 ## [1.2.2] - 2026-07-14
 ### Fixed
