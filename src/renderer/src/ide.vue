@@ -155,8 +155,6 @@ const modalDimmerRef = ref(null);
 // Active Monaco reference variable accessible anywhere in this script block
 let editorInstance = null;
 
-
-
 const activeProjectName = ref('Loading...');
 
 onMounted(() => {
@@ -385,6 +383,56 @@ const handleFileSelection = async (node) => {
   }
 };
 
+const navigateToFileAndLine = async (filePath, lineNumber) => {
+  try {
+    let actualPath = filePath;
+
+    // If the path is just a raw filename (missing directory slashes), reconstruct it
+    if (!actualPath.includes('/') && !actualPath.includes('\\')) {
+      const ext = '.' + actualPath.split('.').pop().toLowerCase();
+      
+      // Reverse lookup the target folder from FILE_EXTENSION_MAP based on the extension
+      const matchedFolder = Object.keys(FILE_EXTENSION_MAP).find(
+        folder => FILE_EXTENSION_MAP[folder] === ext
+      );
+      
+      // Reattach the correct folder prefix if a match was found
+      if (matchedFolder) {
+        actualPath = `${matchedFolder}/${actualPath}`;
+      }
+    }
+
+    // 1. If it's not already open, load it using handleFileSelection
+    let targetTab = openTabs.value.find(t => t.path === actualPath);
+    
+    if (!targetTab) {
+      const fileName = actualPath.split(/[\\/]/).pop();
+      await handleFileSelection({ path: actualPath, name: fileName, isDir: false });
+    } else {
+      // 2. If it is already open, just make it the active tab
+      await setActiveTab(actualPath);
+    }
+
+    // 3. Let Vue and Monaco finish rendering the tab switch
+    await nextTick();
+    
+    setTimeout(() => {
+      const activeEditor = editorInstance || window.editorInstance;
+      if (activeEditor && lineNumber !== undefined && lineNumber !== 'Unknown') {
+        const parsedLine = parseInt(lineNumber, 10);
+        if (!isNaN(parsedLine)) {
+          // Instruct Monaco to scroll to and focus the exact line
+          activeEditor.revealLineInCenter(parsedLine);
+          activeEditor.setPosition({ lineNumber: parsedLine, column: 1 });
+          activeEditor.focus();
+        }
+      }
+    }, 50); // Small 50ms buffer to guarantee the model is cleanly attached
+
+  } catch (err) {
+    console.error("Failed to navigate to file/line:", err);
+  }
+};
 
 const closeTab = (path) => {
   const tabIndex = openTabs.value.findIndex(t => t.path === path);
@@ -645,6 +693,9 @@ onMounted(() => {
   window.addEventListener('keydown', handleGlobalShortcuts);
   window.addEventListener('resize', handleWindowResize);
 
+  // Mount the navigation function to the global window so Console.vue can trigger it directly
+  window.navigateToFileAndLine = navigateToFileAndLine;
+
   console.log("[DIAGNOSTIC] onMounted fired. Checking initial loader environment...");
   console.log("[DIAGNOSTIC] Current window.monaco state:", !!window.monaco);
   console.log("[DIAGNOSTIC] Targets found: #editor-container =", !!document.getElementById('editor-container'));
@@ -731,6 +782,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleGlobalShortcuts);
   window.removeEventListener('resize', handleWindowResize);
+  
+  // Clean up global function
+  if (window.navigateToFileAndLine) delete window.navigateToFileAndLine;
+
   if (editorInstance) {
     editorInstance.dispose();
     editorInstance = null;

@@ -2,6 +2,14 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
+## [1.3.0] - ?
+
+### Added
+- **In-Line "Jump to Error" Navigation:** Error listings in the bottom console are now fully interactive. Clicking a validation error or warning line instantly targets the specific file tab, opens it, and - drops the editor cursor directly onto the offending line for immediate fixing
+
+- **Console warning tab:** Add a warning tab inside the console that will show all warnings the compiler has(less important things that dont have to be fixed but are recommended to be fixed)
+
+
 ## [1.2.2] - 2026-07-14
 ### Fixed
 - **Compiler wide:** - Fixed the compiler not overriding the files in the output after first compilation and instead constantly appending lines (caused duplicate code).

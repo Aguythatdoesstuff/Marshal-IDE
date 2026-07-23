@@ -1,5 +1,5 @@
 <template>
-  <div class="console-panel">
+  <div class="console-panel" @click="closeContextMenu">
     <div class="console-header">
       <div class="tab-group">
         <div 
@@ -43,13 +43,27 @@
           v-for="(log, idx) in displayLogs" 
           :key="idx" 
           :class="['log-line', log.type, { clickable: log.fileRef !== undefined }]"
-          @click="handleLogClick(log)"
+          @click.stop="handleLogClick($event, log)"
         >
           <span v-if="log.timestamp" class="log-time">[{{ log.timestamp }}] </span>{{ log.text }}
         </div>
         <div v-if="displayLogs.length === 0" class="log-line empty-msg">
           &gt; {{ activeTab === 'errors' ? 'No syntax or compilation errors detected.' : activeTab === 'warnings' ? 'No syntax or compilation warnings detected.' : 'Console execution buffer cleared.' }}
         </div>
+      </div>
+    </div>
+
+    <div 
+      v-if="contextMenu.visible" 
+      class="context-menu" 
+      :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
+      @click.stop
+    >
+      <div class="context-menu-item" @click="goToError">
+        Go to {{ contextMenu.targetLog?.type === 'compiler-error' ? 'Error' : 'Warning' }}
+      </div>
+      <div class="context-menu-item" @click="copyError">
+        Copy {{ contextMenu.targetLog?.type === 'compiler-error' ? 'Error' : 'Warning' }}
       </div>
     </div>
   </div>
@@ -78,6 +92,13 @@ const emit = defineEmits(['toggle-minimize', 'clear-logs']);
 const consoleOutputElement = ref(null);
 const localLogs = ref([]);
 const activeTab = ref('console');
+
+const contextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  targetLog: null
+});
 
 // Determines if we are using the external custom prop (Importing) or local state (IDE)
 const actualLogs = computed(() => props.customLogs || localLogs.value);
@@ -123,10 +144,50 @@ const showConsoleMessage = (message, type = 'info-msg') => {
   });
 };
 
-const handleLogClick = (log) => {
+const handleLogClick = (event, log) => {
   if (log.type === 'compiler-error' || log.type === 'compiler-warning') {
-    console.log(`Clicked ${log.type}: File: ${log.fileRef}, Line: ${log.lineRef}`);
+    contextMenu.value = {
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
+      targetLog: log
+    };
+  } else {
+    closeContextMenu();
   }
+};
+
+const closeContextMenu = () => {
+  contextMenu.value.visible = false;
+  contextMenu.value.targetLog = null;
+};
+
+const goToError = () => {
+  if (contextMenu.value.targetLog) {
+    const log = contextMenu.value.targetLog;
+    
+    // Check if the global navigation function exists and fire it
+    if (window.navigateToFileAndLine) {
+      window.navigateToFileAndLine(log.fileRef, log.lineRef);
+    }
+    else
+    {
+      ipc.warn("Navigation function not available. Cannot go to file and line.");
+    }
+  }
+  closeContextMenu();
+};
+
+const copyError = () => {
+  if (contextMenu.value.targetLog) {
+    const logText = contextMenu.value.targetLog.text;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(logText).catch(err => {
+        ipc.warn("Failed to copy to clipboard:", err);
+      });
+    }
+  }
+  closeContextMenu();
 };
 
 // Replaces the localized nextTick push to securely watch the reactive model
@@ -277,7 +338,8 @@ $primary-blue: var(--primary-blue);
   background-color: $editor-bg;
   color: $text-color;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  overflow: hidden;       
+  overflow: hidden;
+  position: relative;
 }
 
 .console-header {
@@ -397,6 +459,28 @@ $primary-blue: var(--primary-blue);
     &.warning-msg, &.compiler-warning { color: #cca700; font-weight: 500; }
     &.error-msg, &.error, &.compiler-error { color: #f44747; font-weight: 500; }
     &.empty-msg { color: $text-muted; font-style: italic; opacity: 0.7; }
+  }
+}
+
+.context-menu {
+  position: fixed;
+  background-color: $sidebar-bg;
+  border: 1px solid $border-color;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  padding: 4px 0;
+  z-index: 1000;
+
+  .context-menu-item {
+    padding: 6px 14px;
+    font-size: 11px;
+    cursor: pointer;
+    color: $text-color;
+    transition: background-color 0.1s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
   }
 }
 </style>
