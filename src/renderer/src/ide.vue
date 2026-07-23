@@ -647,7 +647,10 @@ const commitModalAction = async () => {
     if (lastDotIndex !== -1) input = input.substring(0, lastDotIndex);
 
     const cleanFileName = `${input}${selectedExtension}`;
-    const lastSlash = targetNode.path.lastIndexOf('/');
+    
+    // Normalize path separators to accurately slice parent path across all OS formats
+    const normalizedPath = targetNode.path.replace(/\\/g, '/');
+    const lastSlash = normalizedPath.lastIndexOf('/');
     const parent = lastSlash !== -1 ? targetNode.path.substring(0, lastSlash + 1) : '';
     const newPath = `${parent}${cleanFileName}`;
 
@@ -661,7 +664,7 @@ const commitModalAction = async () => {
       if (activeTabPath.value === targetNode.path) activeTabPath.value = newPath;
       fileTreeRef.value?.refreshTree([...expandedFoldersRegistry.value]);
     }
-  } 
+  }
   else if (mode === 'delete' && targets && targets.length > 0) {
     for (const filePath of targets) {
       const res = await window.api.invoke('delete-file-or-dir', { path: filePath });
