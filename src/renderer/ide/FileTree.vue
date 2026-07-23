@@ -62,7 +62,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 
-// Centralized color mapping for file extensions.
 const FILE_COLOR_MAP = {
   '.decision': '#eab308',   // Yellow
   '.event': '#ef4444',      // Red
@@ -86,18 +85,12 @@ const props = defineProps({
   activePath: { type: String, default: null }
 });
 
-const emit = defineEmits(['file-selected', 'node-contextmenu', 'trigger-create', 'files-deleted']);
+const emit = defineEmits(['file-selected', 'node-contextmenu', 'trigger-create', 'request-delete']);
 
 const treeData = ref([]);
-
-// Track paths of folders that are manually opened by the user
 const openFoldersSet = ref(new Set());
-
-// Track multi-selected file paths (Files ONLY)
 const selectedFilePaths = ref(new Set());
 const lastSelectedNode = ref(null);
-
-// Drag & drop state
 const isDraggingOver = ref(false);
 
 const loadDirectory = async (dirPath = '') => {
@@ -117,11 +110,9 @@ const loadDirectory = async (dirPath = '') => {
 };
 
 const refreshTree = async () => {
-  // 1. Fetch the root directory items
   const rootNodes = await loadDirectory('');
   const newTreeData = rootNodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));
 
-  // 2. Re-hydrate any folders that were previously open by splicing their contents back in
   for (let i = 0; i < newTreeData.length; i++) {
     const node = newTreeData[i];
     
@@ -135,7 +126,6 @@ const refreshTree = async () => {
     }
   }
 
-  // 3. Commit state
   treeData.value = newTreeData;
 };
 
@@ -144,9 +134,13 @@ const isNodeSelected = (node) => {
   return selectedFilePaths.value.has(node.path);
 };
 
+const clearSelection = () => {
+  selectedFilePaths.value.clear();
+  lastSelectedNode.value = null;
+};
+
 const handleNodeClick = async (event, node) => {
   if (node.isDir) {
-    // Folders cannot be selected or deleted; handle expansion/collapse only
     node.isExpanded = !node.isExpanded;
     if (node.isExpanded) {
       openFoldersSet.value.add(node.path);
@@ -167,7 +161,7 @@ const handleNodeClick = async (event, node) => {
       treeData.value = treeData.value.filter(n => !n.path.startsWith(node.path + '/') && !n.path.startsWith(node.path + '\\'));
     }
   } else {
-    // Multi-selection logic for files ONLY
+    // Multi-selection range (Shift Key)
     if (event.shiftKey && lastSelectedNode.value && !lastSelectedNode.value.isDir) {
       const idxA = treeData.value.findIndex(n => n.path === lastSelectedNode.value.path);
       const idxB = treeData.value.findIndex(n => n.path === node.path);
@@ -176,7 +170,6 @@ const handleNodeClick = async (event, node) => {
         const start = Math.min(idxA, idxB);
         const end = Math.max(idxA, idxB);
 
-        // If not holding Ctrl/Cmd, clear previous selection range
         if (!event.ctrlKey && !event.metaKey) {
           selectedFilePaths.value.clear();
         }
@@ -188,14 +181,18 @@ const handleNodeClick = async (event, node) => {
           }
         }
       }
-    } else if (event.ctrlKey || event.metaKey) {
+    } 
+    // Toggle Selection (Ctrl / Cmd Key)
+    else if (event.ctrlKey || event.metaKey) {
       if (selectedFilePaths.value.has(node.path)) {
         selectedFilePaths.value.delete(node.path);
       } else {
         selectedFilePaths.value.add(node.path);
       }
       lastSelectedNode.value = node;
-    } else {
+    } 
+    // Single File Selection
+    else {
       selectedFilePaths.value.clear();
       selectedFilePaths.value.add(node.path);
       lastSelectedNode.value = node;
@@ -205,49 +202,27 @@ const handleNodeClick = async (event, node) => {
 };
 
 const handleContextMenu = (event, node) => {
-  // If right-clicking a file that isn't selected, make it the single selection.
-  // If right-clicking an already selected file in a multi-selection set, keep all selections intact.
   if (!node.isDir) {
     if (!selectedFilePaths.value.has(node.path)) {
       selectedFilePaths.value.clear();
       selectedFilePaths.value.add(node.path);
       lastSelectedNode.value = node;
     }
+  } else {
+    selectedFilePaths.value.clear();
   }
 
-  // Pass the full selected array along with the clicked node
   emit('node-contextmenu', event, node, Array.from(selectedFilePaths.value));
 };
 
-// Batch deletion of all selected files
-const deleteSelectedFiles = async () => {
-  if (selectedFilePaths.value.size === 0) return;
-
-  const pathsToDelete = Array.from(selectedFilePaths.value);
-  const confirmMsg = pathsToDelete.length === 1
-    ? `Are you sure you want to delete this file?`
-    : `Are you sure you want to delete these ${pathsToDelete.length} files?`;
-
-  if (window.confirm(confirmMsg)) {
-    for (const filePath of pathsToDelete) {
-      if (window.api && window.api.invoke) {
-        await window.api.invoke('delete-element', filePath);
-      }
-    }
-    selectedFilePaths.value.clear();
-    lastSelectedNode.value = null;
-    await refreshTree();
-    emit('files-deleted', pathsToDelete);
-  }
-};
-
 const handleKeyDown = (event) => {
-  if (event.key === 'Delete' || event.key === 'Backspace') {
-    deleteSelectedFiles();
+  if ((event.key === 'Delete' || event.key === 'Backspace') && selectedFilePaths.value.size > 0) {
+    event.preventDefault();
+    emit('request-delete', Array.from(selectedFilePaths.value));
   }
 };
 
-// --- Drag and Drop Handling (.dds files) ---
+// Drag & Drop Import (.dds files)
 const handleDragOver = (e) => {
   e.preventDefault();
   isDraggingOver.value = true;
@@ -263,51 +238,28 @@ const handleDragLeave = (e) => {
   isDraggingOver.value = false;
 };
 
-// --- FileTree.vue ---
-
-// --- FileTree.vue ---
-
 const handleDrop = async (e) => {
-  console.log('[FileTree] Drop event triggered:', e);
   isDraggingOver.value = false;
-  
   const rawFiles = e.dataTransfer?.files ? Array.from(e.dataTransfer.files) : [];
-  console.log('[FileTree] Raw dropped files count:', rawFiles.length);
 
-  // Extract valid file paths using webUtils (cross-platform Linux/Windows support)
   const ddsFilePaths = rawFiles
     .filter(f => f.name && f.name.toLowerCase().endsWith('.dds'))
     .map(f => {
-      // 1. Try Electron webUtils helper (Electron 28+)
       if (window.api && typeof window.api.getPathForFile === 'function') {
         try {
           return window.api.getPathForFile(f);
         } catch (err) {
-          console.warn('[FileTree] webUtils.getPathForFile failed for file:', f.name, err);
+          console.warn('[FileTree] getPathForFile failed:', err);
         }
       }
-      // 2. Fallback to direct path property (Legacy Electron versions)
       return f.path || null;
     })
-    .filter(filePath => Boolean(filePath)); // Remove null/undefined entries
+    .filter(Boolean);
 
-  console.log('[FileTree] Resolved .dds OS file paths:', ddsFilePaths);
-
-  if (ddsFilePaths.length === 0) {
-    console.warn('[FileTree] No valid .dds file paths could be resolved from dropped items.');
-    return;
-  }
+  if (ddsFilePaths.length === 0) return;
 
   if (window.api && window.api.invoke) {
-    console.log('[FileTree] Invoking "import-image" IPC with:', { sourcePath: ddsFilePaths });
-    try {
-      const response = await window.api.invoke('import-image', { sourcePath: ddsFilePaths });
-      console.log('[FileTree] IPC "import-image" returned response:', response);
-    } catch (err) {
-      console.error('[FileTree] IPC "import-image" call threw an error:', err);
-    }
-  } else {
-    console.error('[FileTree] CRITICAL: window.api or window.api.invoke is not available on renderer context!');
+    await window.api.invoke('import-image', { sourcePath: ddsFilePaths });
   }
 
   await refreshTree();
@@ -315,7 +267,7 @@ const handleDrop = async (e) => {
 
 defineExpose({ 
   refreshTree,
-  deleteSelectedFiles,
+  clearSelection,
   getSelectedFiles: () => Array.from(selectedFilePaths.value)
 });
 

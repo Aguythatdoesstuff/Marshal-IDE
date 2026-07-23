@@ -38,7 +38,7 @@
         @file-selected="handleFileSelection"
         @node-contextmenu="openContextMenu"
         @trigger-create="triggerCreateModal"
-        @folder-toggled="handleFolderToggleState"
+        @request-delete="triggerDeleteAction"
       />
       
       <div class="pane-divider-v" @mousedown="startWorkspaceResize"></div>
@@ -90,7 +90,14 @@
       
       <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="popover-row" @click="triggerRenameModal(contextMenu.targetNode)">Rename</div>
       <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="popover-divider"></div>
-      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="popover-row alert-action" @click="triggerDeleteAction(contextMenu.targetNode)">Delete</div>
+      
+      <div 
+        v-if="contextMenu.selectedPaths.length > 0 || (contextMenu.targetNode && !contextMenu.targetNode.isDir)" 
+        class="popover-row alert-action" 
+        @click="triggerDeleteAction()"
+      >
+        Delete {{ contextMenu.selectedPaths.length > 1 ? `(${contextMenu.selectedPaths.length} items)` : '' }}
+      </div>
     </div>
 
     <div class="modal-system-dimmer" v-if="closeConfirmVisible" @keydown.esc="handleConfirmCloseCancel" tabindex="-1">
@@ -112,7 +119,7 @@
         <h3 class="modal-heading">{{ modal.title }}</h3>
         <p class="modal-body">{{ modal.body }}</p>
         
-        <div class="modal-input-container" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
+        <div v-if="modal.mode !== 'delete'" class="modal-input-container" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
           <div v-if="modal.mode === 'create'" style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
             <label style="font-size: 11px; color: #aaaaaa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Target Folder Context</label>
             <select v-model="modal.targetNode" @change="handleFolderChange" class="modal-text-field dark-forced-input">
@@ -121,7 +128,7 @@
             </select>
           </div>
 
-          <div v-if="modal.mode !== 'confirm'" style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
+          <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
             <label style="font-size: 11px; color: #aaaaaa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Name & Compiler Extension</label>
             <div style="display: flex; gap: 8px; width: 100%;">
               <input type="text" v-model="modal.inputValue" :placeholder="modal.placeholder" class="modal-text-field dark-forced-input" style="flex: 1;">
@@ -132,12 +139,14 @@
               </select>
             </div>
           </div>
-      </div>
+        </div>
       
-      <div class="modal-actions-row">
-        <button class="ui-btn standard-action" @click="modal.visible = false">Cancel</button>
-        <button class="ui-btn primary-action" @click="commitModalAction">Confirm</button>
-      </div>
+        <div class="modal-actions-row">
+          <button class="ui-btn standard-action" @click="modal.visible = false">Cancel</button>
+          <button :class="['ui-btn', modal.mode === 'delete' ? 'destructive-action' : 'primary-action']" @click="commitModalAction">
+            {{ modal.mode === 'delete' ? 'Delete' : 'Confirm' }}
+          </button>
+        </div>
         
       </div>
     </div>
@@ -151,46 +160,37 @@ import FileTreePanel from '../ide/FileTree.vue';
 import { FILE_EXTENSION_MAP, getMonacoLanguage, defineDslLanguages } from '../ide/components/hoi4/config.js';
 
 const modalDimmerRef = ref(null);
-
-// Active Monaco reference variable accessible anywhere in this script block
 let editorInstance = null;
 
 const activeProjectName = ref('Loading...');
 
 onMounted(() => {
-  // Sync the UI header text to match the project loaded via localStorage
   activeProjectName.value = localStorage.getItem('marshal_project_to_load') || 'No Active Project';
 });
 
 const handleExitWorkspace = async () => {
   try {
-    // Notify the main process to shut down background tasks and safely transition the view
     await window.api.invoke('unload-project');
   } catch (err) {
     console.error('Failed to execute unmount sequence through main process routing handler:', err);
   }
 };
 
-// Isolated layout states
 const sidebarWidth = ref(260);
 const consoleHeight = ref(240);
 const isConsoleMinimized = ref(false);
 const isResizing = ref(false);
 
-// Active Tab and Editor Instance Registries
 const fileTreeRef = ref(null);
 const openTabs = ref([]);
 const activeTabPath = ref(null);
-let isUpdatingModelFromState = false;
-let isSwitchingTab = false; // Anti-reentrancy lock to prevent freeze loops
+let isSwitchingTab = false;
 const expandedFoldersRegistry = ref(new Set());
 
-// Confirmation interceptor state for tabs with unsaved dirty code modifications
 const closeConfirmVisible = ref(false);
 const pendingClosePath = ref(null);
 
-// Overlays Context System State Management
-const contextMenu = ref({ visible: false, x: 0, y: 0, targetNode: null });
+const contextMenu = ref({ visible: false, x: 0, y: 0, targetNode: null, selectedPaths: [] });
 const modal = ref({ 
   visible: false, 
   title: '', 
@@ -198,24 +198,21 @@ const modal = ref({
   placeholder: '', 
   inputValue: '', 
   mode: '', 
-  targetNode: '', // Holds string paths for creation targets
+  targets: [], 
+  targetNode: '', 
   selectedExtension: '.unknown', 
   availableFolders: [] 
 });
 
-// Auto-switches the extension dropdown when the folder choice shifts
 const handleFolderChange = () => {
   if (!modal.value.targetNode) return;
   const normalized = modal.value.targetNode.replace(/\\/g, '/');
   const pathSegments = normalized.split('/');
   const parentFolder = pathSegments[pathSegments.length - 1].toLowerCase().trim();
   modal.value.selectedExtension = FILE_EXTENSION_MAP[parentFolder] || '.unknown';
-  
   expandedFoldersRegistry.value.add(modal.value.targetNode);
 };
 
-
-// Trap standard Enter/Escape keyboard layout shortcuts inside operational modals
 const handleModalKeyDown = (event) => {
   if (event.key === 'Escape') {
     event.preventDefault();
@@ -224,23 +221,19 @@ const handleModalKeyDown = (event) => {
   } 
   else if (event.key === 'Enter') {
     if (event.target.tagName === 'TEXTAREA') return;
-    
     event.preventDefault();
     event.stopPropagation();
     commitModalAction();
   }
 };
 
-// Instantly force focus onto the modal overlay container the microsecond it appears
 watch(() => modal.value.visible, async (isVisible) => {
   if (isVisible) {
     await nextTick();
-    // Yank focus away from the main window view directly to the modal wrapper
     modalDimmerRef.value?.focus();
   }
 });
 
-// Direct access custom click directive
 const vClickOutside = {
   mounted(el, binding) {
     el.clickOutsideEvent = (event) => {
@@ -254,10 +247,9 @@ const vClickOutside = {
     document.removeEventListener('mousedown', el.clickOutsideEvent);
   }
 };
+
 const setActiveTab = async (path) => {
-  if (isSwitchingTab) {
-    return;
-  }
+  if (isSwitchingTab) return;
 
   isSwitchingTab = true;
   activeTabPath.value = path;
@@ -273,7 +265,6 @@ const setActiveTab = async (path) => {
   const activeEditor = editorInstance || window.editorInstance;
   const monacoGlobal = window.monaco;
 
-
   if (activeEditor && monacoGlobal) {
     try {
       if (!targetTab.monacoModel) {
@@ -282,10 +273,8 @@ const setActiveTab = async (path) => {
         
         let modelInstance = monacoGlobal.editor.getModel(modelUri);
         
-        if (modelInstance) {
-        } else {
+        if (!modelInstance) {
           modelInstance = monacoGlobal.editor.createModel(targetTab.content, languageId, modelUri);
-          
           modelInstance.onDidChangeContent(() => {
             const currentVal = modelInstance.getValue();
             if (targetTab.content !== currentVal) {
@@ -295,25 +284,19 @@ const setActiveTab = async (path) => {
         }
         
         targetTab.monacoModel = modelInstance ? markRaw(modelInstance) : null;
-      } else {
       }
 
-      // Strip any reactive proxies clean before sending the object into the native framework
       const cleanNativeModel = toRaw(targetTab.monacoModel);
-
       activeEditor.setModel(cleanNativeModel);
       
       const currentLanguageId = getMonacoLanguage(path);
       
-      // Wrap in a safe microtask deferred timeout to let the editor frame paint the text first
       setTimeout(() => {
         try {
-          // Verify model validity and pass raw reference to escape proxy boundaries
           if (cleanNativeModel && typeof cleanNativeModel.isDisposed === 'function' && !cleanNativeModel.isDisposed()) {
             monacoGlobal.editor.setModelLanguage(cleanNativeModel, currentLanguageId);
           }
-        } catch (langErr) {
-        }
+        } catch (langErr) {}
       }, 0);
 
     } catch (runtimeErr) {
@@ -324,6 +307,7 @@ const setActiveTab = async (path) => {
     isSwitchingTab = false;
   }
 };
+
 const handleFileSelection = async (node) => {
   if (!node || node.isDir) return;
 
@@ -333,10 +317,8 @@ const handleFileSelection = async (node) => {
     if (!existingTab) {
       const res = await window.api.invoke('get-file-content', { filePath: node.path });
       
-      // Handle both boolean success and raw object returns depending on your exact wrapper
       if (res && (res.success !== false)) {
         const rawContent = typeof res === 'string' ? res : (res.content || '');
-        
         const monacoGlobal = window.monaco;
         let tabModel = null;
         
@@ -344,7 +326,6 @@ const handleFileSelection = async (node) => {
           const languageId = getMonacoLanguage(node.path);
           const modelUri = monacoGlobal.Uri.file(node.path);
           
-          // Look up existing global model instances first
           tabModel = monacoGlobal.editor.getModel(modelUri);
           
           if (!tabModel) {
@@ -375,7 +356,6 @@ const handleFileSelection = async (node) => {
       }
     }
 
-    // Set active pointer and update Monaco display
     await setActiveTab(node.path);
 
   } catch (err) {
@@ -387,33 +367,25 @@ const navigateToFileAndLine = async (filePath, lineNumber) => {
   try {
     let actualPath = filePath;
 
-    // If the path is just a raw filename (missing directory slashes), reconstruct it
     if (!actualPath.includes('/') && !actualPath.includes('\\')) {
       const ext = '.' + actualPath.split('.').pop().toLowerCase();
-      
-      // Reverse lookup the target folder from FILE_EXTENSION_MAP based on the extension
       const matchedFolder = Object.keys(FILE_EXTENSION_MAP).find(
         folder => FILE_EXTENSION_MAP[folder] === ext
       );
-      
-      // Reattach the correct folder prefix if a match was found
       if (matchedFolder) {
         actualPath = `${matchedFolder}/${actualPath}`;
       }
     }
 
-    // 1. If it's not already open, load it using handleFileSelection
     let targetTab = openTabs.value.find(t => t.path === actualPath);
     
     if (!targetTab) {
       const fileName = actualPath.split(/[\\/]/).pop();
       await handleFileSelection({ path: actualPath, name: fileName, isDir: false });
     } else {
-      // 2. If it is already open, just make it the active tab
       await setActiveTab(actualPath);
     }
 
-    // 3. Let Vue and Monaco finish rendering the tab switch
     await nextTick();
     
     setTimeout(() => {
@@ -421,13 +393,12 @@ const navigateToFileAndLine = async (filePath, lineNumber) => {
       if (activeEditor && lineNumber !== undefined && lineNumber !== 'Unknown') {
         const parsedLine = parseInt(lineNumber, 10);
         if (!isNaN(parsedLine)) {
-          // Instruct Monaco to scroll to and focus the exact line
           activeEditor.revealLineInCenter(parsedLine);
           activeEditor.setPosition({ lineNumber: parsedLine, column: 1 });
           activeEditor.focus();
         }
       }
-    }, 50); // Small 50ms buffer to guarantee the model is cleanly attached
+    }, 50);
 
   } catch (err) {
     console.error("Failed to navigate to file/line:", err);
@@ -440,18 +411,15 @@ const closeTab = (path) => {
 
   const targetTab = openTabs.value[tabIndex];
 
-  // Intercept close request if tab has pending, unsaved modifications
   if (targetTab.isDirty) {
     pendingClosePath.value = path;
     closeConfirmVisible.value = true;
-    return; // Halt closing sequence until client confirms structural intent
+    return;
   }
 
-  // Fallthrough to standard clean closure routine if tab is not dirty
   executeForceCloseTab(path);
 };
 
-// Extracted baseline closure handler to run once confirmation checks pass
 const executeForceCloseTab = (path) => {
   const tabIndex = openTabs.value.findIndex(t => t.path === path);
   if (tabIndex === -1) return;
@@ -459,7 +427,6 @@ const executeForceCloseTab = (path) => {
   const targetTab = openTabs.value[tabIndex];
   const activeEditor = editorInstance || window.editorInstance;
 
-  // Synchronously detach the model from the active editor BEFORE disposing it
   if (activeTabPath.value === path && activeEditor && window.monaco) {
     if (openTabs.value.length > 1) {
       const nextIndex = tabIndex === openTabs.value.length - 1 ? tabIndex - 1 : tabIndex + 1;
@@ -478,7 +445,6 @@ const executeForceCloseTab = (path) => {
     }
   }
 
-  // Safe to dispose now that the editor view is completely decoupled
   if (targetTab?.monacoModel?.dispose) {
     targetTab.monacoModel.dispose();
   } else {
@@ -491,12 +457,8 @@ const executeForceCloseTab = (path) => {
 
 const handleConfirmCloseSave = async () => {
   if (!pendingClosePath.value) return;
-  
-  // 1. Activate the tab to ensure saveActiveFile captures its current content
   await setActiveTab(pendingClosePath.value);
   await saveActiveFile();
-  
-  // 2. Clear state pointers and force closure
   const path = pendingClosePath.value;
   pendingClosePath.value = null;
   closeConfirmVisible.value = false;
@@ -505,12 +467,10 @@ const handleConfirmCloseSave = async () => {
 
 const handleConfirmCloseDiscard = () => {
   if (!pendingClosePath.value) return;
-  
   const path = pendingClosePath.value;
   pendingClosePath.value = null;
   closeConfirmVisible.value = false;
   
-  // Reset dirty state to clear closure intercept gates
   const targetTab = openTabs.value.find(t => t.path === path);
   if (targetTab) targetTab.isDirty = false;
   
@@ -527,7 +487,6 @@ const saveActiveFile = async () => {
   const currentTab = openTabs.value.find(t => t.path === activeTabPath.value);
   if (!currentTab) return;
 
-  // Retrieve code from the tab's dedicated multi-model structure
   const modelToSave = currentTab.monacoModel || editorInstance.getModel();
   if (!modelToSave) return;
 
@@ -539,7 +498,6 @@ const saveActiveFile = async () => {
   }
 };
 
-// Global Hotkey Interception Hook (Preventing Save Fighting)
 const handleGlobalShortcuts = (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
     e.preventDefault();
@@ -548,10 +506,14 @@ const handleGlobalShortcuts = (e) => {
 };
 
 // Context Overlay Hooks
-const openContextMenu = (e, node) => {
-  contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, targetNode: node };
+const openContextMenu = (e, node, selectedPaths = []) => {
+  const paths = selectedPaths.length > 0 ? selectedPaths : (node && !node.isDir ? [node.path] : []);
+  contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, targetNode: node, selectedPaths: paths };
 };
-const closeContextMenu = () => { contextMenu.value.visible = false; };
+
+const closeContextMenu = () => { 
+  contextMenu.value.visible = false; 
+};
 
 const triggerCreateModal = (parentPath = '') => {
   closeContextMenu();
@@ -570,6 +532,7 @@ const triggerCreateModal = (parentPath = '') => {
     placeholder: 'my_new_file', 
     inputValue: '', 
     mode: 'create', 
+    targets: [],
     targetNode: parentPath,
     selectedExtension: initialExt,
     availableFolders: Object.keys(FILE_EXTENSION_MAP)
@@ -578,7 +541,7 @@ const triggerCreateModal = (parentPath = '') => {
 
 const triggerRenameModal = (node) => {
   closeContextMenu();
-  if (node.isDir) return; // Block folders completely
+  if (node.isDir) return;
 
   const originalExt = '.' + node.path.split('.').pop().toLowerCase();
   let baseName = node.name;
@@ -594,22 +557,49 @@ const triggerRenameModal = (node) => {
     placeholder: baseName, 
     inputValue: baseName, 
     mode: 'rename', 
+    targets: [node.path],
     targetNode: node,
     selectedExtension: originalExt,
     availableFolders: Object.keys(FILE_EXTENSION_MAP)
   };
 };
 
-const triggerDeleteAction = (node) => {
+// Unified Multi-File and Single-File Deletion Trigger
+const triggerDeleteAction = (pathsOverride = null) => {
   closeContextMenu();
-  if (node.isDir) return; // Block folders completely
-  modal.value = { visible: true, title: 'Delete', body: `Are you sure you want to permanently delete "${node.name}"?`, placeholder: '', inputValue: '', mode: 'confirm', targetNode: node };
+
+  let targetPaths = [];
+  if (Array.isArray(pathsOverride) && pathsOverride.length > 0) {
+    targetPaths = pathsOverride;
+  } else if (contextMenu.value.selectedPaths.length > 0) {
+    targetPaths = [...contextMenu.value.selectedPaths];
+  } else if (contextMenu.value.targetNode && !contextMenu.value.targetNode.isDir) {
+    targetPaths = [contextMenu.value.targetNode.path];
+  }
+
+  if (targetPaths.length === 0) return;
+
+  const title = targetPaths.length > 1 ? 'Delete Multiple Files' : 'Delete File';
+  const body = targetPaths.length > 1
+    ? `Are you sure you want to permanently delete these ${targetPaths.length} selected files?`
+    : `Are you sure you want to permanently delete "${targetPaths[0].split(/[/\\]/).pop()}"?`;
+
+  modal.value = { 
+    visible: true, 
+    title, 
+    body, 
+    placeholder: '', 
+    inputValue: '', 
+    mode: 'delete', 
+    targets: targetPaths,
+    targetNode: contextMenu.value.targetNode,
+    selectedExtension: '.unknown', 
+    availableFolders: Object.keys(FILE_EXTENSION_MAP) 
+  };
 };
 
 const handleRecompileAll = async () => {
   try {
-    // Triggers the main process IPC channel, which will pass the action 
-    // down to the active watcher_workspace child process thread
     await window.api.invoke('recompile-all');
   } catch (err) {
     console.error('Failed to trigger full workspace recompilation:', err);
@@ -620,7 +610,6 @@ const handleImportImage = async () => {
   try {
     const res = await window.api.invoke('import-image');
     if (res && res.success) {
-      // Trigger our non-destructive flat tree refresher to instantly show the new .dds assets
       fileTreeRef.value?.refreshTree();
     } else if (res && res.message && !res.message.includes('cancelled')) {
       console.warn(`Import warning notice structural stack trace: ${res.message}`);
@@ -631,19 +620,16 @@ const handleImportImage = async () => {
 };
 
 const commitModalAction = async () => {
-  const { mode, targetNode, inputValue, selectedExtension } = modal.value;
-  let input = inputValue.trim();
-  if (!input && mode !== 'confirm') return;
-
-  // Strip any manually written dots/extensions from input
-  const lastDotIndex = input.lastIndexOf('.');
-  if (lastDotIndex !== -1) {
-    input = input.substring(0, lastDotIndex);
-  }
-
-  const cleanFileName = `${input}${selectedExtension}`;
+  const { mode, targetNode, inputValue, selectedExtension, targets } = modal.value;
 
   if (mode === 'create') {
+    let input = inputValue.trim();
+    if (!input) return;
+    const lastDotIndex = input.lastIndexOf('.');
+    if (lastDotIndex !== -1) input = input.substring(0, lastDotIndex);
+
+    const cleanFileName = `${input}${selectedExtension}`;
+
     if (!targetNode) {
       alert('Please select a target folder first.');
       return;
@@ -651,12 +637,16 @@ const commitModalAction = async () => {
     const finalPath = `${targetNode}/${cleanFileName}`;
     const res = await window.api.invoke('create-file', { filePath: finalPath });
     if (res && res.success) {
-      // Refresh and feed the currently open folder paths straight back into the tree
       fileTreeRef.value?.refreshTree([...expandedFoldersRegistry.value]);
     }
   } 
-  
   else if (mode === 'rename' && targetNode) {
+    let input = inputValue.trim();
+    if (!input) return;
+    const lastDotIndex = input.lastIndexOf('.');
+    if (lastDotIndex !== -1) input = input.substring(0, lastDotIndex);
+
+    const cleanFileName = `${input}${selectedExtension}`;
     const lastSlash = targetNode.path.lastIndexOf('/');
     const parent = lastSlash !== -1 ? targetNode.path.substring(0, lastSlash + 1) : '';
     const newPath = `${parent}${cleanFileName}`;
@@ -672,13 +662,15 @@ const commitModalAction = async () => {
       fileTreeRef.value?.refreshTree([...expandedFoldersRegistry.value]);
     }
   } 
-  
-  else if (mode === 'confirm' && targetNode) {
-    const res = await window.api.invoke('delete-file-or-dir', { path: targetNode.path });
-    if (res && res.success) { 
-      closeTab(targetNode.path); 
-      fileTreeRef.value?.refreshTree([...expandedFoldersRegistry.value]); 
+  else if (mode === 'delete' && targets && targets.length > 0) {
+    for (const filePath of targets) {
+      const res = await window.api.invoke('delete-file-or-dir', { path: filePath });
+      if (res && res.success) {
+        executeForceCloseTab(filePath);
+      }
     }
+    fileTreeRef.value?.clearSelection();
+    fileTreeRef.value?.refreshTree([...expandedFoldersRegistry.value]);
   }
 
   modal.value.visible = false;
@@ -692,21 +684,11 @@ const handleWindowResize = () => {
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalShortcuts);
   window.addEventListener('resize', handleWindowResize);
-
-  // Mount the navigation function to the global window so Console.vue can trigger it directly
   window.navigateToFileAndLine = navigateToFileAndLine;
 
-  console.log("[DIAGNOSTIC] onMounted fired. Checking initial loader environment...");
-  console.log("[DIAGNOSTIC] Current window.monaco state:", !!window.monaco);
-  console.log("[DIAGNOSTIC] Targets found: #editor-container =", !!document.getElementById('editor-container'));
-
-  let passCount = 0;
-
-  // Execution loop replaced with a clean, single-pass async initialization routine
   const initMonacoInstance = async () => {
     let monacoGlobal = window.monaco || (typeof monaco !== 'undefined' ? monaco : null);
 
-    // Explicitly configure Monaco environment providers to treat worker compilation safely inline
     window.MonacoEnvironment = {
       getWorker: function (workerId, label) {
         return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker.js', import.meta.url), {
@@ -732,11 +714,7 @@ onMounted(() => {
       const container = document.getElementById('editor-container');
       if (!container) return;
 
-      // Check if Monaco is already mounted to prevent double execution errors
-      if (editorInstance || window.editorInstance) {
-        console.log("[DIAGNOSTIC] Monaco is already mapped to the workspace layout container.");
-        return;
-      }
+      if (editorInstance || window.editorInstance) return;
 
       try {
         container.innerHTML = ''; 
@@ -776,14 +754,13 @@ onMounted(() => {
     }
   };
 
-  // Run the initialization single-pass directly
   initMonacoInstance();
 });
+
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleGlobalShortcuts);
   window.removeEventListener('resize', handleWindowResize);
   
-  // Clean up global function
   if (window.navigateToFileAndLine) delete window.navigateToFileAndLine;
 
   if (editorInstance) {
@@ -795,12 +772,11 @@ onBeforeUnmount(() => {
   }
 });
 
-
 const startWorkspaceResize = (e) => {
   isResizing.value = true;
   const processMouseMove = (moveEvent) => {
     sidebarWidth.value = Math.min(Math.max(moveEvent.clientX, 180), window.innerWidth * 0.6);
-    editorInstance?.layout(); // Forces canvas updates in unison with sizing handles
+    editorInstance?.layout();
   };
   const processMouseUp = () => {
     isResizing.value = false;
@@ -820,7 +796,6 @@ const startConsoleResize = (e) => {
     const deltaY = moveEvent.clientY - startY;
     const targetHeight = startHeight - deltaY;
     
-    // Auto-minimize if dragged lower than 45px threshold height
     if (targetHeight < 45) {
       isConsoleMinimized.value = true;
     } else {
@@ -845,7 +820,6 @@ const handleToggleMinimize = () => {
 </script>
 
 <style lang="scss" scoped>
-// Safely inherit alias mappings from main.scss
 $sidebar-bg: var(--sidebar-bg);
 $editor-bg: var(--editor-bg);
 $card-bg: var(--card-bg);
@@ -868,14 +842,12 @@ $text-muted: var(--text-muted);
     cursor: col-resize !important;
     user-select: none !important;
 
-    // Neutralizes Monaco's canvas tracking logic to prevent mouse frame freezing during drags
     .monaco-mount-target {
       pointer-events: none !important;
     }
   }
 }
 
-// Interactive Tab Line SASS Stylings
 .editor-tabs-bar {
   display: flex; height: 35px; background-color: rgba(0, 0, 0, 0.15); border-bottom: 1px solid $border-color; overflow-x: auto; overflow-y: hidden;
   &::-webkit-scrollbar { height: 3px; }
@@ -964,60 +936,6 @@ $text-muted: var(--text-muted);
   width: 100%;
 }
 
-.sidebar-column {
-  background-color: $sidebar-bg;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: 100%;
-  flex-shrink: 0;
-
-  .column-header {
-    height: 38px;
-    border-bottom: 1px solid $border-color;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 14px;
-    background-color: rgba(0, 0, 0, 0.1);
-
-    .header-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: $text-muted;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .header-action-btn {
-      background: rgba(255, 255, 255, 0.06); 
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: $text-color;
-      cursor: pointer;
-      padding: 3px 4px; 
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      transition: background-color 0.15s, color 0.15s, border-color 0.15s;
-
-      svg { 
-        width: 18px; 
-        height: 18px; 
-      }
-      &:hover { 
-        color: #ffffff; 
-        background-color: rgba(0, 122, 204, 0.25); 
-        border-color: $primary-blue;
-      }
-    }
-  }
-
-  .tree-inner-scroller {
-    flex: 1;
-    overflow-y: auto;
-  }
-}
-
 .pane-divider-v {
   width: 4px;
   background-color: $border-color;
@@ -1085,7 +1003,6 @@ $text-muted: var(--text-muted);
   width: 100%;
   background-color: $editor-bg;
 
-  /* Force the locally imported component layout to follow structural dimensions */
   .console-panel-component {
     display: flex !important;
     flex-direction: column !important;
@@ -1133,7 +1050,6 @@ $text-muted: var(--text-muted);
   }
 }
 
-// Global forced overrides to eliminate light grey text on light OS themes
 .dark-forced-input {
   background-color: #1a1a1a !important;
   color: #ffffff !important;
