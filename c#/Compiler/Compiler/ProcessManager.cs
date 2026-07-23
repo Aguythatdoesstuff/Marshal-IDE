@@ -9,6 +9,7 @@ namespace Compiler
     public class ProcessManager
     {
         public List<ValidationError> AllErrors { get; private set; } = new List<ValidationError>();
+        public List<ValidationWarning> AllWarnings { get; private set; } = new List<ValidationWarning>();
 
         private static readonly string[] SupportedExtensions = new[]
         {
@@ -30,6 +31,7 @@ namespace Compiler
             BaseCompiler.ResetCreatedOutputFiles();
 
             AllErrors.Clear();
+            AllWarnings.Clear();
 
             var tasks = new List<System.Threading.Tasks.Task>();
             foreach (var path in filePaths)
@@ -62,11 +64,11 @@ namespace Compiler
         private void PrintTemporaryErrors()
         {
             // Produce only a raw JSON report so external tools (JS) can parse it directly.
-            if (!AllErrors.Any())
+            if (!AllErrors.Any() && !AllWarnings.Any())
             {
                 try
                 {
-                    var emptyReport = new { TotalErrors = 0, Files = new object[0] };
+                    var emptyReport = new { TotalErrors = 0, TotalWarnings = 0, Files = new object[0] };
                     var emptyOptions = new JsonSerializerOptions { WriteIndented = true };
                     var emptyJson = JsonSerializer.Serialize(emptyReport, emptyOptions);
                     Compiler.Logging.Logger.LogMain(emptyJson);
@@ -77,17 +79,21 @@ namespace Compiler
                 return;
             }
 
-            // Build a structured report grouped by file
-            var report = AllErrors
-                .GroupBy(e => e.FileName, StringComparer.OrdinalIgnoreCase)
-                .Select(g => new
+            // Build a structured report grouped by file (include warnings)
+            var fileNames = AllErrors.Select(e => e.FileName).Concat(AllWarnings.Select(w => w.FileName)).Distinct(StringComparer.OrdinalIgnoreCase);
+
+            var report = fileNames
+                .Select(fn => new
                 {
-                    File = g.Key,
-                    Errors = g.Select(e => new { Line = e.LineNumber, Message = e.ErrorMessage }).ToList()
+                    File = fn,
+                    Errors = AllErrors.Where(e => string.Equals(e.FileName, fn, StringComparison.OrdinalIgnoreCase))
+                                        .Select(e => new { line = e.LineNumber, message = e.ErrorMessage }).ToList(),
+                    Warnings = AllWarnings.Where(w => string.Equals(w.FileName, fn, StringComparison.OrdinalIgnoreCase))
+                                        .Select(w => new { line = w.LineNumber, message = w.WarningMessage }).ToList()
                 })
                 .ToList();
 
-            var reportWrapper = new { TotalErrors = AllErrors.Count, Files = report };
+            var reportWrapper = new { TotalErrors = AllErrors.Count, TotalWarnings = AllWarnings.Count, Files = report };
 
             var options = new JsonSerializerOptions
             {
@@ -144,6 +150,8 @@ namespace Compiler
                 lock (AllErrors)
                 {
                     AllErrors.AddRange(validator.Errors);
+                    // Collect warnings produced by the validator so they can be reported back to the caller
+                    AllWarnings.AddRange(validator.Warnings);
                     var parserErrors = validator.GetParserErrors();
                     foreach (var pe in parserErrors)
                     {

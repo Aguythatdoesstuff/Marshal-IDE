@@ -16,6 +16,14 @@
           Errors 
           <span v-if="errorCount > 0" class="error-badge">{{ errorCount }}</span>
         </div>
+        <div 
+          v-if="showErrorsTab" 
+          :class="['tab-label', { active: activeTab === 'warnings' }]" 
+          @click="activeTab = 'warnings'"
+        >
+          Warnings 
+          <span v-if="warningCount > 0" class="warning-badge">{{ warningCount }}</span>
+        </div>
       </div>
 
       <div class="control-group">
@@ -31,11 +39,16 @@
 
     <div v-show="!isMinimized" class="console-body" ref="consoleOutputElement">
       <div class="log-stream-container">
-        <div v-for="(log, idx) in displayLogs" :key="idx" :class="['log-line', log.type]">
+        <div 
+          v-for="(log, idx) in displayLogs" 
+          :key="idx" 
+          :class="['log-line', log.type, { clickable: log.fileRef !== undefined }]"
+          @click="handleLogClick(log)"
+        >
           <span v-if="log.timestamp" class="log-time">[{{ log.timestamp }}] </span>{{ log.text }}
         </div>
         <div v-if="displayLogs.length === 0" class="log-line empty-msg">
-          &gt; {{ activeTab === 'errors' ? 'No syntax or compilation errors detected.' : 'Console execution buffer cleared.' }}
+          &gt; {{ activeTab === 'errors' ? 'No syntax or compilation errors detected.' : activeTab === 'warnings' ? 'No syntax or compilation warnings detected.' : 'Console execution buffer cleared.' }}
         </div>
       </div>
     </div>
@@ -74,13 +87,21 @@ const displayLogs = computed(() => {
   if (activeTab.value === 'errors') {
     return actualLogs.value.filter(log => log.type === 'compiler-error');
   }
-  // Standard console tab displays absolutely everything EXCEPT the pretty compiler error rows
-  return actualLogs.value.filter(log => log.type !== 'compiler-error');
+  if (activeTab.value === 'warnings') {
+    return actualLogs.value.filter(log => log.type === 'compiler-warning');
+  }
+  // Standard console tab displays absolutely everything EXCEPT the pretty compiler error/warning rows
+  return actualLogs.value.filter(log => log.type !== 'compiler-error' && log.type !== 'compiler-warning');
 });
 
 // Provides dynamic count for the badge based strictly on active compiler errors
 const errorCount = computed(() => {
   return actualLogs.value.filter(log => log.type === 'compiler-error').length;
+});
+
+// Provides dynamic count for the badge based strictly on active compiler warnings
+const warningCount = computed(() => {
+  return actualLogs.value.filter(log => log.type === 'compiler-warning').length;
 });
 
 const clearLogs = () => {
@@ -100,6 +121,12 @@ const showConsoleMessage = (message, type = 'info-msg') => {
     text: message,
     type: type
   });
+};
+
+const handleLogClick = (log) => {
+  if (log.type === 'compiler-error' || log.type === 'compiler-warning') {
+    console.log(`Clicked ${log.type}: File: ${log.fileRef}, Line: ${log.lineRef}`);
+  }
 };
 
 // Replaces the localized nextTick push to securely watch the reactive model
@@ -144,9 +171,9 @@ const handleIncomingLog = (logData) => {
         const payload = parsed.payload;
 
         if (payload) {
-          // If the compiler returns zero errors and an empty files array, wipe errors for the last active file context
-          if (payload.TotalErrors === 0 && (!payload.Files || payload.Files.length === 0) && lastActiveFile.value) {
-            localLogs.value = localLogs.value.filter(log => !(log.type === 'compiler-error' && log.fileRef === lastActiveFile.value));
+          // If the compiler returns zero errors/warnings and an empty files array, wipe errors/warnings for the last active file context
+          if (payload.TotalErrors === 0 && payload.TotalWarnings === 0 && (!payload.Files || payload.Files.length === 0) && lastActiveFile.value) {
+            localLogs.value = localLogs.value.filter(log => !((log.type === 'compiler-error' || log.type === 'compiler-warning') && log.fileRef === lastActiveFile.value));
           } else if (payload.Files) {
             payload.Files.forEach(file => {
               let filePath = file.File || file.FilePath || 'Unknown File';
@@ -155,19 +182,36 @@ const handleIncomingLog = (logData) => {
                 filePath = filePath.split(/[\\/]/).pop();
               }
 
-              // Clear out previous errors linked specifically to this individual file name
-              localLogs.value = localLogs.value.filter(log => !(log.type === 'compiler-error' && log.fileRef === filePath));
+              // Clear out previous errors and warnings linked specifically to this individual file name
+              localLogs.value = localLogs.value.filter(log => !((log.type === 'compiler-error' || log.type === 'compiler-warning') && log.fileRef === filePath));
 
-              // Append new individual human-readable rows into the array tracking state
-              (file.Errors || file.Diagnostics || []).forEach(err => {
-                const errMsg = decodeHumanReadable(err.Message || err.Error || JSON.stringify(err));
-                const lineInfo = err.Line !== undefined ? `Line ${err.Line}` : 'Unknown Line';
+              // Append new individual human-readable error rows into the array tracking state
+              (file.Errors || file.errors || file.Diagnostics || []).forEach(err => {
+                const errMsg = decodeHumanReadable(err.message || err.Message || err.Error || JSON.stringify(err));
+                const lineNum = err.line !== undefined ? err.line : (err.Line !== undefined ? err.Line : 'Unknown');
+                const lineInfo = lineNum !== 'Unknown' ? `Line ${lineNum}` : 'Unknown Line';
 
                 localLogs.value.push({
                   timestamp: new Date().toLocaleTimeString(),
                   text: `[${filePath}] ${lineInfo}: ${errMsg}`,
                   type: 'compiler-error',
-                  fileRef: filePath
+                  fileRef: filePath,
+                  lineRef: lineNum
+                });
+              });
+
+              // Append new individual human-readable warning rows into the array tracking state
+              (file.Warnings || file.warnings || []).forEach(warn => {
+                const warnMsg = decodeHumanReadable(warn.message || warn.Message || warn.Warning || JSON.stringify(warn));
+                const lineNum = warn.line !== undefined ? warn.line : (warn.Line !== undefined ? warn.Line : 'Unknown');
+                const lineInfo = lineNum !== 'Unknown' ? `Line ${lineNum}` : 'Unknown Line';
+
+                localLogs.value.push({
+                  timestamp: new Date().toLocaleTimeString(),
+                  text: `[${filePath}] ${lineInfo}: ${warnMsg}`,
+                  type: 'compiler-warning',
+                  fileRef: filePath,
+                  lineRef: lineNum
                 });
               });
             });
@@ -282,6 +326,16 @@ $primary-blue: var(--primary-blue);
         font-size: 10px;
         font-weight: 700;
       }
+
+      .warning-badge {
+        margin-left: 6px;
+        background-color: #cca700;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 700;
+      }
     }
   }
 
@@ -324,6 +378,14 @@ $primary-blue: var(--primary-blue);
     white-space: pre-wrap;
     word-break: break-all;
 
+    &.clickable {
+      cursor: pointer;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+    }
+
     .log-time {
       color: $text-muted;
       opacity: 0.5;
@@ -332,7 +394,7 @@ $primary-blue: var(--primary-blue);
 
     &.system-msg { color: #4fc1ff; }
     &.info-msg, &.info { color: $text-muted; }
-    &.warning-msg { color: #cca700; }
+    &.warning-msg, &.compiler-warning { color: #cca700; font-weight: 500; }
     &.error-msg, &.error, &.compiler-error { color: #f44747; font-weight: 500; }
     &.empty-msg { color: $text-muted; font-style: italic; opacity: 0.7; }
   }
