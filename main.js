@@ -38,12 +38,10 @@ if (!gotTheLock) {
 
 	// APP PATHS (Static/Code - Read-only, updated via app installer)
 	const APP_JSONS_DIR = path.join(__dirname, 'jsons');
-	const GLOBAL_COMPILERS_PATH = path.join(APP_JSONS_DIR, 'global_compilers.json'); 
 	const TEMPLATE_DIR = path.join(__dirname, 'templates', 'workspace template'); 
 	const WATCHER_SCRIPT_PATH = path.join(__dirname, 'src/watcher_workspace.js'); 
 
 	// SETTINGS FILE PATHS
-	const COMPILER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, 'compiler_settings.json');
 	const LOGGER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, 'logger_settings.json');
 
 	// --- Global State ---
@@ -349,7 +347,6 @@ function setupAutoUpdater() {
 	    let hasWatcherRestarted = false;
 	    try {
 		if (settingsData.logger) await fs.writeFile(LOGGER_SETTINGS_PATH, JSON.stringify(settingsData.logger, null, 4), 'utf8');
-		if (settingsData.compiler) await fs.writeFile(COMPILER_SETTINGS_PATH, JSON.stringify(settingsData.compiler, null, 4), 'utf8');
 
 		// Handle Project Output Updates (Sent from index_renderer.js for per-project setting)
 		if (settingsData.workspaceUpdates && Object.keys(settingsData.workspaceUpdates).length > 0) {
@@ -639,7 +636,7 @@ function setupAutoUpdater() {
 			project_root: currentProjectConfig.project_root,
 			compilers: globalCompilers,
 			mod_name: projectName,
-    		log_dir: logger.getLogsRootDir()
+    		log_dir: logger.getLogsSessionDir()
 	    });
 	    
 	    watcherProcess = fork(WATCHER_SCRIPT_PATH, [watcherPayload], { 

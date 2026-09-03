@@ -347,5 +347,6 @@ module.exports = {
     archiveCurrentSession,
     getSessionDir,
     getLogsRootDir: () => LOGS_ROOT_DIR, 
+    getLogsSessionDir: () => SESSION_DIR, 
     MAX_LOG_STORAGE_MB 
 };
