@@ -11,21 +11,21 @@
         <div class="vertical-divider"></div>
         <span class="active-project-tag">Project: <span class="highlight">{{ activeProjectName }}</span></span>
       </div>
-      
+
       <div class="controls-section">
-        <button class="ui-btn standard-action" @click="handleRecompileAll">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        <button class="inline-flex items-center justify-center gap-1.5 rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text transition hover:bg-white/10 hover:opacity-90" @click="handleRecompileAll">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 7.99 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
           Recompile
         </button>
-        <button class="ui-btn standard-action" @click="handleImportImage">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 5H5l3.5-4.5z"/></svg>
+        <button class="inline-flex items-center justify-center gap-1.5 rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text transition hover:bg-white/10 hover:opacity-90" @click="handleImportImage">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 5H5l3.5-4.5z"/></svg>
           Import Img
         </button>
-        <button class="ui-btn primary-action" @click="saveActiveFile" :disabled="!activeTabPath">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5C3.89 3 3 3.89 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        <button class="inline-flex items-center justify-center gap-1.5 rounded bg-marshal-primary px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50" @click="saveActiveFile" :disabled="!activeTabPath">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5C3.89 3 3 3.89 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
           Save
         </button>
-        <button class="ui-btn standard-action" @click="handleExitWorkspace">Exit Workspace</button>
+        <button class="inline-flex items-center justify-center rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text transition hover:bg-white/10 hover:opacity-90" @click="handleExitWorkspace">Exit Workspace</button>
       </div>
     </header>
 
@@ -81,59 +81,59 @@
     </main>
 
     <div 
-      class="floating-popover-menu" 
+      class="fixed z-[100] min-w-44 rounded-md border border-gray-700 bg-marshal-editor py-1 shadow-2xl" 
       v-if="contextMenu.visible" 
       :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px', display: 'block' }"
       v-click-outside="closeContextMenu"
     >
-      <div class="popover-row" @click="triggerCreateModal(contextMenu.targetNode?.isDir ? contextMenu.targetNode.path : contextMenu.targetNode?.path.substring(0, contextMenu.targetNode.path.lastIndexOf('/')))">New File</div>
+      <div class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerCreateModal(contextMenu.targetNode?.isDir ? contextMenu.targetNode.path : contextMenu.targetNode?.path.substring(0, contextMenu.targetNode.path.lastIndexOf('/')))">New File</div>
       
-      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="popover-row" @click="triggerRenameModal(contextMenu.targetNode)">Rename</div>
-      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="popover-divider"></div>
+      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerRenameModal(contextMenu.targetNode)">Rename</div>
+      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="my-1 h-px bg-gray-700"></div>
       
       <div 
         v-if="contextMenu.selectedPaths.length > 0 || (contextMenu.targetNode && !contextMenu.targetNode.isDir)" 
-        class="popover-row alert-action" 
+        class="cursor-pointer px-3.5 py-2 text-xs text-rose-400 transition hover:bg-rose-600 hover:text-white" 
         @click="triggerDeleteAction()"
       >
         Delete {{ contextMenu.selectedPaths.length > 1 ? `(${contextMenu.selectedPaths.length} items)` : '' }}
       </div>
     </div>
 
-    <div class="modal-system-dimmer" v-if="closeConfirmVisible" @keydown.esc="handleConfirmCloseCancel" tabindex="-1">
-      <div class="modal-window-card">
-        <h3 class="modal-heading">Unsaved Document Changes</h3>
-        <p class="modal-body">
+    <div class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" v-if="closeConfirmVisible" @keydown.esc="handleConfirmCloseCancel" tabindex="-1">
+      <div class="w-full max-w-sm rounded-md border border-marshal-border bg-marshal-card p-6 shadow-2xl">
+        <h3 class="mb-2 text-[15px] font-semibold text-white">Unsaved Document Changes</h3>
+        <p class="mb-4 text-[13px] leading-relaxed text-marshal-muted">
           This file contains unsaved changes. Would you like to synchronize changes to disk storage before closing it?
         </p>
-        <div class="modal-actions-row" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
-          <button class="ui-btn standard-action" @click="handleConfirmCloseCancel">Cancel</button>
-          <button class="ui-btn destructive-action" @click="handleConfirmCloseDiscard">Discard Changes</button>
-          <button class="ui-btn primary-action" @click="handleConfirmCloseSave">Save & Close</button>
+        <div class="mt-4 flex justify-end gap-2">
+          <button class="rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text hover:bg-white/10" @click="handleConfirmCloseCancel">Cancel</button>
+          <button class="rounded border border-red-500 bg-red-500/15 px-3.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500 hover:text-white" @click="handleConfirmCloseDiscard">Discard Changes</button>
+          <button class="rounded bg-marshal-primary px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-600" @click="handleConfirmCloseSave">Save & Close</button>
         </div>
       </div>
     </div>
 
-    <div class="modal-system-dimmer" v-if="modal.visible" ref="modalDimmerRef" @keydown.capture="handleModalKeyDown" tabindex="-1">
-      <div class="modal-window-card">
-        <h3 class="modal-heading">{{ modal.title }}</h3>
-        <p class="modal-body">{{ modal.body }}</p>
+    <div class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" v-if="modal.visible" ref="modalDimmerRef" @keydown.capture="handleModalKeyDown" tabindex="-1">
+      <div class="w-full max-w-sm rounded-md border border-marshal-border bg-marshal-card p-6 shadow-2xl">
+        <h3 class="mb-2 text-[15px] font-semibold text-white">{{ modal.title }}</h3>
+        <p class="mb-4 text-[13px] leading-relaxed text-marshal-muted">{{ modal.body }}</p>
         
-        <div v-if="modal.mode !== 'delete'" class="modal-input-container" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
-          <div v-if="modal.mode === 'create'" style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
-            <label style="font-size: 11px; color: #aaaaaa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Target Folder Context</label>
-            <select v-model="modal.targetNode" @change="handleFolderChange" class="modal-text-field dark-forced-input">
+        <div v-if="modal.mode !== 'delete'" class="mb-5 flex flex-col gap-3.5">
+          <div v-if="modal.mode === 'create'" class="flex flex-col gap-1 text-left">
+            <label class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Target Folder Context</label>
+            <select v-model="modal.targetNode" @change="handleFolderChange" class="w-full rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white outline-none focus:border-marshal-primary">
               <option disabled value="">-- Select Target Folder --</option>
               <option v-for="folder in modal.availableFolders" :key="folder" :value="folder">{{ folder }}</option>
             </select>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 4px; text-align: left;">
-            <label style="font-size: 11px; color: #aaaaaa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Name & Compiler Extension</label>
-            <div style="display: flex; gap: 8px; width: 100%;">
-              <input type="text" v-model="modal.inputValue" :placeholder="modal.placeholder" class="modal-text-field dark-forced-input" style="flex: 1;">
+          <div class="flex flex-col gap-1 text-left">
+            <label class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Name & Compiler Extension</label>
+            <div class="flex w-full gap-2">
+              <input type="text" v-model="modal.inputValue" :placeholder="modal.placeholder" class="min-w-0 flex-1 rounded border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white outline-none focus:border-marshal-primary">
               
-              <select v-model="modal.selectedExtension" class="modal-text-field dark-forced-input" style="width: 130px; font-family: monospace; font-weight: bold;">
+              <select v-model="modal.selectedExtension" class="w-[130px] rounded border border-gray-700 bg-gray-900 px-3 py-2 font-mono text-sm font-bold text-white outline-none focus:border-marshal-primary">
                 <option v-for="ext in [...new Set(Object.values(FILE_EXTENSION_MAP))]" :key="ext" :value="ext">{{ ext }}</option>
                 <option value=".unknown">.unknown</option>
               </select>
@@ -141,9 +141,9 @@
           </div>
         </div>
       
-        <div class="modal-actions-row">
-          <button class="ui-btn standard-action" @click="modal.visible = false">Cancel</button>
-          <button :class="['ui-btn', modal.mode === 'delete' ? 'destructive-action' : 'primary-action']" @click="commitModalAction">
+        <div class="flex justify-end gap-2">
+          <button class="rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text hover:bg-white/10" @click="modal.visible = false">Cancel</button>
+          <button :class="['rounded px-3.5 py-1.5 text-xs font-semibold text-white', modal.mode === 'delete' ? 'border border-red-500 bg-red-500/15 text-red-400 hover:bg-red-500 hover:text-white' : 'bg-marshal-primary hover:bg-blue-600']" @click="commitModalAction">
             {{ modal.mode === 'delete' ? 'Delete' : 'Confirm' }}
           </button>
         </div>
@@ -1092,162 +1092,4 @@ const handleToggleMinimize = () => {
   }
 }
 
-.floating-popover-menu {
-  position: fixed;
-  background-color: #1e1e1e !important;
-  border: 1px solid #333333 !important;
-  border-radius: 6px;
-  padding: 4px 0 !important;
-  min-width: 180px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-  z-index: 100;
-
-  .popover-row {
-    padding: 8px 14px !important;
-    margin: 0 !important;
-    font-size: 12px;
-    cursor: pointer;
-    color: #cccccc !important;
-    transition: background-color 0.1s, color 0.1s;
-
-    &:hover { 
-      background-color: #2a2a2a !important; 
-      color: #ffffff !important; 
-    }
-    &.alert-action { 
-      color: #f43f5e !important; 
-      &:hover { 
-        background-color: #e11d48 !important; 
-        color: #ffffff !important; 
-      } 
-    }
-  }
-
-  .popover-divider {
-    height: 1px;
-    background-color: #333333 !important;
-    margin: 4px 0 !important;
-  }
-}
-
-.dark-forced-input {
-  background-color: #1a1a1a !important;
-  color: #ffffff !important;
-  border: 1px solid #444444 !important;
-  border-radius: 4px;
-  padding: 8px 12px;
-  
-  option {
-    background-color: #1a1a1a !important;
-    color: #ffffff !important;
-  }
-}
-
-.modal-system-dimmer {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-
-  .modal-window-card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 24px;
-    width: 100%;
-    max-width: 380px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-
-    .modal-heading { 
-      font-size: 15px; 
-      font-weight: 600; 
-      margin: 0 0 10px 0; 
-      color: #ffffff;
-    }
-    .modal-body { 
-      font-size: 13px; 
-      color: var(--text-muted); 
-      line-height: 1.5; 
-      margin: 0 0 16px 0; 
-    }
-    
-    .modal-input-container {
-      margin-bottom: 20px;
-      
-      .modal-text-field {
-        width: 100%; 
-        background-color: rgba(0, 0, 0, 0.2); 
-        border: 1px solid var(--border-color);
-        color: #ffffff; 
-        padding: 8px 12px; 
-        font-size: 13px; 
-        border-radius: 4px; 
-        box-sizing: border-box;
-        
-        &:focus { 
-          outline: none; 
-          border-color: var(--primary-blue); 
-        }
-      }
-    }
-
-    .modal-actions-row {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-  }
-}
-
-.ui-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 14px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.1s, background-color 0.1s;
-
-  &:hover { 
-    opacity: 0.9; 
-  }
-  
-  &.primary-action { 
-    background-color: var(--primary-blue); 
-    color: #ffffff; 
-  }
-  &.standard-action { 
-    background-color: rgba(255, 255, 255, 0.05); 
-    color: var(--text-color); 
-    border: 1px solid var(--border-color);
-    
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-  
-  &.destructive-action {
-    background-color: rgba(231, 76, 60, 0.15);
-    border: 1px solid #e74c3c;
-    color: #e74c3c;
-    
-    &:hover { 
-      background-color: #e74c3c; 
-      color: #ffffff; 
-    }
-  }
-
-  .btn-icon {
-    width: 14px; 
-    height: 14px; 
-    margin-right: 6px; 
-  }
-}
 </style>

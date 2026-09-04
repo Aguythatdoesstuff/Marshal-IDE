@@ -112,6 +112,51 @@ nav.shrink-0 {
   opacity: 0.8;
 }
 
+/* Rendered Markdown has no Vue template boundary for utility classes. */
+.prose-content {
+  color: #cbd5e1;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.prose-content h1,
+.prose-content h2,
+.prose-content h3,
+.prose-content h4 {
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.prose-content h1 {
+  margin-top: 0;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  font-size: 2.25rem;
+}
+
+.prose-content h2 {
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  padding-bottom: 0.3rem;
+  font-size: 1.6rem;
+}
+
+.prose-content h3 { font-size: 1.25rem; }
+.prose-content p,
+.prose-content ul,
+.prose-content ol { margin-bottom: 1.5rem; }
+.prose-content ul { padding-left: 1.5rem; list-style: disc; }
+.prose-content li { margin-bottom: 0.5rem; }
+.prose-content a { color: color-mix(in srgb, var(--primary-blue), white 15%); text-decoration: none; }
+.prose-content a:hover { border-bottom: 1px dashed color-mix(in srgb, var(--primary-blue), white 15%); }
+.prose-content pre { margin: 1.75rem 0; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--sidebar-bg); padding: 1.25rem; }
+.prose-content pre code { background: transparent; padding: 0; color: #e2e8f0; font: 0.875rem 'Fira Code', Consolas, monospace; }
+.prose-content code { border-radius: 0.25rem; background: rgb(244 63 94 / 10%); padding: 0.15rem 0.4rem; color: #f43f5e; font: 0.9rem 'Fira Code', Consolas, monospace; }
+.prose-content blockquote { margin: 1.75rem 0; border-left: 4px solid var(--primary-blue); border-radius: 0 0.375rem 0.375rem 0; background: rgb(0 122 204 / 4%); padding: 0.75rem 1.25rem; color: #94a3b8; }
+.prose-content blockquote p { margin-bottom: 0; }
+
 @keyframes heartbeat-star {
   0%, 28%, 70%, 100% { transform: scale(1) translateZ(0); filter: drop-shadow(0 10px 20px rgb(0 0 0 / 40%)) brightness(1); }
   14% { transform: scale(1.06) translateZ(0); filter: drop-shadow(0 15px 30px rgb(255 215 0 / 20%)) brightness(1.2); }
@@ -126,4 +171,13 @@ nav.shrink-0 {
 @keyframes modal-slide-up {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes marshal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: marshal-fade-in 0.3s ease-out;
 }
