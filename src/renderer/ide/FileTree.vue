@@ -1,59 +1,59 @@
 <template>
   <aside 
-    class="sidebar-column" 
+    class="relative flex h-full shrink-0 flex-col overflow-hidden bg-marshal-sidebar outline-none"
     :style="{ width: sidebarWidth + 'px' }"
     @dragover.prevent="handleDragOver"
     @dragenter.prevent="handleDragEnter"
     @dragleave="handleDragLeave"
     @drop.prevent="handleDrop"
-    :class="{ 'is-dragging-over': isDraggingOver }"
+    :class="{ 'border-2 border-dashed border-marshal-primary': isDraggingOver }"
     tabindex="0"
     @keydown="handleKeyDown"
   >
-    <div class="column-header">
-      <span class="header-label">Project Files</span>
-      <button class="header-action-btn" title="Create New Element" @click="$emit('trigger-create', '')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="flex h-[38px] shrink-0 items-center justify-between border-b border-marshal-border bg-black/10 px-3.5">
+      <span class="text-[11px] font-semibold uppercase tracking-wider text-marshal-muted">Project Files</span>
+      <button class="flex cursor-pointer items-center rounded border border-white/10 bg-white/5 p-1 text-marshal-text transition hover:border-marshal-primary hover:bg-marshal-primary/25 hover:text-white" title="Create New Element" @click="$emit('trigger-create', '')">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
       </button>
     </div>
     
-    <div id="file-tree-container" class="tree-inner-scroller">
-      <div v-if="treeData.length === 0" class="tree-empty-notice">No active project tree mapped.</div>
+    <div id="file-tree-container" class="min-h-0 flex-1 overflow-y-auto py-1.5">
+      <div v-if="treeData.length === 0" class="p-4 text-center text-xs text-marshal-muted">No active project tree mapped.</div>
       <div v-else class="tree-root-nodes">
         <div v-for="node in treeData" :key="node.path" class="tree-node-wrapper">
           <div 
             :class="[
-              'tree-item-row', 
+              'flex h-[26px] cursor-pointer select-none items-center overflow-hidden pr-3 text-[13px] text-gray-300 transition-colors hover:bg-white/5 hover:text-white',
               { 
-                'is-active': activePath === node.path,
-                'is-selected': isNodeSelected(node)
+                'border-l-2 border-marshal-primary bg-marshal-primary/20 text-white': activePath === node.path,
+                'bg-marshal-primary/30 text-white': isNodeSelected(node)
               }
             ]" 
             :style="{ paddingLeft: (node.depth * 12 + 8) + 'px' }"
             @click="handleNodeClick($event, node)"
             @contextmenu.prevent="handleContextMenu($event, node)"
           >
-            <span class="node-icon">
+            <span class="mr-1.5 inline-flex shrink-0 items-center text-xs">
               <template v-if="node.isDir">
                 <span v-if="node.isExpanded">📂</span>
                 <span v-else>📁</span>
               </template>
               <template v-else>
-                <svg viewBox="0 0 24 24" fill="currentColor" :style="{ color: getFileColor(node.name) }" width="14" height="14" style="vertical-align: middle; margin-bottom: 2px;">
+                <svg class="h-3.5 w-3.5 align-middle" viewBox="0 0 24 24" fill="currentColor" :style="{ color: getFileColor(node.name) }">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/>
                 </svg>
               </template>
             </span>
-            <span class="node-text-label">{{ node.name }}</span>
+            <span class="truncate whitespace-nowrap">{{ node.name }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="isDraggingOver" class="drop-overlay">
+    <div v-if="isDraggingOver" class="pointer-events-none absolute inset-0 flex items-center justify-center bg-marshal-primary/20 text-[13px] font-semibold text-white backdrop-blur-sm">
       <span>Drop .dds image(s) to import</span>
     </div>
   </aside>
@@ -295,64 +295,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-
-.sidebar-column {
-  background-color: var(--sidebar-bg);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: 100%;
-  flex-shrink: 0;
-  position: relative;
-  outline: none;
-
-  &.is-dragging-over {
-    border: 2px dashed var(--primary-blue);
-  }
-
-  .column-header {
-    height: 38px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 14px;
-    background-color: rgba(0, 0, 0, 0.1);
-    .header-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-    .header-action-btn {
-      background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-color); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center;
-      svg { width: 14px; height: 14px; }
-      &:hover { background-color: rgba(0, 122, 204, 0.25); border-color: var(--primary-blue); color: #ffffff; }
-    }
-  }
-
-  .tree-inner-scroller {
-    flex: 1; overflow-y: auto; padding: 6px 0;
-    .tree-empty-notice { padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px; }
-    
-    .tree-item-row {
-      display: flex; align-items: center; height: 26px; padding-right: 12px; cursor: pointer; font-size: 13px; color: #cccccc; user-select: none;
-      &:hover { background-color: rgba(255, 255, 255, 0.04); color: #ffffff; }
-      &.is-selected { background-color: rgba(0, 122, 204, 0.3); color: #ffffff; }
-      &.is-active { background-color: rgba(0, 122, 204, 0.2); color: #ffffff; border-left: 2px solid var(--primary-blue); }
-      .node-icon { margin-right: 6px; font-size: 12px; display: inline-flex; align-items: center; }
-      .node-text-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    }
-  }
-
-  .drop-overlay {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 122, 204, 0.2);
-    backdrop-filter: blur(2px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 600;
-    pointer-events: none;
-  }
-}
-</style>

@@ -1,53 +1,62 @@
 <template>
-  <div class="console-panel" @click="closeContextMenu">
-    <div class="console-header">
-      <div class="tab-group">
+  <div class="relative flex h-full w-full flex-1 flex-col overflow-hidden bg-marshal-editor font-mono text-marshal-text" @click="closeContextMenu">
+    <div class="flex h-[35px] shrink-0 select-none items-center justify-between border-b border-marshal-border bg-marshal-sidebar px-3.5">
+      <div class="flex h-full items-center gap-3">
         <div 
-          :class="['tab-label', { active: activeTab === 'console' }]" 
+          :class="['flex h-full cursor-pointer items-center border-b-2 border-transparent px-1 text-[11px] font-semibold uppercase tracking-wider text-marshal-muted transition hover:text-white', { 'border-marshal-primary text-marshal-text': activeTab === 'console' }]" 
           @click="activeTab = 'console'"
         >
           Console
         </div>
         <div 
           v-if="showErrorsTab" 
-          :class="['tab-label', { active: activeTab === 'errors' }]" 
+          :class="['flex h-full cursor-pointer items-center border-b-2 border-transparent px-1 text-[11px] font-semibold uppercase tracking-wider text-marshal-muted transition hover:text-white', { 'border-marshal-primary text-marshal-text': activeTab === 'errors' }]" 
           @click="activeTab = 'errors'"
         >
           Errors 
-          <span v-if="errorCount > 0" class="error-badge">{{ errorCount }}</span>
+          <span v-if="errorCount > 0" class="ml-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{{ errorCount }}</span>
         </div>
         <div 
           v-if="showErrorsTab" 
-          :class="['tab-label', { active: activeTab === 'warnings' }]" 
+          :class="['flex h-full cursor-pointer items-center border-b-2 border-transparent px-1 text-[11px] font-semibold uppercase tracking-wider text-marshal-muted transition hover:text-white', { 'border-marshal-primary text-marshal-text': activeTab === 'warnings' }]" 
           @click="activeTab = 'warnings'"
         >
           Warnings 
-          <span v-if="warningCount > 0" class="warning-badge">{{ warningCount }}</span>
+          <span v-if="warningCount > 0" class="ml-1.5 rounded-full bg-yellow-600 px-1.5 py-0.5 text-[10px] font-bold text-white">{{ warningCount }}</span>
         </div>
       </div>
 
-      <div class="control-group">
-        <button class="icon-action-btn" title="Clear Console Output" @click="clearLogs">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      <div class="flex gap-1.5">
+        <button class="flex cursor-pointer items-center rounded p-1 text-marshal-muted transition hover:bg-white/5 hover:text-white" title="Clear Console Output" @click="clearLogs">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
         </button>
-        <button class="icon-action-btn" :title="isMinimized ? 'Expand Console' : 'Minimize Console'" @click="$emit('toggle-minimize')">
-          <svg v-if="isMinimized" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
-          <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
+        <button class="flex cursor-pointer items-center rounded p-1 text-marshal-muted transition hover:bg-white/5 hover:text-white" :title="isMinimized ? 'Expand Console' : 'Minimize Console'" @click="$emit('toggle-minimize')">
+          <svg v-if="isMinimized" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
+          <svg v-else class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/></svg>
         </button>
       </div>
     </div>
 
-    <div v-show="!isMinimized" class="console-body" ref="consoleOutputElement">
-      <div class="log-stream-container">
+    <div v-show="!isMinimized" class="flex-1 overflow-y-auto bg-black/10 px-4 py-3" ref="consoleOutputElement">
+      <div class="flex flex-col gap-1.5 text-xs leading-relaxed">
         <div 
           v-for="(log, idx) in displayLogs" 
           :key="idx" 
-          :class="['log-line', log.type, { clickable: log.fileRef !== undefined }]"
+          :class="[
+            'whitespace-pre-wrap break-words',
+            {
+              'cursor-pointer hover:bg-white/5': log.fileRef !== undefined,
+              'text-sky-400': log.type === 'system-msg',
+              'text-marshal-muted': log.type === 'info-msg' || log.type === 'info',
+              'font-medium text-yellow-500': log.type === 'warning-msg' || log.type === 'compiler-warning',
+              'font-medium text-red-500': log.type === 'error-msg' || log.type === 'error' || log.type === 'compiler-error'
+            }
+          ]"
           @click.stop="handleLogClick($event, log)"
         >
-          <span v-if="log.timestamp" class="log-time">[{{ log.timestamp }}] </span>{{ log.text }}
+          <span v-if="log.timestamp" class="mr-1 text-marshal-muted opacity-50">[{{ log.timestamp }}] </span>{{ log.text }}
         </div>
-        <div v-if="displayLogs.length === 0" class="log-line empty-msg">
+        <div v-if="displayLogs.length === 0" class="whitespace-pre-wrap break-words italic text-marshal-muted opacity-70">
           &gt; {{ activeTab === 'errors' ? 'No syntax or compilation errors detected.' : activeTab === 'warnings' ? 'No syntax or compilation warnings detected.' : 'Console execution buffer cleared.' }}
         </div>
       </div>
@@ -55,14 +64,14 @@
 
     <div 
       v-if="contextMenu.visible" 
-      class="context-menu" 
+      class="fixed z-[1000] rounded border border-marshal-border bg-marshal-sidebar py-1 shadow-lg" 
       :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
       @click.stop
     >
-      <div class="context-menu-item" @click="goToError">
+      <div class="cursor-pointer px-3.5 py-1.5 text-[11px] text-marshal-text transition hover:bg-white/10" @click="goToError">
         Go to {{ contextMenu.targetLog?.type === 'compiler-error' ? 'Error' : 'Warning' }}
       </div>
-      <div class="context-menu-item" @click="copyError">
+      <div class="cursor-pointer px-3.5 py-1.5 text-[11px] text-marshal-text transition hover:bg-white/10" @click="copyError">
         Copy {{ contextMenu.targetLog?.type === 'compiler-error' ? 'Error' : 'Warning' }}
       </div>
     </div>
@@ -321,160 +330,3 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
-
-.console-panel {
-  display: flex;
-  flex-direction: column;
-  flex: 1;                
-  height: 100%;
-  width: 100%;
-  background-color: var(--editor-bg);
-  color: var(--text-color);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  overflow: hidden;
-  position: relative;
-}
-
-.console-header {
-  height: 35px;
-  background-color: var(--sidebar-bg);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 14px;
-  user-select: none;
-  flex-shrink: 0;
-
-  .tab-group {
-    display: flex;
-    align-items: center;
-    height: 100%;
-    gap: 12px;
-
-    .tab-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 2px solid transparent;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      padding: 0 4px;
-      cursor: pointer;
-      transition: color 0.15s, border-color 0.15s;
-
-      &:hover { color: #ffffff; }
-      &.active {
-        color: var(--text-color);
-        border-bottom-color: var(--primary-blue);
-      }
-
-      .error-badge {
-        margin-left: 6px;
-        background-color: #f44747;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 8px;
-        font-size: 10px;
-        font-weight: 700;
-      }
-
-      .warning-badge {
-        margin-left: 6px;
-        background-color: #cca700;
-        color: white;
-        padding: 2px 6px;
-        border-radius: 8px;
-        font-size: 10px;
-        font-weight: 700;
-      }
-    }
-  }
-
-  .control-group {
-    display: flex;
-    gap: 6px;
-
-    .icon-action-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      padding: 4px;
-      cursor: pointer;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      transition: color 0.1s, background-color 0.1s;
-
-      svg { width: 14px; height: 14px; }
-      &:hover { color: #ffffff; background-color: rgba(255, 255, 255, 0.05); }
-    }
-  }
-}
-
-.console-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 16px;
-  background-color: rgba(0, 0, 0, 0.12);
-
-  .log-stream-container {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    font-size: 12px;
-    line-height: 1.5;
-  }
-
-  .log-line {
-    white-space: pre-wrap;
-    word-break: break-all;
-
-    &.clickable {
-      cursor: pointer;
-
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-      }
-    }
-
-    .log-time {
-      color: var(--text-muted);
-      opacity: 0.5;
-      margin-right: 4px;
-    }
-
-    &.system-msg { color: #4fc1ff; }
-    &.info-msg, &.info { color: var(--text-muted); }
-    &.warning-msg, &.compiler-warning { color: #cca700; font-weight: 500; }
-    &.error-msg, &.error, &.compiler-error { color: #f44747; font-weight: 500; }
-    &.empty-msg { color: var(--text-muted); font-style: italic; opacity: 0.7; }
-  }
-}
-
-.context-menu {
-  position: fixed;
-  background-color: var(--sidebar-bg);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  padding: 4px 0;
-  z-index: 1000;
-
-  .context-menu-item {
-    padding: 6px 14px;
-    font-size: 11px;
-    cursor: pointer;
-    color: var(--text-color);
-    transition: background-color 0.1s;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-}
-</style>

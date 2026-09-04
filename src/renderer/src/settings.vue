@@ -1,52 +1,50 @@
 <template>
-  <div class="settings-wrapper">
+  <div class="flex h-screen flex-col overflow-hidden bg-marshal-editor font-sans text-marshal-text">
     <div class="titlebar">
       <span class="titlebar-text">Marshal IDE - Global Settings</span>
     </div>
 
-    <div class="settings-scroll-container">
-      <header class="settings-header">
-        <h1 class="settings-title">Global Application Settings</h1>
-        <p class="settings-subtitle">Configure IDE preferences and system logging</p>
+    <div class="flex-1 overflow-y-auto px-8 pb-24 pt-12">
+      <header class="mx-auto mb-8 max-w-4xl">
+        <h1 class="text-3xl font-bold text-white">Global Application Settings</h1>
+        <p class="mt-2 text-marshal-muted">Configure IDE preferences and system logging</p>
       </header>
 
-      <div class="settings-main">
-        <nav class="settings-tabs">
+      <div class="mx-auto max-w-4xl">
+        <nav class="mb-6 flex gap-6 border-b border-marshal-border">
           <span 
-            class="settings-tab" 
-            :class="{ active: activeTab === 'workspace' }"
+            class="cursor-pointer border-b-2 border-transparent px-1 py-3 text-sm text-marshal-muted transition hover:text-white"
+            :class="{ 'border-marshal-primary font-semibold text-marshal-primary': activeTab === 'workspace' }"
             @click="switchTab('workspace')"
           >
             Workspace Settings
           </span>
           <span 
-            class="settings-tab" 
-            :class="{ active: activeTab === 'logger' }"
+            class="cursor-pointer border-b-2 border-transparent px-1 py-3 text-sm text-marshal-muted transition hover:text-white"
+            :class="{ 'border-marshal-primary font-semibold text-marshal-primary': activeTab === 'logger' }"
             @click="switchTab('logger')"
           >
             Logger Settings
           </span>
         </nav>
         
-        <div class="settings-content">
+        <div>
           
-          <div v-if="activeTab === 'workspace'" class="tab-panel animate-fade-in">
-            <h3 class="panel-title">Mod Output Directories</h3>
-            <p class="panel-desc">Configure the final compilation destination for each of your local mods.</p>
+          <div v-if="activeTab === 'workspace'" class="animate-fade-in">
+            <h3 class="mb-2 text-xl font-semibold text-white">Mod Output Directories</h3>
+            <p class="mb-6 text-sm text-marshal-muted">Configure the final compilation destination for each of your local mods.</p>
             
-            <div class="settings-card">
-              <div class="grid-header">
-                <span class="col-name">Mod Name</span>
-                <span class="col-path">Output Directory Path</span>
-                <span class="col-action text-right">Action</span>
+            <div class="overflow-hidden rounded-lg border border-marshal-border bg-marshal-card">
+              <div class="grid grid-cols-[minmax(8rem,0.8fr)_minmax(12rem,2fr)_auto] gap-4 border-b border-marshal-border bg-white/[0.02] px-5 py-3 text-xs font-semibold uppercase tracking-wider text-marshal-muted">
+                <span>Mod Name</span><span>Output Directory Path</span><span class="text-right">Action</span>
               </div>
 
-              <div class="grid-body">
-                <div v-if="loadingProjects" class="empty-state animate-pulse">
+              <div>
+                <div v-if="loadingProjects" class="p-6 text-center text-sm text-marshal-muted animate-pulse">
                   Loading workspace data...
                 </div>
 
-                <div v-else-if="Object.keys(projects).length === 0" class="empty-state">
+                <div v-else-if="Object.keys(projects).length === 0" class="p-6 text-center text-sm text-marshal-muted">
                   No mods found. Create one on the main screen to configure its output directory.
                 </div>
 
@@ -54,20 +52,20 @@
                   v-else
                   v-for="(config, name) in projects" 
                   :key="name"
-                  class="grid-row"
+                  class="grid grid-cols-[minmax(8rem,0.8fr)_minmax(12rem,2fr)_auto] items-center gap-4 border-b border-marshal-border px-5 py-3 last:border-0"
                 >
-                  <span class="col-name truncate" :title="name">{{ name }}</span>
+                  <span class="truncate text-sm text-white" :title="name">{{ name }}</span>
                   <input 
                     type="text" 
                     :value="config.output_dir || ''" 
-                    class="input-path col-path" 
+                    class="min-w-0 rounded border border-marshal-border bg-marshal-editor px-3 py-2 text-sm text-marshal-muted outline-none" 
                     readonly
                     placeholder="No output directory set..."
                   >
-                  <div class="col-action flex-end">
+                  <div class="flex justify-end">
                     <button 
-                      class="btn-edit"
-                      :class="{ 'editing': activeDialogProject === name }"
+                      class="rounded bg-gray-700 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-marshal-primary"
+                      :class="{ 'bg-marshal-primary': activeDialogProject === name }"
                       @click="handleWorkspaceEdit(name)"
                     >
                       Browse...
@@ -78,30 +76,30 @@
             </div>
           </div>
 
-          <div v-if="activeTab === 'logger'" class="tab-panel animate-fade-in">
-            <h3 class="panel-title">Application Logging Preferences</h3>
-            <p class="panel-desc">Control how system log files are managed and rotated by the application.</p>
+          <div v-if="activeTab === 'logger'" class="animate-fade-in">
+            <h3 class="mb-2 text-xl font-semibold text-white">Application Logging Preferences</h3>
+            <p class="mb-6 text-sm text-marshal-muted">Control how system log files are managed and rotated by the application.</p>
             
-            <div class="settings-card pb-extend">
-              <div class="setting-row">
-                <div class="setting-info">
-                  <label>Max Archived Log Size</label>
-                  <span class="setting-hint">
+            <div class="rounded-lg border border-marshal-border bg-marshal-card p-5">
+              <div class="flex flex-wrap items-center justify-between gap-6">
+                <div class="flex flex-col gap-1">
+                  <label class="text-sm font-semibold text-white">Max Archived Log Size</label>
+                  <span class="max-w-xl text-sm text-marshal-muted">
                     When total archived logs exceed this limit, oldest files are deleted (minimum: 10 MB).
                   </span>
                 </div>
-                <div class="setting-controls">
-                  <div class="input-group">
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center rounded border border-marshal-border bg-marshal-editor">
                     <input 
                       type="number" 
                       v-model.number="maxLogSize" 
                       step="5" 
-                      class="input-number"
+                      class="w-20 bg-transparent px-3 py-2 text-white outline-none"
                       @input="setUnsavedChanges(true)"
                     >
-                    <span class="unit">MB</span>
+                    <span class="px-2 text-sm text-marshal-muted">MB</span>
                   </div>
-                  <button class="btn-text-action" @click="resetSetting('logger-max-size')">
+                  <button class="text-sm text-marshal-primary hover:underline" @click="resetSetting('logger-max-size')">
                     Reset to Default
                   </button>
                 </div>
@@ -113,39 +111,38 @@
       </div>
     </div>
 
-    <footer class="settings-footer">
-      <button class="btn-secondary danger-hover" @click="handleResetAllToDefault">
+    <footer class="fixed bottom-0 left-0 right-0 flex items-center justify-between border-t border-marshal-border bg-marshal-sidebar px-8 py-4">
+      <button class="rounded border border-marshal-border px-3 py-2 text-sm text-marshal-text transition hover:border-red-500 hover:bg-red-500/10 hover:text-red-400" @click="handleResetAllToDefault">
         Reset All to Default
       </button>
-      <div class="footer-buttons">
-        <button class="btn-secondary" @click="handleCloseClick">
+      <div class="flex gap-3">
+        <button class="rounded bg-gray-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-600" @click="handleCloseClick">
           Close
         </button>
         <button 
-          class="btn-primary" 
-          :class="{ 'unsaved-pulse': hasUnsavedChanges }"
+          class="rounded bg-marshal-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="isSaving"
           @click="saveGlobalSettings(false)"
         >
-          <span v-if="isSaving" class="loader"></span>
+          <span v-if="isSaving" class="mr-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
           {{ isSaving ? 'Saving...' : (hasUnsavedChanges ? 'Save Changes *' : 'Save Global Settings') }}
         </button>
       </div>
     </footer>
     
-    <div v-if="showUnsavedModal" class="modal-overlay-override">
-      <div class="modal-card">
-        <div class="modal-header">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warning-icon"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <h3 class="modal-alert-title">Unsaved Changes</h3>
+    <div v-if="showUnsavedModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      <div class="w-full max-w-md rounded-lg border border-marshal-border bg-marshal-card p-6 shadow-2xl">
+        <div class="flex items-center gap-3">
+          <svg class="h-6 w-6 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <h3 class="text-lg font-semibold text-white">Unsaved Changes</h3>
         </div>
-        <p class="modal-alert-desc">
+        <p class="my-4 text-sm text-marshal-muted">
           You have made changes to your global preferences. Do you want to <strong>save</strong> them before closing?
         </p>
-        <div class="modal-alert-actions">
-          <button class="btn-danger" @click="closeSettingsPage">Discard</button>
-          <button class="btn-secondary" @click="showUnsavedModal = false">Cancel</button>
-          <button class="btn-primary" :disabled="isSaving" @click="saveGlobalSettings(true)">Save & Close</button>
+        <div class="flex justify-end gap-3">
+          <button class="rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700" @click="closeSettingsPage">Discard</button>
+          <button class="rounded bg-gray-700 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-600" @click="showUnsavedModal = false">Cancel</button>
+          <button class="rounded bg-marshal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-50" :disabled="isSaving" @click="saveGlobalSettings(true)">Save & Close</button>
         </div>
       </div>
     </div>
