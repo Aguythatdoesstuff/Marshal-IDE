@@ -1,18 +1,18 @@
 <template>
-  <div :class="['ide-frame', { 'layout-resizing': isResizing }]">
+  <div :class="['flex h-screen w-screen flex-col overflow-hidden bg-marshal-sidebar font-sans text-marshal-text', { 'cursor-col-resize select-none': isResizing }]">
     
-    <div class="window-titlebar">
-      <span class="title-string">Marshal IDE - Workspace Template Layout</span>
+    <div class="flex h-8 w-full shrink-0 items-center justify-center border-b border-marshal-border bg-marshal-editor text-marshal-muted [app-region:drag]">
+      <span class="text-xs font-medium opacity-80">Marshal IDE - Workspace Template Layout</span>
     </div>
 
-    <header class="app-header">
-      <div class="meta-section">
-        <h1 class="brand-title">Marshal IDE</h1>
-        <div class="vertical-divider"></div>
-        <span class="active-project-tag">Project: <span class="highlight">{{ activeProjectName }}</span></span>
+    <header class="flex h-[52px] shrink-0 items-center justify-between border-b border-marshal-border bg-black/20 px-4">
+      <div class="flex items-center">
+        <h1 class="m-0 text-sm font-bold text-white">Marshal IDE</h1>
+        <div class="mx-4 h-4 w-px bg-marshal-border"></div>
+        <span class="text-xs text-marshal-muted">Project: <span class="font-semibold text-marshal-text">{{ activeProjectName }}</span></span>
       </div>
 
-      <div class="controls-section">
+      <div class="flex gap-2">
         <button class="inline-flex items-center justify-center gap-1.5 rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text transition hover:bg-white/10 hover:opacity-90" @click="handleRecompileAll">
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 7.99 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
           Recompile
@@ -29,7 +29,7 @@
       </div>
     </header>
 
-    <main class="workspace-viewport" id="app-workspace-split-root">
+    <main class="flex w-full flex-1 overflow-hidden" id="app-workspace-split-root">
       
       <FileTreePanel 
         ref="fileTreeRef"
@@ -43,32 +43,32 @@
       
       <div class="pane-divider-v" @mousedown="startWorkspaceResize"></div>
 
-      <section class="main-editor-console-hub">
+      <section class="flex min-w-0 flex-1 flex-col overflow-hidden bg-marshal-editor">
         
-        <div class="editor-subview-frame">
-          <div class="editor-tabs-bar" v-if="openTabs.length > 0">
+        <div class="relative min-h-0 flex-1 overflow-hidden">
+          <div v-if="openTabs.length > 0" class="flex h-[35px] shrink-0 overflow-x-auto overflow-y-hidden border-b border-marshal-border bg-black/15">
             <div 
               v-for="tab in openTabs" 
               :key="tab.path" 
-              :class="['editor-tab-item', { 'is-active': activeTabPath === tab.path }]"
+              :class="['inline-flex h-full shrink-0 cursor-pointer select-none items-center border-r border-marshal-border bg-black/10 px-3.5 text-xs text-marshal-muted transition hover:bg-white/[0.02] hover:text-marshal-text', { 'border-t-2 border-t-marshal-primary bg-marshal-editor font-medium text-white': activeTabPath === tab.path }]"
               @click="setActiveTab(tab.path)"
             >
-              <span class="tab-title-text">{{ tab.name }}</span>
-              <span v-if="tab.isDirty" class="dirty-indicator-dot">●</span>
-              <span class="tab-close-icon-btn" @click.stop="closeTab(tab.path)">×</span>
+              <span class="max-w-[120px] truncate">{{ tab.name }}</span>
+              <span v-if="tab.isDirty" class="ml-1.5 text-[10px] text-rose-600">●</span>
+              <span class="ml-2 flex h-3.5 w-3.5 items-center justify-center rounded text-sm hover:bg-white/10 hover:text-white" @click.stop="closeTab(tab.path)">×</span>
             </div>
           </div>
 
-          <div id="editor-container" class="monaco-mount-target"></div>
+          <div id="editor-container" class="monaco-mount-target" :class="{ 'pointer-events-none': isResizing }"></div>
           
-          <div v-if="openTabs.length === 0" class="placeholder-screen">
+          <div v-if="openTabs.length === 0" class="absolute inset-0 flex items-center justify-center p-6 text-center text-[13px] text-marshal-muted">
             <p>Select a structural project file asset from the tree browser configuration map to begin code composition.</p>
           </div>
         </div>
         
         <div class="pane-divider-h" @mousedown="startConsoleResize"></div>
 
-        <div class="console-subview-dock" :style="{ height: isConsoleMinimized ? '35px' : consoleHeight + 'px' }">
+        <div class="flex w-full shrink-0 flex-col overflow-hidden border-t border-marshal-border bg-marshal-editor" :style="{ height: isConsoleMinimized ? '35px' : consoleHeight + 'px' }">
           <ConsolePanel 
             class="console-panel-component"
             :is-minimized="isConsoleMinimized"
@@ -908,114 +908,6 @@ const handleToggleMinimize = () => {
 
 <style scoped>
 
-.ide-frame {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background-color: var(--sidebar-bg);
-  color: var(--text-color);
-  font-family: 'Inter', sans-serif;
-
-  &.layout-resizing {
-    cursor: col-resize !important;
-    user-select: none !important;
-
-    .monaco-mount-target {
-      pointer-events: none !important;
-    }
-  }
-}
-
-.editor-tabs-bar {
-  display: flex; height: 35px; background-color: rgba(0, 0, 0, 0.15); border-bottom: 1px solid var(--border-color); overflow-x: auto; overflow-y: hidden;
-  &::-webkit-scrollbar { height: 3px; }
-  &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
-
-  .editor-tab-item {
-    display: inline-flex; align-items: center; height: 100%; padding: 0 14px; border-right: 1px solid var(--border-color); background-color: rgba(0, 0, 0, 0.1); font-size: 12px; color: var(--text-muted); cursor: pointer; user-select: none; transition: background-color 0.1s, color 0.1s;
-    &:hover { background-color: rgba(255, 255, 255, 0.02); color: var(--text-color); }
-    &.is-active { background-color: var(--editor-bg); color: #ffffff; border-top: 2px solid var(--primary-blue); font-weight: 500; }
-    .tab-title-text { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dirty-indicator-dot { margin-left: 6px; color: #e11d48; font-size: 10px; }
-    .tab-close-icon-btn { margin-left: 8px; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 14px; &:hover { background-color: rgba(255, 255, 255, 0.1); color: #ffffff; } }
-  }
-}
-
-.window-titlebar {
-  height: 32px;
-  background-color: var(--editor-bg); 
-  color: var(--text-muted);
-  display: flex;
-  justify-content: center; 
-  align-items: center;
-  -webkit-app-region: drag;
-  width: 100%;           
-  flex-shrink: 0;        
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 0;
-
-  .title-string {
-    font-size: 0.75rem; 
-    font-weight: 500;   
-    opacity: 0.8;
-  }
-}
-
-.app-header {
-  height: 52px;
-  background-color: rgba(0, 0, 0, 0.2); 
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  flex-shrink: 0;
-
-  .meta-section {
-    display: flex;
-    align-items: center;
-    
-    .brand-title {
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      margin: 0;
-      color: #ffffff;
-    }
-
-    .vertical-divider {
-      width: 1px;
-      height: 16px;
-      background-color: var(--border-color);
-      margin: 0 16px;
-    }
-
-    .active-project-tag {
-      font-size: 12px;
-      color: var(--text-muted);
-      
-      .highlight { 
-        color: var(--text-color); 
-        font-weight: 600; 
-      }
-    }
-  }
-
-  .controls-section {
-    display: flex;
-    gap: 8px;
-  }
-}
-
-.workspace-viewport {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  width: 100%;
-}
-
 .pane-divider-v {
   width: 4px;
   background-color: var(--border-color);
@@ -1029,36 +921,10 @@ const handleToggleMinimize = () => {
   }
 }
 
-.main-editor-console-hub {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  background-color: var(--editor-bg);
-}
-
-.editor-subview-frame {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-}
-
 .monaco-mount-target {
   width: 100%;
   height: 100%;
   position: relative;
-
-  .placeholder-screen {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    font-size: 13px;
-    padding: 24px;
-    text-align: center;
-  }
 }
 
 .pane-divider-h {
@@ -1071,24 +937,6 @@ const handleToggleMinimize = () => {
   
   &:hover {
     background-color: var(--primary-blue);
-  }
-}
-
-.console-subview-dock {
-  border-top: 1px solid var(--border-color);
-  flex-shrink: 0;
-  overflow: hidden;
-  display: flex !important;          
-  flex-direction: column !important; 
-  width: 100%;
-  background-color: var(--editor-bg);
-
-  .console-panel-component {
-    display: flex !important;
-    flex-direction: column !important;
-    flex: 1 !important;
-    height: 100% !important;
-    width: 100% !important;
   }
 }
 
