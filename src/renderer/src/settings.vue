@@ -348,21 +348,22 @@ function closeSettingsPage() {
 }
 </script>
 
-<style lang="scss" scoped>
-@use "sass:color";
+<style scoped>
 /* IDE Theme System Configurations */
-$editor-bg: #1e1e24;
-$card-bg: #27272e;
-$border-color: #3b3b44;
-$primary-blue: #3b82f6;
-$text-color: #e2e8f0;
-$text-muted: #94a3b8;
-$danger-red: #ef4444;
-$warning-orange: #f59e0b;
+:root {
+  --editor-bg: #1e1e24;
+  --card-bg: #27272e;
+  --border-color: #3b3b44;
+  --primary-blue: #3b82f6;
+  --text-color: #e2e8f0;
+  --text-muted: #94a3b8;
+  --danger-red: #ef4444;
+  --warning-orange: #f59e0b;
+}
 
 .settings-wrapper {
-  background-color: $editor-bg;
-  color: $text-color;
+  background-color: var(--editor-bg);
+  color: var(--text-color);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -374,8 +375,8 @@ $warning-orange: #f59e0b;
 /* Application Titlebar */
 .titlebar {
   height: 32px;
-  background-color: color.adjust($editor-bg, $lightness: -2%);
-  border-bottom: 1px solid $border-color;
+  background-color: color-mix(in srgb, var(--editor-bg), black 2%);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -384,7 +385,7 @@ $warning-orange: #f59e0b;
 
   .titlebar-text {
     font-size: 0.75rem;
-    color: $text-muted;
+    color: var(--text-muted);
     font-weight: 500;
     letter-spacing: 0.05em;
   }
@@ -419,7 +420,7 @@ $warning-orange: #f59e0b;
   }
 
   .settings-subtitle {
-    color: $text-muted;
+    color: var(--text-muted);
     margin-top: 0.5rem;
     font-size: 1.05rem;
   }
@@ -436,7 +437,7 @@ $warning-orange: #f59e0b;
 .settings-tabs {
   display: flex;
   gap: 2rem;
-  border-bottom: 1px solid $border-color;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 2rem;
 
   .settings-tab {
@@ -444,15 +445,15 @@ $warning-orange: #f59e0b;
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: all 0.2s ease;
-    color: $text-muted;
+    color: var(--text-muted);
     font-size: 0.95rem;
     font-weight: 500;
 
     &:hover { color: #ffffff; }
 
     &.active {
-      color: $primary-blue;
-      border-bottom-color: $primary-blue;
+      color: var(--primary-blue);
+      border-bottom-color: var(--primary-blue);
       font-weight: 600;
     }
   }
@@ -475,7 +476,7 @@ $warning-orange: #f59e0b;
 }
 
 .panel-desc {
-  color: $text-muted;
+  color: var(--text-muted);
   margin: 0 0 1.5rem 0;
   font-size: 0.9rem;
   line-height: 1.5;
@@ -483,7 +484,7 @@ $warning-orange: #f59e0b;
 
 .settings-card {
   background-color: transparent;
-  border: 1px solid $border-color;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
 
@@ -496,10 +497,10 @@ $warning-orange: #f59e0b;
   grid-template-columns: 2fr 4fr 100px;
   gap: 1.5rem;
   padding: 0.85rem 1.25rem;
-  background-color: color.adjust($editor-bg, $lightness: 2%);
-  border-bottom: 1px solid $border-color;
+  background-color: color-mix(in srgb, var(--editor-bg), white 2%);
+  border-bottom: 1px solid var(--border-color);
   font-weight: 600;
-  color: color.adjust($text-muted, $lightness: 10%);
+  color: color-mix(in srgb, var(--text-muted), white 10%);
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -508,11 +509,11 @@ $warning-orange: #f59e0b;
 .grid-body {
   display: flex;
   flex-direction: column;
-  background-color: $card-bg;
+  background-color: var(--card-bg);
 }
 
 .empty-state {
-  color: $text-muted;
+  color: var(--text-muted);
   padding: 2rem;
   font-size: 0.9rem;
   text-align: center;
@@ -529,7 +530,7 @@ $warning-orange: #f59e0b;
   transition: background-color 0.15s;
 
   &:last-child { border-bottom: none; }
-  &:hover { background-color: color.adjust($card-bg, $lightness: 3%); }
+  &:hover { background-color: color-mix(in srgb, var(--card-bg), white 3%); }
 
   .col-name {
     color: #f1f5f9;
@@ -554,21 +555,21 @@ $warning-orange: #f59e0b;
   border-radius: 6px;
   background-color: rgba(0, 0, 0, 0.2);
   color: #ffffff;
-  border: 1px solid $border-color;
+  border: 1px solid var(--border-color);
   outline: none;
   font-size: 0.85rem;
   font-family: 'Fira Code', 'Consolas', monospace;
   box-sizing: border-box;
   transition: all 0.2s ease;
 
-  &::placeholder { color: color.adjust($text-muted, $lightness: -15%); font-family: inherit; }
-  &:focus { border-color: $primary-blue; box-shadow: 0 0 0 2px rgba($primary-blue, 0.2); }
+  &::placeholder { color: color-mix(in srgb, var(--text-muted), black 15%); font-family: inherit; }
+  &:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(var(--primary-blue), 0.2); }
 }
 
 .btn-edit {
-  background-color: color.adjust($card-bg, $lightness: 10%);
+  background-color: color-mix(in srgb, var(--card-bg), white 10%);
   color: #e2e8f0;
-  border: 1px solid $border-color;
+  border: 1px solid var(--border-color);
   padding: 0.4rem 0.85rem;
   border-radius: 6px;
   font-size: 0.8rem;
@@ -576,8 +577,8 @@ $warning-orange: #f59e0b;
   cursor: pointer;
   transition: all 0.15s ease;
 
-  &:hover { background-color: color.adjust($card-bg, $lightness: 15%); color: #ffffff; }
-  &.editing { border-color: $warning-orange; color: $warning-orange; }
+  &:hover { background-color: color-mix(in srgb, var(--card-bg), white 15%); color: #ffffff; }
+  &.editing { border-color: var(--warning-orange); color: var(--warning-orange); }
 }
 
 /* Logger Specific Layout */
@@ -585,10 +586,10 @@ $warning-orange: #f59e0b;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background-color: $card-bg;
+  background-color: var(--card-bg);
   padding: 1.25rem;
   border-radius: 8px;
-  border: 1px solid $border-color;
+  border: 1px solid var(--border-color);
 }
 
 .setting-info {
@@ -597,7 +598,7 @@ $warning-orange: #f59e0b;
   gap: 0.35rem;
 
   label { color: #f1f5f9; font-weight: 600; font-size: 0.95rem; }
-  .setting-hint { color: $text-muted; font-size: 0.85rem; max-width: 24rem; line-height: 1.4; }
+  .setting-hint { color: var(--text-muted); font-size: 0.85rem; max-width: 24rem; line-height: 1.4; }
 }
 
 .setting-controls {
@@ -617,29 +618,29 @@ $warning-orange: #f59e0b;
       border-radius: 6px;
       background-color: rgba(0, 0, 0, 0.2);
       color: #ffffff;
-      border: 1px solid $border-color;
+      border: 1px solid var(--border-color);
       text-align: right;
       outline: none;
       font-size: 0.9rem;
       font-family: 'Fira Code', 'Consolas', monospace;
       transition: all 0.2s ease;
       
-      &:focus { border-color: $primary-blue; box-shadow: 0 0 0 2px rgba($primary-blue, 0.2); }
+      &:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 2px rgba(var(--primary-blue), 0.2); }
     }
-    .unit { color: $text-muted; font-size: 0.85rem; font-weight: 600; }
+    .unit { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
   }
 
   .btn-text-action {
     background: transparent;
     border: none;
-    color: $primary-blue;
+    color: var(--primary-blue);
     font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
     padding: 0.25rem 0;
     transition: color 0.15s ease;
 
-    &:hover { color: color.adjust($primary-blue, $lightness: 15%); text-decoration: underline; }
+    &:hover { color: color-mix(in srgb, var(--primary-blue), white 15%); text-decoration: underline; }
   }
 }
 
@@ -650,9 +651,9 @@ $warning-orange: #f59e0b;
   left: 0;
   right: 0;
   height: 70px;
-  background-color: rgba($editor-bg, 0.95);
+  background-color: color-mix(in srgb, var(--editor-bg) 95%, transparent);
   backdrop-filter: blur(8px);
-  border-top: 1px solid $border-color;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -670,8 +671,8 @@ button { font-family: inherit; }
 
 .btn-secondary {
   background-color: transparent;
-  color: $text-color;
-  border: 1px solid $border-color;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
   padding: 0.5rem 1.25rem;
   border-radius: 6px;
   font-weight: 500;
@@ -680,11 +681,11 @@ button { font-family: inherit; }
   transition: all 0.2s ease;
   
   &:hover { background-color: rgba(255, 255, 255, 0.05); color: #ffffff; }
-  &.danger-hover:hover { border-color: $danger-red; color: $danger-red; background-color: rgba($danger-red, 0.1); }
+  &.danger-hover:hover { border-color: var(--danger-red); color: var(--danger-red); background-color: rgba(var(--danger-red), 0.1); }
 }
 
 .btn-primary {
-  background-color: $primary-blue;
+  background-color: var(--primary-blue);
   color: #ffffff;
   border: none;
   padding: 0.5rem 1.5rem;
@@ -697,20 +698,20 @@ button { font-family: inherit; }
   align-items: center;
   gap: 0.5rem;
 
-  &:hover:not(:disabled) { background-color: color.adjust($primary-blue, $lightness: 5%); box-shadow: 0 2px 8px rgba($primary-blue, 0.3); }
+  &:hover:not(:disabled) { background-color: color-mix(in srgb, var(--primary-blue), white 5%); box-shadow: 0 2px 8px rgba(var(--primary-blue), 0.3); }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
 
   &.unsaved-pulse {
-    background-color: color.adjust($primary-blue, $lightness: -5%);
-    box-shadow: 0 0 0 0 rgba($primary-blue, 0.7);
+    background-color: color-mix(in srgb, var(--primary-blue), black 5%);
+    box-shadow: 0 0 0 0 rgba(var(--primary-blue), 0.7);
     animation: save-pulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
   }
 }
 
 .btn-danger {
-  background-color: rgba($danger-red, 0.1);
-  color: $danger-red;
-  border: 1px solid rgba($danger-red, 0.3);
+  background-color: rgba(var(--danger-red), 0.1);
+  color: var(--danger-red);
+  border: 1px solid rgba(var(--danger-red), 0.3);
   padding: 0.5rem 1.25rem;
   border-radius: 6px;
   font-weight: 500;
@@ -718,7 +719,7 @@ button { font-family: inherit; }
   font-size: 0.85rem;
   transition: all 0.2s;
   
-  &:hover { background-color: $danger-red; color: #ffffff; }
+  &:hover { background-color: var(--danger-red); color: #ffffff; }
 }
 
 /* Unsaved Changes Modal - Frosted Glass Look */
@@ -734,8 +735,8 @@ button { font-family: inherit; }
   animation: fade-in 0.2s ease-out;
 
   .modal-card {
-    background-color: $card-bg;
-    border: 1px solid $border-color;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 1.75rem;
     width: 100%;
@@ -762,7 +763,7 @@ button { font-family: inherit; }
   }
 
   .modal-alert-desc {
-    color: $text-muted;
+    color: var(--text-muted);
     font-size: 0.95rem;
     margin: 0 0 2rem 0;
     line-height: 1.6;
@@ -779,7 +780,7 @@ button { font-family: inherit; }
 
 /* Animations */
 @keyframes save-pulse {
-  to { box-shadow: 0 0 0 8px rgba($primary-blue, 0); }
+  to { box-shadow: 0 0 0 8px rgba(var(--primary-blue), 0); }
 }
 
 @keyframes fade-in {

@@ -198,7 +198,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style>
 /* ==========================================================================
    GLOBAL APP WINDOW LAYER (Unscoped)
    Forces the Electron shell window to adopt the user's theme color instantly
@@ -212,14 +212,14 @@ body, html {
 }
 </style>
 
-<style scoped lang="scss">
+<style scoped>
 /* ==========================================================================
    SPLASH SCREEN & APP SHELL VIEW (Scoped)
    ========================================================================== */
 #app-wrapper {
   height: 100vh;
   width: 100vw;
-  color: $text-color; /* Linked to theme token */
+  color: var(--text-color); /* Linked to theme token */
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
@@ -274,7 +274,7 @@ body, html {
     font-weight: 600;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: $text-muted; /* Linked to theme token */
+    color: var(--text-muted); /* Linked to theme token */
     opacity: 0.8;
     user-select: none; 
     -webkit-user-select: none;
@@ -485,7 +485,7 @@ body, html {
   50% { 
     opacity: 1; 
     transform: scale(1.3); 
-    background-color: $primary-blue; /* Pulse flash matches custom primary brand accent */
+    background-color: var(--primary-blue); /* Pulse flash matches custom primary brand accent */
   }
 }
 </style>

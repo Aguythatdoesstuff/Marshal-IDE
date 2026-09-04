@@ -208,34 +208,35 @@ onMounted(() => {
 });
 </script>
 
-<style lang="scss">
-@use "sass:color";
+<style>
 /* IDE Theme System Configurations */
-$sidebar-bg: #18181c;
-$editor-bg: #1e1e24;
-$border-color: #2d2d34;
-$primary-blue: #3b82f6;
-$text-color: #e2e8f0;
-$text-muted: #94a3b8;
+:root {
+  --sidebar-bg: #18181c;
+  --editor-bg: #1e1e24;
+  --border-color: #2d2d34;
+  --primary-blue: #3b82f6;
+  --text-color: #e2e8f0;
+  --text-muted: #94a3b8;
+}
 
 .wiki-wrapper {
   height: 100vh;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: $editor-bg;
+  background-color: var(--editor-bg);
   
   .titlebar { 
     margin-bottom: 0 !important; 
     height: 32px;
-    background-color: color.adjust($sidebar-bg, $lightness: -2%);
-    border-bottom: 1px solid $border-color;
+    background-color: color-mix(in srgb, var(--sidebar-bg), black 2%);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     padding: 0 1rem;
     
     .titlebar-text {
       font-size: 0.75rem;
-      color: $text-muted;
+      color: var(--text-muted);
       font-weight: 500;
       letter-spacing: 0.05em;
     }
@@ -250,8 +251,8 @@ $text-muted: #94a3b8;
   /* --- Sidebar Explorer Styling --- */
   .sidebar {
     width: 18rem; 
-    background-color: $sidebar-bg;
-    border-right: 1px solid $border-color;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -275,7 +276,7 @@ $text-muted: #94a3b8;
       .back-btn {
         background: none;
         border: none;
-        color: $text-muted;
+        color: var(--text-muted);
         cursor: pointer;
         padding: 4px;
         border-radius: 4px;
@@ -295,8 +296,8 @@ $text-muted: #94a3b8;
       
       .search-input {
         margin-bottom: 0 !important; 
-        background-color: color.adjust($sidebar-bg, $lightness: 3%);
-        border: 1px solid $border-color; 
+        background-color: color-mix(in srgb, var(--sidebar-bg), white 3%);
+        border: 1px solid var(--border-color); 
         border-radius: 6px;        
         padding: 0.5rem 0.75rem;   
         color: #ffffff;
@@ -311,9 +312,9 @@ $text-muted: #94a3b8;
         }
         
         &:focus {
-          border-color: $primary-blue;
-          background-color: color.adjust($sidebar-bg, $lightness: 5%);
-          box-shadow: 0 0 0 2px rgba($primary-blue, 0.2);
+          border-color: var(--primary-blue);
+          background-color: color-mix(in srgb, var(--sidebar-bg), white 5%);
+          box-shadow: 0 0 0 2px rgba(var(--primary-blue), 0.2);
         }
       }
     }
@@ -334,7 +335,7 @@ $text-muted: #94a3b8;
 
       .status-text {
         padding: 1rem 0.5rem;
-        color: $text-muted;
+        color: var(--text-muted);
         font-size: 0.8rem;
         text-align: center;
 
@@ -388,7 +389,7 @@ $text-muted: #94a3b8;
         padding: 0.35rem 0.75rem;
         border-radius: 4px;
         font-size: 0.85rem;
-        color: $text-muted;
+        color: var(--text-muted);
         background: transparent;
         border: none;
         cursor: pointer;
@@ -405,8 +406,8 @@ $text-muted: #94a3b8;
         }
 
         &.active-file {
-          background-color: rgba($primary-blue, 0.15);
-          color: color.adjust($primary-blue, $lightness: 15%);
+          background-color: rgba(var(--primary-blue), 0.15);
+          color: color-mix(in srgb, var(--primary-blue), white 15%);
           font-weight: 500;
         }
       }
@@ -419,9 +420,9 @@ $text-muted: #94a3b8;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       text-align: center;
-      border-top: 1px solid $border-color;
-      color: color.adjust($text-muted, $lightness: -10%);
-      background-color: color.adjust($sidebar-bg, $lightness: -1%);
+      border-top: 1px solid var(--border-color);
+      color: color-mix(in srgb, var(--text-muted), black 10%);
+      background-color: color-mix(in srgb, var(--sidebar-bg), black 1%);
     }
   }
 
@@ -429,7 +430,7 @@ $text-muted: #94a3b8;
   .main-content {
     flex: 1;
     overflow-y: auto;
-    background-color: $editor-bg;
+    background-color: var(--editor-bg);
     
     &::-webkit-scrollbar { width: 10px; }
     &::-webkit-scrollbar-track { background: transparent; }
@@ -440,7 +441,7 @@ $text-muted: #94a3b8;
       max-width: 52rem; 
       margin: 0 auto;
       padding: 4rem 3rem;
-      color: $text-color;
+      color: var(--text-color);
     }
 
     .welcome-screen {
@@ -454,7 +455,7 @@ $text-muted: #94a3b8;
       }
       
       p {
-        color: $text-muted;
+        color: var(--text-muted);
         font-size: 1.05rem;
         line-height: 1.5;
       }
@@ -462,20 +463,20 @@ $text-muted: #94a3b8;
       .tip-box {
         margin-top: 2.5rem;
         padding: 1rem 1.25rem;
-        background-color: rgba($primary-blue, 0.06);
-        border: 1px solid rgba($primary-blue, 0.2);
+        background-color: rgba(var(--primary-blue), 0.06);
+        border: 1px solid rgba(var(--primary-blue), 0.2);
         border-radius: 6px;
         font-size: 0.9rem;
         line-height: 1.5;
-        color: color.adjust($primary-blue, $lightness: 25%);
+        color: color-mix(in srgb, var(--primary-blue), white 25%);
         
         strong {
-          color: color.adjust($primary-blue, $lightness: 35%);
+          color: color-mix(in srgb, var(--primary-blue), white 35%);
         }
       }
     }
 
-    .blue-glow { color: color.adjust($primary-blue, $lightness: 10%); }
+    .blue-glow { color: color-mix(in srgb, var(--primary-blue), white 10%); }
   }
 
   /* --- Advanced Typographical Framework --- */
@@ -492,7 +493,7 @@ $text-muted: #94a3b8;
       margin-bottom: 1rem; 
     }
     
-    h1 { font-size: 2.25rem; margin-top: 0; padding-bottom: 0.5rem; border-bottom: 1px solid $border-color;}
+    h1 { font-size: 2.25rem; margin-top: 0; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);}
     h2 { font-size: 1.6rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.3rem; }
     h3 { font-size: 1.25rem; }
     
@@ -505,19 +506,19 @@ $text-muted: #94a3b8;
     }
     
     a { 
-      color: color.adjust($primary-blue, $lightness: 15%); 
+      color: color-mix(in srgb, var(--primary-blue), white 15%); 
       text-decoration: none; 
       border-bottom: 1px dashed transparent;
       transition: all 0.2s ease;
       
       &:hover { 
-        border-bottom-color: color.adjust($primary-blue, $lightness: 15%);
+        border-bottom-color: color-mix(in srgb, var(--primary-blue), white 15%);
       } 
     }
     
     pre {
-      background-color: color.adjust($sidebar-bg, $lightness: -2%);
-      border: 1px solid $border-color;
+      background-color: color-mix(in srgb, var(--sidebar-bg), black 2%);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 1.25rem;
       overflow-x: auto;
@@ -543,8 +544,8 @@ $text-muted: #94a3b8;
     }
     
     blockquote {
-      border-left: 4px solid $primary-blue;
-      background-color: rgba($primary-blue, 0.04);
+      border-left: 4px solid var(--primary-blue);
+      background-color: rgba(var(--primary-blue), 0.04);
       padding: 0.75rem 1.25rem;
       margin: 1.75rem 0;
       border-radius: 0 6px 6px 0;

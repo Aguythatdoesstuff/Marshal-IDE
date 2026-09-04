@@ -128,7 +128,7 @@ const declineEula = () => {
 };
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 /* ==========================================================================
    EULA SPECIFIC MODULE STYLES (Scoped to prevent global bleeding)
    ========================================================================== */
@@ -157,7 +157,7 @@ const declineEula = () => {
 
 #eula-content {
   flex-grow: 1;
-  background-color: $editor-bg;
+  background-color: var(--editor-bg);
   border: 1px solid #333;
   padding: 2rem;
   overflow-y: auto;
@@ -206,7 +206,7 @@ const declineEula = () => {
   }
 
   &.btn-accept {
-    background-color: $primary-blue;
+    background-color: var(--primary-blue);
     font-weight: 700; 
     color: #ffffff;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
@@ -276,7 +276,7 @@ const declineEula = () => {
     width: 100%;
     padding: 0.5rem;
     margin-bottom: 1rem;
-    background-color: $editor-bg;
+    background-color: var(--editor-bg);
     border: 1px solid #555;
     color: #ffffff;
     font-size: 0.875rem;
@@ -285,7 +285,7 @@ const declineEula = () => {
     box-sizing: border-box;
 
     &:focus {
-      border-color: $primary-blue;
+      border-color: var(--primary-blue);
     }
   }
 
@@ -312,7 +312,7 @@ const declineEula = () => {
       border: none;
       cursor: pointer;
       padding: 0.25rem 1rem;
-      background-color: $primary-blue;
+      background-color: var(--primary-blue);
       color: #ffffff;
       font-size: 0.75rem;
       font-weight: 700;

@@ -295,15 +295,10 @@ onMounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
-$sidebar-bg: var(--sidebar-bg, #1e1e24);
-$border-color: var(--border-color, rgba(255, 255, 255, 0.08));
-$text-muted: var(--text-muted, #8a8a93);
-$text-color: var(--text-color, #e2e2e9);
-$primary-blue: var(--primary-blue, #007acc);
+<style scoped>
 
 .sidebar-column {
-  background-color: $sidebar-bg;
+  background-color: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -313,34 +308,34 @@ $primary-blue: var(--primary-blue, #007acc);
   outline: none;
 
   &.is-dragging-over {
-    border: 2px dashed $primary-blue;
+    border: 2px dashed var(--primary-blue);
   }
 
   .column-header {
     height: 38px;
-    border-bottom: 1px solid $border-color;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 14px;
     background-color: rgba(0, 0, 0, 0.1);
-    .header-label { font-size: 11px; font-weight: 600; color: $text-muted; text-transform: uppercase; letter-spacing: 0.06em; }
+    .header-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
     .header-action-btn {
-      background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: $text-color; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center;
+      background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-color); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center;
       svg { width: 14px; height: 14px; }
-      &:hover { background-color: rgba(0, 122, 204, 0.25); border-color: $primary-blue; color: #ffffff; }
+      &:hover { background-color: rgba(0, 122, 204, 0.25); border-color: var(--primary-blue); color: #ffffff; }
     }
   }
 
   .tree-inner-scroller {
     flex: 1; overflow-y: auto; padding: 6px 0;
-    .tree-empty-notice { padding: 16px; text-align: center; color: $text-muted; font-size: 12px; }
+    .tree-empty-notice { padding: 16px; text-align: center; color: var(--text-muted); font-size: 12px; }
     
     .tree-item-row {
       display: flex; align-items: center; height: 26px; padding-right: 12px; cursor: pointer; font-size: 13px; color: #cccccc; user-select: none;
       &:hover { background-color: rgba(255, 255, 255, 0.04); color: #ffffff; }
       &.is-selected { background-color: rgba(0, 122, 204, 0.3); color: #ffffff; }
-      &.is-active { background-color: rgba(0, 122, 204, 0.2); color: #ffffff; border-left: 2px solid $primary-blue; }
+      &.is-active { background-color: rgba(0, 122, 204, 0.2); color: #ffffff; border-left: 2px solid var(--primary-blue); }
       .node-icon { margin-right: 6px; font-size: 12px; display: inline-flex; align-items: center; }
       .node-text-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     }

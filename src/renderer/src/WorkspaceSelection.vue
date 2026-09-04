@@ -415,7 +415,7 @@ const openWikiInApp = () => {
 const openSettings = () => {window.api.send('switch-page', 'settings');};
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 /* ==========================================================================
    WORKSPACE MAIN STRUCTURAL LAYOUT
    ========================================================================== */
@@ -482,7 +482,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
   }
 
   .status-message {
-    color: $text-muted;
+    color: var(--text-muted);
   }
   .error-text {
     color: #f87171; /* text-red-400 */
@@ -496,7 +496,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
 }
 
 .card {
-  background-color: $card-bg;
+  background-color: var(--card-bg);
   border: 1px solid #37373d;
   padding: 1rem;
   border-radius: 0.5rem;
@@ -533,7 +533,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
     .open-mod-btn {
       background: none; 
       border: none; 
-      color: $primary-blue; 
+      color: var(--primary-blue); 
       cursor: pointer; 
       font-size: 0.875rem;
       padding: 0;
@@ -593,7 +593,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
   }
 
   &.btn-primary {
-    background-color: $primary-blue;
+    background-color: var(--primary-blue);
     color: #ffffff;
     
     &:hover:not(:disabled) {
@@ -680,7 +680,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
     box-sizing: border-box;
 
     &:focus {
-      border-color: $primary-blue;
+      border-color: var(--primary-blue);
     }
   }
 
@@ -740,7 +740,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
   padding: 1rem; /* Safety spacing for small window frames */
 
   .modal-card {
-    background-color: $card-bg;
+    background-color: var(--card-bg);
     padding: 1.5rem; 
     border-radius: 8px;
     border: 1px solid #444;
@@ -749,7 +749,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
     max-width: 20rem; /* Fallback safe boundary width */
     box-sizing: border-box;
 
-    // Fixed explicit class overrides to counteract screen stretching
+    /* Fixed explicit class overrides to counteract screen stretching */
     &.max-w-md { 
       max-width: 28rem; 
     }
@@ -801,7 +801,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
     
     &:hover:not(.disabled) {
       background-color: #4b5563;
-      border-color: $primary-blue;
+      border-color: var(--primary-blue);
     }
     
     &.disabled {
@@ -842,7 +842,7 @@ const openSettings = () => {window.api.send('switch-page', 'settings');};
 /* --- Internal Micro-Utility Mappings --- */
 .spacing-top-md      { margin-top: 1.5rem; }
 .spacing-top-lg      { margin-top: 2rem; }
-.highlight-title     { color: $primary-blue; }
+.highlight-title     { color: var(--primary-blue); }
 .warning-highlight   { color: #f59e0b; }
 .text-center         { text-align: center; }
 

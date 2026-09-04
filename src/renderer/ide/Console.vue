@@ -321,13 +321,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
-$sidebar-bg: var(--sidebar-bg);
-$editor-bg: var(--editor-bg);
-$border-color: var(--border-color);
-$text-color: var(--text-color);
-$text-muted: var(--text-muted);
-$primary-blue: var(--primary-blue);
+<style scoped>
 
 .console-panel {
   display: flex;
@@ -335,8 +329,8 @@ $primary-blue: var(--primary-blue);
   flex: 1;                
   height: 100%;
   width: 100%;
-  background-color: $editor-bg;
-  color: $text-color;
+  background-color: var(--editor-bg);
+  color: var(--text-color);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   overflow: hidden;
   position: relative;
@@ -344,8 +338,8 @@ $primary-blue: var(--primary-blue);
 
 .console-header {
   height: 35px;
-  background-color: $sidebar-bg;
-  border-bottom: 1px solid $border-color;
+  background-color: var(--sidebar-bg);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -362,7 +356,7 @@ $primary-blue: var(--primary-blue);
     .tab-label {
       font-size: 11px;
       font-weight: 600;
-      color: $text-muted;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.05em;
       border-bottom: 2px solid transparent;
@@ -375,8 +369,8 @@ $primary-blue: var(--primary-blue);
 
       &:hover { color: #ffffff; }
       &.active {
-        color: $text-color;
-        border-bottom-color: $primary-blue;
+        color: var(--text-color);
+        border-bottom-color: var(--primary-blue);
       }
 
       .error-badge {
@@ -408,7 +402,7 @@ $primary-blue: var(--primary-blue);
     .icon-action-btn {
       background: transparent;
       border: none;
-      color: $text-muted;
+      color: var(--text-muted);
       padding: 4px;
       cursor: pointer;
       border-radius: 4px;
@@ -449,23 +443,23 @@ $primary-blue: var(--primary-blue);
     }
 
     .log-time {
-      color: $text-muted;
+      color: var(--text-muted);
       opacity: 0.5;
       margin-right: 4px;
     }
 
     &.system-msg { color: #4fc1ff; }
-    &.info-msg, &.info { color: $text-muted; }
+    &.info-msg, &.info { color: var(--text-muted); }
     &.warning-msg, &.compiler-warning { color: #cca700; font-weight: 500; }
     &.error-msg, &.error, &.compiler-error { color: #f44747; font-weight: 500; }
-    &.empty-msg { color: $text-muted; font-style: italic; opacity: 0.7; }
+    &.empty-msg { color: var(--text-muted); font-style: italic; opacity: 0.7; }
   }
 }
 
 .context-menu {
   position: fixed;
-  background-color: $sidebar-bg;
-  border: 1px solid $border-color;
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--border-color);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   padding: 4px 0;
@@ -475,7 +469,7 @@ $primary-blue: var(--primary-blue);
     padding: 6px 14px;
     font-size: 11px;
     cursor: pointer;
-    color: $text-color;
+    color: var(--text-color);
     transition: background-color 0.1s;
 
     &:hover {

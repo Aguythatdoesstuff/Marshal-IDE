@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+:root {
+  --sidebar-bg: #252526;
+  --editor-bg: #1e1e1e;
+  --card-bg: #2d2d30;
+  --text-color: #cccccc;
+  --primary-blue: #007acc;
+  --border-color: #2d2d30;
+  --text-muted: #858585;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  height: 100vh;
+  overflow: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+body {
+  background-color: var(--editor-bg);
+}
+
+#eula-wrapper,
+.workspace-wrapper {
+  font-family: Inter, "Segoe UI", sans-serif;
+  background-color: var(--sidebar-bg);
+  color: var(--text-color);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#eula-wrapper {
+  height: 100vh;
+  padding: 0 0 2rem;
+  overflow: hidden;
+}
+
+.workspace-wrapper {
+  min-height: 100vh;
+}
+
+nav.shrink-0 {
+  background-color: #0d0d0d !important;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--editor-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+.flex-space-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-column-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.flex-grow {
+  flex-grow: 1;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.titlebar {
+  height: 32px;
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--editor-bg);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+  -webkit-app-region: drag;
+}
+
+.titlebar-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  opacity: 0.8;
+}

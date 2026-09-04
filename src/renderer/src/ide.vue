@@ -906,14 +906,7 @@ const handleToggleMinimize = () => {
 };
 </script>
 
-<style lang="scss" scoped>
-$sidebar-bg: var(--sidebar-bg);
-$editor-bg: var(--editor-bg);
-$card-bg: var(--card-bg);
-$text-color: var(--text-color);
-$primary-blue: var(--primary-blue);
-$border-color: var(--border-color);
-$text-muted: var(--text-muted);
+<style scoped>
 
 .ide-frame {
   display: flex;
@@ -921,8 +914,8 @@ $text-muted: var(--text-muted);
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background-color: $sidebar-bg;
-  color: $text-color;
+  background-color: var(--sidebar-bg);
+  color: var(--text-color);
   font-family: 'Inter', sans-serif;
 
   &.layout-resizing {
@@ -936,14 +929,14 @@ $text-muted: var(--text-muted);
 }
 
 .editor-tabs-bar {
-  display: flex; height: 35px; background-color: rgba(0, 0, 0, 0.15); border-bottom: 1px solid $border-color; overflow-x: auto; overflow-y: hidden;
+  display: flex; height: 35px; background-color: rgba(0, 0, 0, 0.15); border-bottom: 1px solid var(--border-color); overflow-x: auto; overflow-y: hidden;
   &::-webkit-scrollbar { height: 3px; }
   &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); }
 
   .editor-tab-item {
-    display: inline-flex; align-items: center; height: 100%; padding: 0 14px; border-right: 1px solid $border-color; background-color: rgba(0, 0, 0, 0.1); font-size: 12px; color: $text-muted; cursor: pointer; user-select: none; transition: background-color 0.1s, color 0.1s;
-    &:hover { background-color: rgba(255, 255, 255, 0.02); color: $text-color; }
-    &.is-active { background-color: $editor-bg; color: #ffffff; border-top: 2px solid $primary-blue; font-weight: 500; }
+    display: inline-flex; align-items: center; height: 100%; padding: 0 14px; border-right: 1px solid var(--border-color); background-color: rgba(0, 0, 0, 0.1); font-size: 12px; color: var(--text-muted); cursor: pointer; user-select: none; transition: background-color 0.1s, color 0.1s;
+    &:hover { background-color: rgba(255, 255, 255, 0.02); color: var(--text-color); }
+    &.is-active { background-color: var(--editor-bg); color: #ffffff; border-top: 2px solid var(--primary-blue); font-weight: 500; }
     .tab-title-text { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .dirty-indicator-dot { margin-left: 6px; color: #e11d48; font-size: 10px; }
     .tab-close-icon-btn { margin-left: 8px; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border-radius: 2px; font-size: 14px; &:hover { background-color: rgba(255, 255, 255, 0.1); color: #ffffff; } }
@@ -952,15 +945,15 @@ $text-muted: var(--text-muted);
 
 .window-titlebar {
   height: 32px;
-  background-color: $editor-bg; 
-  color: $text-muted;
+  background-color: var(--editor-bg); 
+  color: var(--text-muted);
   display: flex;
   justify-content: center; 
   align-items: center;
   -webkit-app-region: drag;
   width: 100%;           
   flex-shrink: 0;        
-  border-bottom: 1px solid $border-color;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 0;
 
   .title-string {
@@ -973,7 +966,7 @@ $text-muted: var(--text-muted);
 .app-header {
   height: 52px;
   background-color: rgba(0, 0, 0, 0.2); 
-  border-bottom: 1px solid $border-color;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -995,16 +988,16 @@ $text-muted: var(--text-muted);
     .vertical-divider {
       width: 1px;
       height: 16px;
-      background-color: $border-color;
+      background-color: var(--border-color);
       margin: 0 16px;
     }
 
     .active-project-tag {
       font-size: 12px;
-      color: $text-muted;
+      color: var(--text-muted);
       
       .highlight { 
-        color: $text-color; 
+        color: var(--text-color); 
         font-weight: 600; 
       }
     }
@@ -1025,14 +1018,14 @@ $text-muted: var(--text-muted);
 
 .pane-divider-v {
   width: 4px;
-  background-color: $border-color;
+  background-color: var(--border-color);
   cursor: col-resize;
   z-index: 20;
   transition: background-color 0.15s;
   flex-shrink: 0;
   
   &:hover {
-    background-color: $primary-blue;
+    background-color: var(--primary-blue);
   }
 }
 
@@ -1041,7 +1034,7 @@ $text-muted: var(--text-muted);
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  background-color: $editor-bg;
+  background-color: var(--editor-bg);
 }
 
 .editor-subview-frame {
@@ -1061,7 +1054,7 @@ $text-muted: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: $text-muted;
+    color: var(--text-muted);
     font-size: 13px;
     padding: 24px;
     text-align: center;
@@ -1070,25 +1063,25 @@ $text-muted: var(--text-muted);
 
 .pane-divider-h {
   height: 4px;
-  background-color: $border-color;
+  background-color: var(--border-color);
   cursor: row-resize;
   z-index: 20;
   transition: background-color 0.15s;
   flex-shrink: 0;
   
   &:hover {
-    background-color: $primary-blue;
+    background-color: var(--primary-blue);
   }
 }
 
 .console-subview-dock {
-  border-top: 1px solid $border-color;
+  border-top: 1px solid var(--border-color);
   flex-shrink: 0;
   overflow: hidden;
   display: flex !important;          
   flex-direction: column !important; 
   width: 100%;
-  background-color: $editor-bg;
+  background-color: var(--editor-bg);
 
   .console-panel-component {
     display: flex !important;
@@ -1161,8 +1154,8 @@ $text-muted: var(--text-muted);
   z-index: 200;
 
   .modal-window-card {
-    background-color: $card-bg;
-    border: 1px solid $border-color;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 24px;
     width: 100%;
@@ -1177,7 +1170,7 @@ $text-muted: var(--text-muted);
     }
     .modal-body { 
       font-size: 13px; 
-      color: $text-muted; 
+      color: var(--text-muted); 
       line-height: 1.5; 
       margin: 0 0 16px 0; 
     }
@@ -1188,7 +1181,7 @@ $text-muted: var(--text-muted);
       .modal-text-field {
         width: 100%; 
         background-color: rgba(0, 0, 0, 0.2); 
-        border: 1px solid $border-color;
+        border: 1px solid var(--border-color);
         color: #ffffff; 
         padding: 8px 12px; 
         font-size: 13px; 
@@ -1197,7 +1190,7 @@ $text-muted: var(--text-muted);
         
         &:focus { 
           outline: none; 
-          border-color: $primary-blue; 
+          border-color: var(--primary-blue); 
         }
       }
     }
@@ -1227,13 +1220,13 @@ $text-muted: var(--text-muted);
   }
   
   &.primary-action { 
-    background-color: $primary-blue; 
+    background-color: var(--primary-blue); 
     color: #ffffff; 
   }
   &.standard-action { 
     background-color: rgba(255, 255, 255, 0.05); 
-    color: $text-color; 
-    border: 1px solid $border-color;
+    color: var(--text-color); 
+    border: 1px solid var(--border-color);
     
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);

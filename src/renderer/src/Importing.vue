@@ -259,13 +259,8 @@ const startImport = async () => {
 };
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 /* Inherit core colors and variables from your global theme */
-$editor-bg: var(--editor-bg, #1e1e1e);
-$card-bg: var(--card-bg, #252526);
-$primary-blue: var(--primary-blue, #007acc);
-$text-color: var(--text-color, #cccccc);
-$text-muted: var(--text-muted, #858585);
 
 .main-container {
   display: flex;
@@ -278,7 +273,7 @@ $text-muted: var(--text-muted, #858585);
 }
 
 .card {
-  background-color: $card-bg;
+  background-color: var(--card-bg);
   border: 1px solid #37373d;
   padding: 2rem;
   border-radius: 8px;
@@ -293,7 +288,7 @@ $text-muted: var(--text-muted, #858585);
   padding-bottom: 1rem;
 
   .title { margin: 0; font-size: 1.75rem; color: #fff; }
-  .subtitle { margin: 0.5rem 0 0 0; color: $text-muted; }
+  .subtitle { margin: 0.5rem 0 0 0; color: var(--text-muted); }
 }
 
 /* Form Layout */
@@ -307,7 +302,7 @@ $text-muted: var(--text-muted, #858585);
 .form-input {
   padding: 0.5rem; background-color: #374151; border: 1px solid #4b5563; 
   color: #fff; border-radius: 4px; outline: none;
-  &:focus { border-color: $primary-blue; }
+  &:focus { border-color: var(--primary-blue); }
 }
 .input-inline-group { display: flex; gap: 0.5rem; }
 .flex-grow { flex-grow: 1; }
@@ -323,7 +318,7 @@ $text-muted: var(--text-muted, #858585);
   border: none; display: inline-flex; align-items: center; transition: 0.2s;
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
-.btn-primary { background: $primary-blue; color: #fff; &:hover:not(:disabled) { background: #006bbd; } }
+.btn-primary { background: var(--primary-blue); color: #fff; &:hover:not(:disabled) { background: #006bbd; } }
 .btn-neutral { background: #4b5563; color: #fff; &:hover:not(:disabled) { background: #374151; } }
 
 /* Processing & Telemetry View */
@@ -335,7 +330,7 @@ $text-muted: var(--text-muted, #858585);
   display: flex; flex-direction: column; align-items: center; text-align: center;
 }
 .loader {
-  border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: $primary-blue;
+  border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: var(--primary-blue);
   border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
   margin-bottom: 1rem;
 }
@@ -346,7 +341,7 @@ $text-muted: var(--text-muted, #858585);
 }
 
 .processing-title { font-size: 1.5rem; color: #fff; margin: 0; }
-.processing-subtitle { color: $text-muted; margin-top: 0.5rem; }
+.processing-subtitle { color: var(--text-muted); margin-top: 0.5rem; }
 
 /* Telemetry Dashboard */
 .telemetry-dashboard {
@@ -356,9 +351,9 @@ $text-muted: var(--text-muted, #858585);
   background: #1e1e1e; border: 1px solid #37373d; padding: 1rem;
   border-radius: 6px; display: flex; flex-direction: column; align-items: center;
 }
-.metric-label { font-size: 0.75rem; text-transform: uppercase; color: $text-muted; margin-bottom: 0.5rem; font-weight: 700; }
+.metric-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 700; }
 .metric-value { font-size: 1.5rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
-.timer-text { color: $primary-blue; }
+.timer-text { color: var(--primary-blue); }
 
 /* Console Box */
 .console-box {
@@ -367,7 +362,7 @@ $text-muted: var(--text-muted, #858585);
 }
 .console-header {
   background: #1e1e1e; padding: 0.5rem 1rem; font-size: 0.75rem; 
-  font-weight: 600; color: $text-muted; border-bottom: 1px solid #37373d;
+  font-weight: 600; color: var(--text-muted); border-bottom: 1px solid #37373d;
 }
 .console-body {
   flex-grow: 1; overflow-y: auto; padding: 0.75rem 1rem;

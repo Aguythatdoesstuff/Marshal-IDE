@@ -65,14 +65,6 @@ export default defineConfig({
         '@': resolve(__dirname, 'src/renderer/src')
       }
     },
-    css: {
-      preprocessorOptions: {
-        scss: {
-          api: 'modern-compiler',
-          additionalData: `@use "@/assets/_variables" as *;\n`
-        }
-      }
-    },
     plugins: [
       vue(),
       tailwindcss()
