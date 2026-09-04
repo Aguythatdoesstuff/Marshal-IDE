@@ -1,78 +1,78 @@
 <template>
-  <div class="workspace-wrapper">
+  <div class="workspace-wrapper min-h-screen bg-marshal-sidebar font-sans text-marshal-text">
     <div class="titlebar">
       <span class="titlebar-text">Marshal IDE - Importer</span>
     </div>
 
-    <div class="main-container">
+    <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-8">
       
-      <div v-if="!isProcessing" class="card form-card">
-        <header class="header-section">
-          <h1 class="title">Import Project</h1>
-          <p class="subtitle">Configure your workspace mapping</p>
+      <div v-if="!isProcessing" class="w-full rounded-lg border border-gray-700 bg-marshal-card p-8 shadow-xl">
+        <header class="mb-8 border-b border-gray-700 pb-4 text-center">
+          <h1 class="text-3xl font-bold text-white">Import Project</h1>
+          <p class="mt-2 text-marshal-muted">Configure your workspace mapping</p>
         </header>
 
-        <div class="form-layout">
-          <div class="form-group">
-            <label class="form-label">Path of Mod to Import</label>
-            <div class="input-inline-group">
-              <input type="text" v-model="form.sourcePath" placeholder="Select source directory..." class="form-input flex-grow" readonly>
-              <button @click="browseSource" class="btn btn-neutral">Browse</button>
+        <div class="flex flex-col gap-5">
+          <div class="flex flex-col">
+            <label class="mb-1 text-sm font-medium text-gray-400">Path of Mod to Import</label>
+            <div class="flex gap-2">
+              <input type="text" v-model="form.sourcePath" placeholder="Select source directory..." class="grow rounded border border-gray-600 bg-gray-700 p-2 text-white outline-none focus:border-marshal-primary" readonly>
+              <button @click="browseSource" class="inline-flex items-center justify-center rounded bg-gray-600 px-4 py-2 font-semibold text-white transition hover:bg-gray-700">Browse</button>
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Workspace Name</label>
-            <input type="text" v-model="form.workspaceName" placeholder="My Imported Mod" class="form-input">
+          <div class="flex flex-col">
+            <label class="mb-1 text-sm font-medium text-gray-400">Workspace Name</label>
+            <input type="text" v-model="form.workspaceName" placeholder="My Imported Mod" class="rounded border border-gray-600 bg-gray-700 p-2 text-white outline-none focus:border-marshal-primary">
           </div>
 
-          <div class="form-checkbox-group spacing-top-md">
+          <div class="mt-4 flex items-center gap-2">
             <input type="checkbox" v-model="form.sameAsInput" id="same-output-chk">
-            <label for="same-output-chk" class="form-label label-inline">Output path is same as input</label>
+            <label for="same-output-chk" class="text-sm font-medium text-gray-400">Output path is same as input</label>
           </div>
 
-          <div class="form-group" :class="{ 'disabled-group': form.sameAsInput }">
-            <label class="form-label">Mod Output Path</label>
-            <div class="input-inline-group">
-              <input type="text" :value="computedOutputPath" class="form-input flex-grow" readonly>
-              <button @click="browseOutput" class="btn btn-neutral" :disabled="form.sameAsInput">Browse</button>
+          <div class="flex flex-col" :class="{ 'pointer-events-none opacity-50': form.sameAsInput }">
+            <label class="mb-1 text-sm font-medium text-gray-400">Mod Output Path</label>
+            <div class="flex gap-2">
+              <input type="text" :value="computedOutputPath" class="grow rounded border border-gray-600 bg-gray-700 p-2 text-white outline-none focus:border-marshal-primary" readonly>
+              <button @click="browseOutput" class="inline-flex items-center justify-center rounded bg-gray-600 px-4 py-2 font-semibold text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50" :disabled="form.sameAsInput">Browse</button>
             </div>
-            <p class="form-help-text">Where the compiled mod files will reside.</p>
+            <p class="mt-1 text-xs text-gray-500">Where the compiled mod files will reside.</p>
           </div>
         </div>
         
-        <div class="action-footer spacing-top-lg">
-          <button @click="goBack" class="btn btn-neutral">Cancel</button>
-          <button @click="startImport" class="btn btn-primary" :disabled="!isFormValid">Start Import</button>
+        <div class="mt-8 flex justify-end gap-3">
+          <button @click="goBack" class="inline-flex items-center justify-center rounded bg-gray-600 px-4 py-2 font-semibold text-white transition hover:bg-gray-700">Cancel</button>
+          <button @click="startImport" class="inline-flex items-center justify-center rounded bg-marshal-primary px-4 py-2 font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!isFormValid">Start Import</button>
         </div>
       </div>
 
-      <div v-else class="processing-container">
-        <div class="spinner-section">
-          <div v-if="!isDone" class="loader"></div>
-          <svg v-else class="success-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div v-else class="flex w-full flex-col gap-8">
+        <div class="flex flex-col items-center text-center">
+          <div v-if="!isDone" class="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-l-marshal-primary"></div>
+          <svg v-else class="mb-4 h-12 w-12 text-emerald-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
           </svg>
-          <h2 class="processing-title">{{ isDone ? 'Import Complete!' : 'Processing Import...' }}</h2>
-          <p class="processing-subtitle">{{ isDone ? 'Your workspace is ready.' : 'Please do not close the application.' }}</p>
+          <h2 class="text-2xl text-white">{{ isDone ? 'Import Complete!' : 'Processing Import...' }}</h2>
+          <p class="mt-2 text-marshal-muted">{{ isDone ? 'Your workspace is ready.' : 'Please do not close the application.' }}</p>
         </div>
 
-        <div class="telemetry-dashboard">
-          <div class="metric-card">
-            <span class="metric-label">OS CPU Usage</span>
-            <span class="metric-value" :class="{ 'text-muted': isDone }">{{ telemetry.cpu }}%</span>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="flex flex-col items-center rounded-md border border-gray-700 bg-marshal-editor p-4">
+            <span class="mb-2 text-xs font-bold uppercase text-marshal-muted">OS CPU Usage</span>
+            <span class="text-2xl font-bold tabular-nums text-white" :class="{ 'text-marshal-muted': isDone }">{{ telemetry.cpu }}%</span>
           </div>
-          <div class="metric-card">
-            <span class="metric-label">RAM Allocation</span>
-            <span class="metric-value" :class="{ 'text-muted': isDone }">{{ telemetry.ram }} MB</span>
+          <div class="flex flex-col items-center rounded-md border border-gray-700 bg-marshal-editor p-4">
+            <span class="mb-2 text-xs font-bold uppercase text-marshal-muted">RAM Allocation</span>
+            <span class="text-2xl font-bold tabular-nums text-white" :class="{ 'text-marshal-muted': isDone }">{{ telemetry.ram }} MB</span>
           </div>
-          <div class="metric-card">
-            <span class="metric-label">Elapsed Time</span>
-            <span class="metric-value timer-text">{{ formattedTime }}</span>
+          <div class="flex flex-col items-center rounded-md border border-gray-700 bg-marshal-editor p-4">
+            <span class="mb-2 text-xs font-bold uppercase text-marshal-muted">Elapsed Time</span>
+            <span class="text-2xl font-bold tabular-nums text-marshal-primary">{{ formattedTime }}</span>
           </div>
         </div>
 
-        <div class="console-box" style="flex: 1; min-height: 250px; max-height: 400px; display: flex; flex-direction: column;">
+        <div class="flex h-[250px] max-h-[400px] min-h-[250px] flex-1 flex-col overflow-hidden rounded-md border border-gray-700 bg-black">
           <ConsolePanel 
             :customLogs="logs" 
             :isMinimized="false"
@@ -80,8 +80,8 @@
           />
         </div>
         
-        <div class="action-footer justify-center spacing-top-md">
-          <button @click="goBack" class="btn btn-primary" :disabled="!isDone">Return to Workspaces</button>
+        <div class="mt-4 flex justify-center">
+          <button @click="goBack" class="inline-flex items-center justify-center rounded bg-marshal-primary px-4 py-2 font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!isDone">Return to Workspaces</button>
         </div>
       </div>
 
@@ -258,124 +258,3 @@ const startImport = async () => {
   }
 };
 </script>
-
-<style scoped>
-/* Inherit core colors and variables from your global theme */
-
-.main-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: 48rem;
-  margin: 2rem auto;
-  padding: 0 1rem;
-}
-
-.card {
-  background-color: var(--card-bg);
-  border: 1px solid #37373d;
-  padding: 2rem;
-  border-radius: 8px;
-  width: 100%;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-}
-
-.header-section {
-  text-align: center;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid #37373d;
-  padding-bottom: 1rem;
-
-  .title { margin: 0; font-size: 1.75rem; color: #fff; }
-  .subtitle { margin: 0.5rem 0 0 0; color: var(--text-muted); }
-}
-
-/* Form Layout */
-.form-layout { display: flex; flex-direction: column; gap: 1.25rem; }
-.form-group {
-  display: flex; flex-direction: column;
-  &.disabled-group { opacity: 0.5; pointer-events: none; }
-}
-
-.form-label { font-size: 0.875rem; font-weight: 500; color: #9ca3af; margin-bottom: 0.25rem; }
-.form-input {
-  padding: 0.5rem; background-color: #374151; border: 1px solid #4b5563; 
-  color: #fff; border-radius: 4px; outline: none;
-  &:focus { border-color: var(--primary-blue); }
-}
-.input-inline-group { display: flex; gap: 0.5rem; }
-.flex-grow { flex-grow: 1; }
-.form-help-text { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
-.form-checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
-.label-inline { margin-bottom: 0; cursor: pointer; }
-
-/* Buttons */
-.action-footer { display: flex; justify-content: flex-end; gap: 0.75rem; }
-.justify-center { justify-content: center; }
-.btn {
-  padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600; cursor: pointer;
-  border: none; display: inline-flex; align-items: center; transition: 0.2s;
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-}
-.btn-primary { background: var(--primary-blue); color: #fff; &:hover:not(:disabled) { background: #006bbd; } }
-.btn-neutral { background: #4b5563; color: #fff; &:hover:not(:disabled) { background: #374151; } }
-
-/* Processing & Telemetry View */
-.processing-container {
-  width: 100%; display: flex; flex-direction: column; gap: 2rem;
-}
-
-.spinner-section {
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-}
-.loader {
-  border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: var(--primary-blue);
-  border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-.success-icon {
-  width: 50px; height: 50px; color: #10b981; margin-bottom: 1rem;
-}
-
-.processing-title { font-size: 1.5rem; color: #fff; margin: 0; }
-.processing-subtitle { color: var(--text-muted); margin-top: 0.5rem; }
-
-/* Telemetry Dashboard */
-.telemetry-dashboard {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
-}
-.metric-card {
-  background: #1e1e1e; border: 1px solid #37373d; padding: 1rem;
-  border-radius: 6px; display: flex; flex-direction: column; align-items: center;
-}
-.metric-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 700; }
-.metric-value { font-size: 1.5rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
-.timer-text { color: var(--primary-blue); }
-
-/* Console Box */
-.console-box {
-  background: #111; border: 1px solid #37373d; border-radius: 6px; 
-  overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; height: 250px;
-}
-.console-header {
-  background: #1e1e1e; padding: 0.5rem 1rem; font-size: 0.75rem; 
-  font-weight: 600; color: var(--text-muted); border-bottom: 1px solid #37373d;
-}
-.console-body {
-  flex-grow: 1; overflow-y: auto; padding: 0.75rem 1rem;
-  font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
-}
-.log-line { margin-bottom: 0.25rem; word-break: break-all; }
-.log-time { color: #666; margin-right: 0.5rem; }
-.system { color: #4fc1ff; }
-.info { color: #cccccc; }
-.muted { color: #666; font-style: italic; }
-.success { color: #10b981; font-weight: bold; }
-
-/* Spacing Utils */
-.spacing-top-md { margin-top: 1rem; }
-.spacing-top-lg { margin-top: 2rem; }
-</style>

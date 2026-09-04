@@ -1,48 +1,48 @@
 <template>
-  <div id="eula-wrapper">
+  <div id="eula-wrapper" class="bg-marshal-sidebar font-sans text-marshal-text">
     <div class="titlebar">
       <span class="titlebar-text">Marshal IDE - License Agreement</span>
     </div>
     
-    <div class="header-section">
-      <h1 class="title">License Agreement</h1>
-      <p class="status-badge">{{ statusDisplayName }}</p>
+    <div class="mb-6 text-center">
+      <h1 class="text-2xl font-bold text-white">License Agreement</h1>
+      <p class="mt-1 text-xs uppercase tracking-widest transition-colors" :style="{ color: statusColor }">{{ statusDisplayName }}</p>
     </div>
     
-    <div ref="contentDiv" id="eula-content">{{ eulaContent }}</div>
+    <div ref="contentDiv" id="eula-content" class="mx-20 mb-6 w-[calc(100%-10rem)] flex-1 overflow-y-auto rounded border border-gray-700 bg-marshal-editor p-8 font-mono text-[0.85rem] text-gray-300">{{ eulaContent }}</div>
 
-    <div class="button-group">
-      <button @click="declineEula" class="btn btn-decline">
+    <div class="mb-4 flex justify-center gap-6">
+      <button @click="declineEula" class="inline-flex items-center justify-center rounded bg-gray-700 px-10 py-2 text-sm font-semibold text-white transition hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50">
         Decline & Exit
       </button>
-      <button @click="acceptEula" class="btn btn-accept" :disabled="isLoadError || eulaContent === 'Loading...'">
+      <button @click="acceptEula" class="inline-flex items-center justify-center rounded bg-marshal-primary px-10 py-2 text-sm font-bold text-white shadow-lg transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50" :disabled="isLoadError || eulaContent === 'Loading...'">
         Accept & Continue
       </button>
     </div>
 
-    <div class="footer-link-container">
-      <button @click="openModal" class="modal-trigger-btn">
+    <div class="text-center">
+      <button @click="openModal" class="text-[10px] uppercase tracking-wider text-gray-500 underline transition hover:text-white">
         I have a license code
       </button>
     </div>
 
-    <div v-if="isModalOpen" class="modal-overlay">
-      <div class="modal-card">
-        <h2 class="modal-title">License Code</h2>
-        <p class="modal-subtitle">Enter your private access code to unlock special terms.</p>
+    <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+      <div class="w-80 rounded border border-gray-600 bg-gray-800 p-6 shadow-2xl">
+        <h2 class="mb-2 text-xl font-bold text-white">License Code</h2>
+        <p class="mb-4 text-[10px] text-gray-400">Enter your private access code to unlock special terms.</p>
         
         <input 
           ref="modalInput"
           type="text" 
-          class="modal-input" 
+          class="mb-4 w-full rounded border border-gray-600 bg-marshal-editor p-2 text-sm text-white outline-none focus:border-marshal-primary" 
           placeholder="Enter code here..."
           v-model="rawInput"
           @keypress.enter="submitCode"
         >
         
-        <div class="modal-actions">
-          <button @click="closeModal" class="btn-modal-cancel">Cancel</button>
-          <button @click="submitCode" class="btn-modal-apply">Apply</button>
+        <div class="flex justify-end gap-2">
+          <button @click="closeModal" class="px-3 py-1 text-xs text-gray-400 transition hover:text-white">Cancel</button>
+          <button @click="submitCode" class="rounded bg-marshal-primary px-4 py-1 text-xs font-bold text-white transition hover:bg-blue-600">Apply</button>
         </div>
       </div>
     </div>
@@ -127,202 +127,3 @@ const declineEula = () => {
   window.api.send('decline-eula');
 };
 </script>
-
-<style scoped>
-/* ==========================================================================
-   EULA SPECIFIC MODULE STYLES (Scoped to prevent global bleeding)
-   ========================================================================== */
-
-.header-section {
-  text-align: center;
-  margin-bottom: 1.5rem; 
-
-  .title {
-    font-size: 1.5rem; 
-    font-weight: 700;   
-    color: #ffffff;
-    margin: 0;
-  }
-
-  .status-badge {
-    font-size: 0.75rem; 
-    /* Vue magic: hooks directly into script statusColor ref */
-    color: v-bind(statusColor);     
-    text-transform: uppercase;
-    letter-spacing: 0.1em; 
-    margin-top: 0.25rem; 
-    transition: color 0.2s ease;
-  }
-}
-
-#eula-content {
-  flex-grow: 1;
-  background-color: var(--editor-bg);
-  border: 1px solid #333;
-  padding: 2rem;
-  overflow-y: auto;
-  font-family: 'Consolas', monospace;
-  font-size: 0.85rem;
-  white-space: pre-wrap;
-  margin: 0 5rem 1.5rem 5rem;
-  color: #d4d4d4;
-  border-radius: 4px;
-  width: calc(100% - 10rem); 
-  box-sizing: border-box;
-}
-
-/* --- Buttons & Action Layout --- */
-.button-group {
-  display: flex;
-  justify-content: center; 
-  gap: 1.5rem; 
-  margin-bottom: 1rem; 
-}
-
-.btn {
-  padding: 0.5rem 2.5rem; 
-  border-radius: 0.25rem; 
-  font-size: 0.875rem;     
-  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &.btn-decline {
-    background-color: #374151; 
-    font-weight: 600;          
-    color: #ffffff;
-
-    &:hover {
-      background-color: #4b5563; 
-    }
-  }
-
-  &.btn-accept {
-    background-color: var(--primary-blue);
-    font-weight: 700; 
-    color: #ffffff;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
-
-    &:hover {
-      background-color: #2563eb; 
-    }
-  }
-}
-
-.footer-link-container {
-  text-align: center;
-
-  .modal-trigger-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 10px; 
-    color: #6b7280;   
-    text-decoration: underline;
-    text-transform: uppercase;
-    letter-spacing: 0.05em; 
-    transition: color 0.2s;
-
-    &:hover {
-      color: #ffffff;
-    }
-  }
-}
-
-/* --- License Input Code Modal Framework --- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.8); 
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  .modal-card {
-    background-color: #2d2d2d;
-    padding: 1.5rem; 
-    border-radius: 0.25rem;
-    border: 1px solid #444;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); 
-    width: 20rem; 
-    box-sizing: border-box;
-  }
-
-  .modal-title {
-    color: #ffffff;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    margin-top: 0;
-    font-size: 1.25rem;
-  }
-
-  .modal-subtitle {
-    font-size: 10px;
-    color: #9ca3af; 
-    margin-bottom: 1rem;
-    margin-top: 0;
-  }
-
-  .modal-input {
-    width: 100%;
-    padding: 0.5rem;
-    margin-bottom: 1rem;
-    background-color: var(--editor-bg);
-    border: 1px solid #555;
-    color: #ffffff;
-    font-size: 0.875rem;
-    outline: none;
-    border-radius: 0.25rem;
-    box-sizing: border-box;
-
-    &:focus {
-      border-color: var(--primary-blue);
-    }
-  }
-
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem; 
-
-    .btn-modal-cancel {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem 0.75rem;
-      font-size: 0.75rem;
-      color: #9ca3af;
-      transition: color 0.2s;
-
-      &:hover {
-        color: #ffffff;
-      }
-    }
-
-    .btn-modal-apply {
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem 1rem;
-      background-color: var(--primary-blue);
-      color: #ffffff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      border-radius: 0.25rem;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background-color: #2563eb;
-      }
-    }
-  }
-}
-</style>

@@ -349,18 +349,6 @@ function closeSettingsPage() {
 </script>
 
 <style scoped>
-/* IDE Theme System Configurations */
-:root {
-  --editor-bg: #1e1e24;
-  --card-bg: #27272e;
-  --border-color: #3b3b44;
-  --primary-blue: #3b82f6;
-  --text-color: #e2e8f0;
-  --text-muted: #94a3b8;
-  --danger-red: #ef4444;
-  --warning-orange: #f59e0b;
-}
-
 .settings-wrapper {
   background-color: var(--editor-bg);
   color: var(--text-color);

@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: Inter, "Segoe UI", sans-serif;
+  --color-marshal-sidebar: var(--sidebar-bg);
+  --color-marshal-editor: var(--editor-bg);
+  --color-marshal-card: var(--card-bg);
+  --color-marshal-text: var(--text-color);
+  --color-marshal-muted: var(--text-muted);
+  --color-marshal-primary: var(--primary-blue);
+  --color-marshal-border: var(--border-color);
+  --color-marshal-input: #374151;
+  --color-marshal-input-border: #4b5563;
+  --color-marshal-danger: #dc2626;
+  --color-marshal-danger-dark: #b91c1c;
+  --color-marshal-warning: #f59e0b;
+}
+
 :root {
   --sidebar-bg: #252526;
   --editor-bg: #1e1e1e;
@@ -8,6 +24,8 @@
   --primary-blue: #007acc;
   --border-color: #2d2d30;
   --text-muted: #858585;
+  --danger-red: #ef4444;
+  --warning-orange: #f59e0b;
 }
 
 html,
@@ -70,27 +88,6 @@ nav.shrink-0 {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #444;
-}
-
-.flex-space-between {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.flex-column-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.flex-grow {
-  flex-grow: 1;
-}
-
-.w-full {
-  width: 100%;
 }
 
 .titlebar {

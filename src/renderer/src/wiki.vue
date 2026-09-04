@@ -209,16 +209,6 @@ onMounted(() => {
 </script>
 
 <style>
-/* IDE Theme System Configurations */
-:root {
-  --sidebar-bg: #18181c;
-  --editor-bg: #1e1e24;
-  --border-color: #2d2d34;
-  --primary-blue: #3b82f6;
-  --text-color: #e2e8f0;
-  --text-muted: #94a3b8;
-}
-
 .wiki-wrapper {
   height: 100vh;
   overflow: hidden;
