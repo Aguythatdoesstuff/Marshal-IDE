@@ -5,7 +5,9 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 ## [1.3.0] - ?
 
 ### Added
-- **In-Line "Jump to Error" Navigation:** Error listings in the bottom console are now fully interactive. Clicking a validation error or warning line instantly targets the specific file tab, opens it, and - drops the editor cursor directly onto the offending line for immediate fixing
+- **In-Line "Jump to Error" Navigation:** Error listings in the bottom console are now fully interactive. Clicking a validation error or warning line instantly targets the specific file tab, opens it, and - drops the editor cursor directly onto the offending line for immediate fixing.
+
+- **Persistent Tab States Across Sessions:** The IDE now caches open tab layouts per project. Switching workspaces or reopening a mod instantly restores the exact files that were open, in their precise tab order AND what folders were opened last session in the filetree.
 
 - **Console warning tab:** Add a warning tab inside the console that will show all warnings the compiler has(less important things that dont have to be fixed but are recommended to be fixed)
 

@@ -93,6 +93,27 @@ const selectedFilePaths = ref(new Set());
 const lastSelectedNode = ref(null);
 const isDraggingOver = ref(false);
 
+const getOpenFoldersStorageKey = () => {
+  const workspaceName = localStorage.getItem('marshal_project_to_load') || 'No Active Project';
+  return `workspace_open_folders_${workspaceName}`;
+};
+
+const saveOpenFolders = () => {
+  localStorage.setItem(getOpenFoldersStorageKey(), JSON.stringify(Array.from(openFoldersSet.value)));
+};
+
+const loadOpenFolders = () => {
+  const storedFolders = localStorage.getItem(getOpenFoldersStorageKey());
+  if (!storedFolders) return;
+
+  try {
+    const parsedFolders = JSON.parse(storedFolders);
+    if (Array.isArray(parsedFolders)) openFoldersSet.value = new Set(parsedFolders);
+  } catch (err) {
+    console.warn('[FileTree] Failed to restore open folders:', err);
+  }
+};
+
 const loadDirectory = async (dirPath = '') => {
   if (!window.api || !window.api.invoke) return [];
   const cleanPath = typeof dirPath === 'string' ? dirPath : '';
@@ -110,23 +131,24 @@ const loadDirectory = async (dirPath = '') => {
 };
 
 const refreshTree = async () => {
-  const rootNodes = await loadDirectory('');
-  const newTreeData = rootNodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));
+  const buildVisibleTree = async (dirPath = '') => {
+    const nodes = await loadDirectory(dirPath);
+    nodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));
 
-  for (let i = 0; i < newTreeData.length; i++) {
-    const node = newTreeData[i];
-    
-    if (node.isDir && openFoldersSet.value.has(node.path)) {
-      node.isExpanded = true;
-      const childNodes = await loadDirectory(node.path);
-      childNodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));
-      
-      newTreeData.splice(i + 1, 0, ...childNodes);
-      i += childNodes.length;
+    const visibleNodes = [];
+    for (const node of nodes) {
+      visibleNodes.push(node);
+
+      if (node.isDir && openFoldersSet.value.has(node.path)) {
+        node.isExpanded = true;
+        visibleNodes.push(...await buildVisibleTree(node.path));
+      }
     }
-  }
 
-  treeData.value = newTreeData;
+    return visibleNodes;
+  };
+
+  treeData.value = await buildVisibleTree();
 };
 
 const isNodeSelected = (node) => {
@@ -144,13 +166,8 @@ const handleNodeClick = async (event, node) => {
     node.isExpanded = !node.isExpanded;
     if (node.isExpanded) {
       openFoldersSet.value.add(node.path);
-      const childNodes = await loadDirectory(node.path);
-      childNodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));
-      
-      const targetIndex = treeData.value.findIndex(n => n.path === node.path);
-      if (targetIndex !== -1) {
-        treeData.value.splice(targetIndex + 1, 0, ...childNodes);
-      }
+      saveOpenFolders();
+      await refreshTree();
     } else {
       openFoldersSet.value.delete(node.path);
       for (const path of openFoldersSet.value) {
@@ -158,7 +175,8 @@ const handleNodeClick = async (event, node) => {
           openFoldersSet.value.delete(path);
         }
       }
-      treeData.value = treeData.value.filter(n => !n.path.startsWith(node.path + '/') && !n.path.startsWith(node.path + '\\'));
+      saveOpenFolders();
+      await refreshTree();
     }
   } else {
     // Multi-selection range (Shift Key)
@@ -272,6 +290,7 @@ defineExpose({
 });
 
 onMounted(() => {
+  loadOpenFolders();
   refreshTree();
 });
 </script>

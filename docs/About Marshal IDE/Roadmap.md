@@ -4,11 +4,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 
 ## 🛠 v1.3.0 – UX Update
 ### UX changes
-(Make the jump to line open the required file/go to it instead of only jumping to line)
-
-- **Persistent Tab States Across Sessions:** The IDE now caches open tab layouts per project. Switching workspaces or reopening a mod instantly restores the exact files that were open, in their precise tab order.
-
-
 
 - **Tailwind CSS Architecture Migration:** Replace the legacy Sass preprocessor setup with Tailwind CSS. Leverage utility-first classes to drastically accelerate frontend layout changes, while utilizing Tailwind's compiler to purge unused styles and generate a highly optimized, lightweight production CSS bundle.
 

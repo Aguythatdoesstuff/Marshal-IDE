@@ -161,8 +161,14 @@ import { FILE_EXTENSION_MAP, getMonacoLanguage, defineDslLanguages } from '../id
 
 const modalDimmerRef = ref(null);
 let editorInstance = null;
+let editorStateDisposables = [];
 
 const activeProjectName = ref('Loading...');
+
+const getWorkspaceTabsStorageKey = () => {
+  const workspaceName = localStorage.getItem('marshal_project_to_load') || activeProjectName.value;
+  return `workspace_tabs_${workspaceName}`;
+};
 
 onMounted(() => {
   activeProjectName.value = localStorage.getItem('marshal_project_to_load') || 'No Active Project';
@@ -251,6 +257,7 @@ const vClickOutside = {
 const setActiveTab = async (path) => {
   if (isSwitchingTab) return;
 
+  saveTabState();
   isSwitchingTab = true;
   activeTabPath.value = path;
   
@@ -299,9 +306,17 @@ const setActiveTab = async (path) => {
         } catch (langErr) {}
       }, 0);
 
+      if (targetTab.lineNumber) {
+        activeEditor.setPosition({ lineNumber: targetTab.lineNumber, column: 1 });
+      }
+      if (typeof targetTab.scrollTop === 'number') {
+        activeEditor.setScrollTop(targetTab.scrollTop);
+      }
+
     } catch (runtimeErr) {
     } finally {
       isSwitchingTab = false;
+      saveTabState();
     }
   } else {
     isSwitchingTab = false;
@@ -346,6 +361,8 @@ const handleFileSelection = async (node) => {
           path: node.path,
           content: rawContent,
           isDirty: false,
+          lineNumber: 1,
+          scrollTop: 0,
           monacoModel: tabModel ? markRaw(tabModel) : null 
         };
 
@@ -357,13 +374,14 @@ const handleFileSelection = async (node) => {
     }
 
     await setActiveTab(node.path);
+    saveTabState();
 
   } catch (err) {
     console.error('Failed during file selection loading sequence:', err);
   }
 };
 
-const navigateToFileAndLine = async (filePath, lineNumber) => {
+const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
   try {
     let actualPath = filePath;
 
@@ -395,9 +413,17 @@ const navigateToFileAndLine = async (filePath, lineNumber) => {
         if (!isNaN(parsedLine)) {
           activeEditor.revealLineInCenter(parsedLine);
           activeEditor.setPosition({ lineNumber: parsedLine, column: 1 });
+          const parsedScrollTop = parseInt(scrollTop, 10);
+          if (!isNaN(parsedScrollTop)) activeEditor.setScrollTop(parsedScrollTop);
+          const restoredTab = openTabs.value.find(t => t.path === actualPath);
+          if (restoredTab) {
+            restoredTab.lineNumber = parsedLine;
+            restoredTab.scrollTop = !isNaN(parsedScrollTop) ? parsedScrollTop : restoredTab.scrollTop;
+          }
           activeEditor.focus();
         }
       }
+      saveTabState();
     }, 50);
 
   } catch (err) {
@@ -453,6 +479,7 @@ const executeForceCloseTab = (path) => {
   }
 
   openTabs.value.splice(tabIndex, 1);
+  saveTabState();
 };
 
 const handleConfirmCloseSave = async () => {
@@ -480,6 +507,52 @@ const handleConfirmCloseDiscard = () => {
 const handleConfirmCloseCancel = () => {
   pendingClosePath.value = null;
   closeConfirmVisible.value = false;
+};
+
+const saveTabState = () => {
+  const activeEditor = editorInstance || window.editorInstance;
+  const activeTab = openTabs.value.find(t => t.path === activeTabPath.value);
+
+  if (activeEditor && activeTab) {
+    const position = activeEditor.getPosition();
+    activeTab.lineNumber = position?.lineNumber || activeTab.lineNumber || 1;
+    activeTab.scrollTop = activeEditor.getScrollTop();
+  }
+
+  const payload = {
+    activeTabPath: activeTabPath.value || '',
+    tabs: openTabs.value.map(tab => ({
+      path: tab.path,
+      lineNumber: tab.lineNumber || 1,
+      scrollTop: typeof tab.scrollTop === 'number' ? tab.scrollTop : 0
+    }))
+  };
+
+  localStorage.setItem(getWorkspaceTabsStorageKey(), JSON.stringify(payload));
+};
+
+const restoreTabState = async () => {
+  const storedState = localStorage.getItem(getWorkspaceTabsStorageKey());
+  if (!storedState) return;
+
+  try {
+    const payload = JSON.parse(storedState);
+    if (!Array.isArray(payload.tabs)) return;
+
+    for (const tab of payload.tabs) {
+      if (tab?.path) await navigateToFileAndLine(tab.path, tab.lineNumber, tab.scrollTop);
+    }
+
+    if (payload.activeTabPath && openTabs.value.some(tab => tab.path === payload.activeTabPath)) {
+      await navigateToFileAndLine(
+        payload.activeTabPath,
+        openTabs.value.find(tab => tab.path === payload.activeTabPath)?.lineNumber,
+        openTabs.value.find(tab => tab.path === payload.activeTabPath)?.scrollTop
+      );
+    }
+  } catch (err) {
+    console.warn('Failed to restore workspace tab state:', err);
+  }
 };
 
 const saveActiveFile = async () => {
@@ -740,6 +813,13 @@ onMounted(() => {
         editorInstance = instance;
         window.editorInstance = instance;
 
+        editorStateDisposables = [
+          instance.onDidBlurEditorText(saveTabState),
+          instance.onDidScrollChange((event) => {
+            if (event.scrollTopChanged) saveTabState();
+          })
+        ];
+
         if (activeTabPath.value) {
           const bufferedTab = openTabs.value.find(t => t.path === activeTabPath.value);
           if (bufferedTab) {
@@ -751,6 +831,8 @@ onMounted(() => {
             }
           }
         }
+
+        await restoreTabState();
       } catch (initErr) {
         console.error("[DIAGNOSTIC] Error during editor layout orchestration:", initErr);
       }
@@ -770,6 +852,8 @@ onBeforeUnmount(() => {
     editorInstance.dispose();
     editorInstance = null;
   }
+  editorStateDisposables.forEach(disposable => disposable.dispose());
+  editorStateDisposables = [];
   if (window.editorInstance) {
     window.editorInstance = null;
   }
