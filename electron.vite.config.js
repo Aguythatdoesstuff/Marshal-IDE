@@ -1,6 +1,7 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
+import tailwindcss from '@tailwindcss/vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 
 export default defineConfig({
@@ -72,7 +73,10 @@ export default defineConfig({
         }
       }
     },
-    plugins: [vue()],
+    plugins: [
+      vue(),
+      tailwindcss()
+    ],
     build: {
       outDir: resolve(__dirname, 'build/vite/renderer'),
       rollupOptions: {

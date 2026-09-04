@@ -17,6 +17,7 @@
     "dist:all": "electron-vite build && electron-builder --win --linux"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "chokidar": "^3.6.0",
@@ -24,6 +25,7 @@
     "fs-extra": "^11.3.3",
     "monaco-editor": "^0.52.0",
     "open": "^10.2.0",
+    "tailwindcss": "^4.3.3",
     "winston": "^3.18.3"
   },
   "devDependencies": {
