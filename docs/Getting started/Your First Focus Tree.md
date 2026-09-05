@@ -1,72 +1,151 @@
 # National Focuses
 
-National Focuses in Marshal Script move away from the massive nested blocks of vanilla HOI4. Instead, they use a **tab-based** structure that defines timing, positioning, and effects in a streamlined, readable way.
+National Focuses in **Marshal Script** move away from the massive nested blocks of vanilla HOI4. Instead, they use a **tab-based** structure that defines timing, positioning, and completion effects in a streamlined, scannable format.
 
 ---
 
-### 1. Defining a Tree
-You can define a **Default Tree** (for all countries meeting a factor) or a **Country Specific Tree** linked to a specific tag (remember to correctly override vanilla files!).
+### 1. File Naming & Overriding Vanilla Trees
+> [!NOTE]
+> Without `replace_path` in your `descriptor.mod`, you must name your Marshal file after the target vanilla or mod file you want to override (e.g., to override vanilla `generic.txt`, name your file `generic.focus`). The IDE automatically sets the correct extension based on the folder location.
+
+---
+
+### 2. Defining Focus Trees
 
 #### Default Tree Template
+Used for trees shared across multiple nations meeting specific conditions:
+
 ```
-default tree generic_tree
+default tree generic_focus
     reset_on_civilwar = no
-    country = {
-        factor = 1
-    }
     initial_show_position = {
         focus = political_effort
     }
 ```
-Country Specific Template
+### Country-Specific Tree Template
+Scoped directly to a specific country tag using the for [TAG] syntax:
+
 ```
-tree german_tree_id for GER
-    reset_on_civilwar = yes
+tree german_tree for GER
+    reset_on_civilwar = no
+    initial_show_position = {
+        focus = other_political_effort
+    }
 ```
-### 2. Creating a Focus
-Inside the tree block, focuses are defined using the focus keyword followed by the ID and the duration.
+
+### 3. Creating Focuses
+Inside a tree block, focuses are declared using the focus keyword followed by the focus ID and duration using takes X days.
+
+Generic Focus Tree Example (generic.focus)
 ```
-focus pro_west_path takes 70 days
-    # Requirements and Exclusions
-    require political_effort
-    prevents pro_east_path
-        neutral_path
-        radical_junta_path
+default tree generic_focus
+    reset_on_civilwar = no
+    initial_show_position = {
+        focus = political_effort
+    }
 
-    # Positioning
-    follow position of political_effort
-    position x-12 y1
+    focus political_effort takes 10 days
+        name "Address the Political Crisis"
+        desc "Our nation stands at a crossroads. We must choose a direction."
+        sprite "GFX_goal_generic_political_pressure"
+        position x14 y0
+        on complete
+            add_political_power = 50
 
-    on complete
-        add_popularity = {
-            ideology = democratic
-            popularity = 0.05
-        }
-        every_country = {
-            limit = {
-                has_ideology = democratic
-            }
-            add_opinion_modifier = {
-                target = GER
-                modifier = {
-                    generic_focus_allign_with_us = hjkjkh
-                }
-            }
-        }
+    focus pro_west_path takes 69 days
+        name "The Atlantic Outreach"
+        sprite "GFX_focus_generic_approach_the_west"
+        require political_effort
+        prevents pro_east_path
+            neutral_path
+            radical_junta_path
+        follow position of political_effort
+        position x0 y1
+        on complete
+
+    focus democratic_reforms takes 67 days
+        name "Institutional Democratic Reforms"
+        sprite "GFX_focus_ICE_republicanism"
+        require pro_west_path
+        prevents nato_partnership_prog
+        follow position of pro_west_path
+        position x-2 y1
+        on complete
+
+    focus nato_partnership_prog takes 420 days
+        name "NATO Partnership for Peace"
+        sprite "GFX_focus_generic_treaty"
+        require pro_west_path
+        prevents democratic_reforms
+        follow position of pro_west_path
+        position x0 y1
+        on complete
+
+    focus eu_association_agreement takes 123456789 days
+        name "EU Association Agreement"
+        sprite "GFX_focus_generic_the_council_of_europe"
+        require pro_west_path
+        follow position of pro_west_path
+        position x2 y1
+        on complete
+
+    focus judicial_independence takes 125 days
+        name "Judicial Independence Act"
+        sprite "GFX_focus_generic_improve_the_administration_2"
+        require democratic_reforms
+        follow position of democratic_reforms
+        position x-1 y1
+        on complete
+
+    focus joint_nato_training takes 62 days
+        name "Joint NATO Training Centers"
+        sprite "GFX_focus_generic_military_mission"
+        require nato_partnership_prog
+        follow position of nato_partnership_prog
+        position x0 y1
+        on complete
+
+    focus free_trade_negotiations takes 70 days
+        name "Western Free Trade Negotiations"
+        sprite "GFX_goal_generic_trade"
+        require eu_association_agreement
+        follow position of eu_association_agreement
+        position x1 y1
+        on complete
 ```
-### 3. Key Syntax Features
+Country-Specific Example (german_tree_example.focus)
+```
+tree german_tree for GER
+    reset_on_civilwar = no
+    initial_show_position = {
+        focus = other_political_effort
+    }
 
-* **Duration**: Use `takes X days` directly in the header. No more `cost = X` math.
-* **Localization**: Use the `name` field with a string. Marshal handles the `.yml` generation automatically.
-* **Requirements**: Use `require [ID]` for prerequisites.
-* **Mutual Exclusions**: Use `prevents` followed by a list of IDs.
-* **Positioning**: Use `follow position of [ID]` to anchor a focus, then use `position x[val] y[val]` to offset it.
-* **Completion Effects**: All rewards go inside the `on complete` block.
+    focus other_political_effort takes 10 days
+        name "EIN REICH!!"
+        desc "Our nation stands at a crossroads. We must choose a direction."
+        sprite "GFX_goal_generic_political_pressure"
+        position x14 y0
+        on complete
+            add_political_power = 50
+```
 
----
+### 4. Key Syntax Features
+* Duration: Written directly in the focus header as takes X days(or weeks).
 
-### 4. Why Use Marshal for Focuses?
+* Implicit Localization: Provide strings directly inside quotes for name and desc. The compiler generates .yml files automatically.
 
-* **Zero Boilerplate**: You don't need to manually define search filters or redundant wrapper blocks.
-* **Visual Logic**: The `follow position` system makes it much easier to move entire branches of a tree at once without recalculating every coordinate.
-* **Clean Effects**: Marshal passes standard HOI4 effects (like `add_popularity`) directly through to the compiler while keeping the script scannable.
+* Prerequisites: Use require [focus_id] to set requirements.
+
+* Mutual Exclusions: Use prevents followed by indented focus IDs.
+
+* Dynamic Positioning: Anchor focuses using follow position of [focus_id] and offset them with relative coordinates using position x[val] y[val].
+
+* Completion Effects: Place rewards and logic blocks directly under on complete.
+
+### 5. Why Use Marshal for Focus Trees?
+Zero Boilerplate: Avoid manual cost = X calculations, redundant wrapper brackets, and endless curly braces.
+
+* Relative Positioning: Anchoring focus branches with follow position of makes shifting entire trees intuitive without needing to recalculate coordinates manually for every node.
+
+* Direct Pass-Through: Standard HOI4 effects (like add_political_power = 50) execute seamlessly while maintaining clean, tabbed code readability.

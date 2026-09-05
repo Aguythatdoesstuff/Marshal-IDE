@@ -46,6 +46,7 @@ The IDE focuses on reducing repetitive work and improving development speed whil
 
 It provides a higher-level syntax for creating common Hearts of Iron IV mod structures such as:
 
+- Scripted GUI
 - Events
 - Decisions
 - National Focuses
@@ -56,21 +57,29 @@ It provides a higher-level syntax for creating common Hearts of Iron IV mod stru
 Marshal Script is **not a replacement for the game's scripting system**.  
 Instead, it acts as a layer on top of it.
 
-The DSL is compiled (transpiled) into the standard scripting format used by Hearts of Iron IV.
+The DSL is compiled (transpiled with our multi pass transpiler) into the standard scripting format used by Hearts of Iron IV.
 
 ---
 
 # Why "Script"?
 
-The name **Marshal Script** reflects the technology used to build the language.
+The name **Marshal Script** reflects the technology used to build the original versions of the language and its execution environment within Marshal IDE.
 
-The DSL and its compiler infrastructure are heavily built around **JavaScript-based tooling**, which powers:
+The early DSL and compiler infrastructure relied heavily on **JavaScript-based tooling**, which powered:
 
-- The transpiler
-- Parts of the IDE runtime
-- Internal tooling and automation systems
+- The original transpiler and parser
+- Core internal tooling and automation systems
+- Early runtime execution steps
 
-Because of this foundation, the term **Script** was chosen to represent the language layer of the project.
+### Evolution of the Stack
+
+While heavy compilation tasks have since migrated to a high-speed C# engine, JavaScript remains the core driver of the editor experience itself. Today, JavaScript powers the entire application shell and user interface:
+
+- **Application Startup:** Launching the IDE initializes the JavaScript runtime that renders the environment, panels, and workspace layouts.
+- **UI & Event Handling:** Every visual component—from button clicks and menu actions to panel transitions—is driven by fast, event-based JavaScript routines.
+- **Workspace State:** User input, interface updates, and active view state are handled in real time by the front-end process.
+
+Because JavaScript established the foundational architecture—and continues to power everything you see and interact with inside the IDE—the term **Script** remains an accurate reflection of the environment's origins and design philosophy.
 
 ---
 
@@ -98,5 +107,7 @@ The long-term goal of Marshal is to make large-scale Hearts of Iron IV modding:
 - Less error-prone
 - Easier to maintain
 - Easier to mod
+- Easier to expand
+- But most importantly more fun to mod!
 
 While still producing fully compatible game files.

@@ -1,18 +1,16 @@
 # Advanced Scripted GUI
 
-The Marshal GUI DSL is by far the most powerful feature of the transpiler. In vanilla HOI4, creating an interactive minigame or a progress bar requires manually editing `.gui` coordinate files, creating dozens of `spriteTypes`, and writing convoluted `scripted_effects`. 
-
-Marshal collapses all of that into a single, logical block where UI structure and game logic live side-by-side.
+The Marshal GUI DSL simplifies interface creation in HOI4. Instead of manually editing `.gui` coordinate files, creating dozens of `spriteTypes`, and writing complex `scripted_effects`, Marshal combines UI structure and game logic into unified blocks within `.scriptedgui` files.
 
 ---
 
 ### 1. Windows: Draggable vs. Static
-Creating a window is as simple as declaring its type.
-* **Draggable Window**: Can be moved by the player during gameplay.
-* **Window**: A standard static window.
+Define interface containers directly by declaring their window type:
+* **Draggable Window**: Allows players to reposition the frame during gameplay.
+* **Window**: Standard static interface frame.
 
-```marshal
-# A basic draggable window
+```
+# Basic draggable window
 draggable window my_cool_window_id
     size x1573 y900
     position x130 y85     
@@ -20,19 +18,17 @@ draggable window my_cool_window_id
     visible
         always = yes
 ```
-### 2. Progress Bars (The Easy Way)
-Vanilla progress bars require you to make full and empty .dds files and define them in .gui. Marshal lets you draw them directly using RGB colors and a defined number of steps.
-
-Here is how you define a progress bar linked to a variable (time_left):
+### 2. Progress Bars
+Instead of creating full and empty .dds textures, define progress bars directly using RGB color values and step counts linked to game variables:
 
 ```
-# A background frame
+# Background frame
 icon
     sprite "GFX_pol_goal_progress_frame"
     position x233 y75 
     size 100%
 
-# The actual dynamic bar
+# Dynamic progress bar
 horizontal bar with 70 steps
     unprogressed color 0.0 0.0 0.3 # Dark Blue
     progressed color 0.0 0.0 0.7   # Bright Blue
@@ -40,17 +36,14 @@ horizontal bar with 70 steps
     position x235 y76   
     size x235 y4
 ```
-    
-    
-### 3. Reactive Buttons (Minigame Logic)
-To make a button "reactive" (e.g., turning green when clicked), we use root-level define blocks combined with our window.
 
-Step A: Define the Dynamic States
-First, define the text and sprites outside the window. They will check a variable to see if the button is enabled.
+### 3. Reactive UI Elements
+Create dynamic UI components (such as buttons that change color or state when clicked) by pairing root-level define blocks with window elements.
 
+### Step A: Define Dynamic States
+Declare sprites and text logic outside the window block to evaluate variables dynamically:
 
 ```
-# --- DB Core Button Logic ---
 define sprite button1_gfx
     if
         check_variable = { button1_enabled = 1 }
@@ -63,9 +56,9 @@ define text button1_text
     if
         check_variable = { button1_enabled = 1 }
         then
-            text "§GDB Core§"
+            text "§GGreen§"
     else
-        text "§RDB Core§"
+        text "§RRed§"
 
 define text enable_or_disable_button1
     if
@@ -75,10 +68,9 @@ define text enable_or_disable_button1
     else
         text "§REnable§"
 ```
-        
-Step B: Build the Button in the GUI
-Inside your window, stack the text, icon, and button on top of each other. When the button is clicked, it changes the variable, which instantly updates the text and sprite!
 
+### Step B: Assemble the GUI Element
+Stack text, icons, and buttons within the window block. Clicking the button updates the underlying variable, triggering instant visual updates:
 
 ```
 draggable window minigame_1
@@ -88,7 +80,6 @@ draggable window minigame_1
     visible
         has_country_flag = open_minigame_1
 
-    # DB Core Element
     text
         text button1_text
         font "hoi_20b"
@@ -104,15 +95,15 @@ draggable window minigame_1
         sprite "GFX_button_94x31"
         position x110 y200 
         on click
-            set_variable = { button1_enabled = 1 }
+            if
+                check_variable = { button1_enabled = 1 }
+                then
+                    set_variable = { button1_enabled = 0 }
+            else
+                set_variable = { button1_enabled = 1 }
 ```
-
-(You can repeat this structure for as many buttons/nodes as your minigame needs!)
-
-### 4. Advanced Logic: Dynamic Pricing & Complex On-Clicks
-You can run deep logic directly inside a button's on click block, including checking for resources and setting multiple flags.
-
-In this example from a cyber-warfare mod, the button checks if the player has enough Political Power and Civilian Factories, deducts the cost, applies a timed idea, and opens a minigame.
+### 4. Direct Logic and Conditional Execution
+Execute resource checks, modifier assignments, or custom effects directly within a button's on click block:
 ```
 button
     sprite "GFX_button_123x34"
@@ -127,7 +118,7 @@ button
                 if
                     has_country_flag = has_minigame
                     then
-                        # Prevent opening two games at once
+                        # Prevent duplicate minigames
                 else
                     set_variable = { button_action = 1 }
                     add_political_power = -50
@@ -136,20 +127,20 @@ button
                         days = 60
                     }
                     open_random_minigame = yes
-```    
-You can pair this with Dynamic Text so the price turns Red if the player can't afford it, and Green if they can:
+```
+Dynamic text checks can also reflect resource requirements visually:
 ```
 define text price_button_basic_pp
     if
         has_political_power > 49
         num_of_civilian_factories > 1
         then
-            text "§G50§" # green
+            text "§G50§" # Green when affordable
     else
-        text "§R50§" # red
+        text "§R50§" # Red when unaffordable
 ```
-### 5. Dynamic Flavor Text (The Random Yap Generator)
-You can use a variable that changes daily (via On Actions) to cycle through random flavor text in your main menu.
+### 5. Dynamic Flavor Text
+Cycle through string arrays or state checks dynamically using variable evaluation:
 ```
 define text random_yap
     if
@@ -163,30 +154,21 @@ define text random_yap
     else if
         check_variable = { text = 3 }
         then
-            text "The greater the mass the greater the force of attraction. (Especially your_mom.png)"
-    else if
-        check_variable = { text = 4 }
-        then
-            text "SpongeBob grew in size cuz of the patties. 1GB was necessary."
-    else if
-        check_variable = { text = 5 }
-        then
-            text "Syntax error: unknown: at line 3628 column 628 in file hwhurjheheobe.bsbkhsh"
+            text "The greater the mass the greater the force of attraction."
     else
-        text "If you see this, the 10,000 lines of code are actually working. Somehow."
+        text "System online."
 ```
-# Inside the GUI:
+Display the dynamic text within the interface block:
 ```
 text
     text random_yap
     font "hoi_36header"
     position x100 y450
     max size x700 y600
-
 ```
-### 6. Summary of GUI Best Practices
-Stacking Elements: In the game engine, elements are drawn in the order they appear. Put backgrounds first, icons second, and text/buttons on top.
+### 6. Best Practices
+Layering & Render Order: Elements render in sequential order. Declare background frames first, icons second, and interactive buttons or text labels on top.
 
-Percentages vs Pixels: size 100% works for icons/sprites, but windows and max size bounds for text should use exact pixel logic (x500 y300).
+Sizing Units: Use percentage constraints (size 100%) for standard icons or full-frame overlays, and exact pixel coordinates (x500 y300) for window dimensions and text bounds.
 
-Safety Fallbacks: Always end your define sprite and define text chains with an else block to prevent the game engine from crashing or throwing a missing GFX error!
+Fallback Safety: Include else blocks in define sprite and define text declarations to handle missing states safely and avoid rendering errors.

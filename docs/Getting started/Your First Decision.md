@@ -1,61 +1,66 @@
 # Your First Decision
 
-Decisions in Marshal Script are organized into categories. By using a tab-based structure and modernized logic flow, you can define complex interactions—like UI toggles—without the "bracket soup" of standard HOI4 files.
+Decisions in Marshal Script are organized into categories. By using a tab-based structure, you can define complex interactions—like triggering events or managing custom interfaces—without the "bracket soup" of standard HOI4 files.
 
 ---
 
 ### 1. Decision Categories
-A category groups your decisions together in the player's decision menu. Every decision must live inside a category block.
+A category groups your decisions together in the player's decision menu. Every decision must live inside a category block. 
 
-```marshal
-category internal_politics
-    name "Internal Politics"
-    desc "Manage the political landscape of the nation."
-    icon "GFX_decision_category_politics"
-    
+Categories support custom assets:
+* **`sprite`**: The small icon displayed on the left side of the category name. The `GFX_` prefix is **optional** here.
+* **`picture sprite`**: The larger graphic displayed at the top of the decision category. This **requires** the `GFX_` prefix to load properly.
+
+```
+category trigger_event_category
+    name "trigger event"
+    desc "trigger event"
+
+    # Small icon (GFX_ prefix optional)
+    sprite "RAJ_decision_investment_mils_icon" 
+
+    # Large header picture (GFX_ prefix required)
+    picture sprite "GFX_RAJ_decision_investment_mils_icon"
+
+    priority 1000
+    allowed
+        always = yes
 ```
 ### 2. Creating a Decision
-Inside a category, you define individual decisions. Marshal Script introduces a much more readable if/then/else syntax for effects, which is a massive upgrade over the vanilla limit system.
+Inside a category, you define individual decisions. Properties such as cost, conditions like available, and execution logic under on click are indented directly under the decision header.
 
-Example: A GUI Toggle Decision
-This example shows how to use a decision to toggle a custom interface on and off.
 ```
-category internal_politics
-    decision open_party_manager
-        name "Manage Coalition"
-        desc "Open the interface to manage ruling and opposition parties."
-        icon "GFX_decision_politics"
-        
-        visible
-            always = yes
+category trigger_event_category
+    name "trigger event"
+    desc "trigger event"
+
+    sprite "RAJ_decision_investment_mils_icon"
+    picture sprite "GFX_RAJ_decision_investment_mils_icon"
+
+    priority 1000
+    allowed
+        always = yes
+
+    decision trigger_event
+        name "trigger event"
+        desc "trigger event"
+        sprite "RAJ_decision_investment_civs_icon"
+        cost 69
 
         available
-            always = yes
+            not
+                country = GER
 
-        # Decision Settings
-        fire_only_once = no
-        cost = 0
-        
         on click
-            if
-                has_country_flag = open_party_manager
-                then
-                    clr_country_flag = open_party_manager
-            else
-                set_country_flag = open_party_manager
-                # Initialize arrays or logic via a scripted effect
-                init_party_arrays
-        
+            trigger_event = yes
 ```
 
-### 3. Key Improvements
- - Modern Logic Flow: Instead of nesting multiple if = { limit = { ... } } blocks, Marshal uses a clean if/then/else structure.
 
- - Implicit Localization: Like Events and Focuses, the name and desc strings are automatically turned into localization entries by the compiler.
+3. Key Features & Improvements
+* Implicit Localization: Provide text directly in quotes for name and desc. Marshal automatically generates the organized .yml localization files and keys for you.
 
- - Tab-Based Hierarchy: All properties of a decision (visible, available, effects) are indented, making it clear where one decision ends and the next begins.
+* Dynamic Asset Handling: Simple sprite definitions handle pathing automatically without strict prefix requirements on category icons.
 
- - Direct Pass-Through: Standard HOI4 triggers and effects work perfectly within these blocks; the DSL simply removes the unnecessary wrappers.
+* Tab-Based Hierarchy: All properties, conditions (available), and logic (on click) are scoped via indentation, completely removing standard curly brace requirements.
 
-### 4. Why Use Marshal for Decisions?
-In vanilla HOI4, creating a simple "toggle" for a scripted GUI requires repetitive, inverted logic blocks. Marshal Script allows you to express the intent of the code ("If it's open, close it; otherwise, open it") in a way that is easy to read and maintain.
+* Direct Pass-Through: Standard HOI4 triggers and effects work natively within these blocks; the transpiler strips unnecessary wrappers while compiling to valid game syntax.

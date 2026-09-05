@@ -5,49 +5,51 @@ Events are the narrative heartbeat of any Hearts of Iron IV mod. In **Marshal Sc
 ---
 
 ### 1. The Structure
-Marshal Script uses indentation (tabs) to define the hierarchy of your code. Unlike standard HOI4 scripting, there are no Python-style colons or mandatory wrappers—the compiler handles the heavy lifting.
+Marshal Script uses indentation (tabs) to define the hierarchy of your code. Unlike standard HOI4 scripting, there are no Python-style colons or mandatory curly brace wrappers—the compiler handles the heavy lifting.
 
 > [!TIP]
-> While vanilla HOI4 requires brackets `{}` for almost everything, Marshal uses them only when you want to pass through specific vanilla blocks (like `ai_chance`) or for multi-line comments.
+> While vanilla HOI4 requires brackets `{}` for almost everything, Marshal uses clean tab indentation to handle scoping. Standard inline Paradox blocks (like triggering a `news_event = { id = news_event.1 }`) can still be written directly.
 
 ---
 
-### 2. Example: Country Event
-Inside your `events/` folder, create a new file. The IDE will automatically handle the categorization.
+### 2. Country & News Events Example
 
-```marshal
-country event stability_spiral.1
+Here is the exact structure used in the default `example_event.event` template:
+
+```
+country event country_event.1
     name "The Stability Death Spiral"
-    desc "The government is losing control. Protests have turned into riots."
-    sprite "GFX_report_event_civil_war"
+    desc "The government is losing control. Protests have turned into riots, and the military is divided. We must act before the nation tears itself apart."
+    sprite "GFX_report_event_001"
 
     option "Suppress the Dissidents"
-        # Standard HOI4 effects pass through directly
-        add_political_power = -50
+
+    option "Let the Flames Rise"
+        news_event = { id = news_event.1 }
+        add_stability = -0.50
+
+    option "Join the Revolution"
 
     option "Orchestrate a Coup"
         add_stability = -0.50
-        add_war_support = -0.20
+
+news event news_event.1
+    name "The Stability Death Spiral"
+    desc "A country lost control into a death spiral ending up in civilwar!"
+    sprite "GFX_report_event_FIN_continuation_war"
+    major = yes
+
+    option "Suppress the Dissidents"
 ```
-### 3. Example: News Event
-News events use the exact same logic, just with a different header:
 
-```marshal
-news event world_news.1
-    name "Global Economic Collapse"
-    desc "Markets across the globe have plummeted..."
-    sprite "GFX_news_event_market"
+###3. Key Improvements
+* Implicit Localization: You never need to open a .yml file. Just type your text in quotes for name, desc, or option titles, and Marshal generates the localization keys automatically.
 
-    option "A dark day for humanity"
-```
-### 4. Why This is Better Than Vanilla
- - No Localization Files: You never need to open a .yml file. Just type your text in quotes for name, desc, or option, and Marshal generates the localization keys automatically.
+* Automatic Namespaces: The compiler tracks and manages event namespaces globally. You can group your events in one file or spread them across multiple files; Marshal compiles them cleanly.
 
- - Automatic Namespaces: The compiler handles event namespaces globally. You can put all your events in one file or spread them across many; Marshal ensures the game reads them correctly.
+* Instant GFX Integration: Use the sprite keyword to reference your event pictures. If you dragged .dds assets into the IDE, simply reference the image and go.
 
- - Clean Comments: Use # for single-line comments or #{ ... #} for multi-line blocks.
+* Direct Pass-Through: Standard HOI4 triggers and effects (like add_stability = -0.50 or major = yes) work natively within these blocks without requiring manual bracket wrappers.
 
- - Instant GFX: Use the sprite keyword to reference your images. If you used the Instant GFX Importer, just type the name and go.
-
-### 5. Seeing the Results
-When you save, Marshal transpiles this clean code into the standard, bracket-heavy .txt files the game requires and places them in your Output Path. You write the clean version; the game gets the compatible version.
+### 4. Seeing the Results
+When you save, Marshal transpiles this clean, tabbed code into standard, bracket-heavy .txt files and places them directly into your designated output path. You write the clean version; the game receives the compatible version.

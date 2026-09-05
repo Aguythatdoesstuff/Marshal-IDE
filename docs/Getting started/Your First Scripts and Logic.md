@@ -1,13 +1,23 @@
 # Scripts and Logic
 
-The **Scripts** category is the "engine room" of your mod. It combines Game Rules, On Actions, Scripted Effects, and Scripted Triggers into a single, unified syntax. Instead of hunting through four different folders in vanilla HOI4, you can manage your global logic right here.
+The **Scripts** category is the "engine room" of your mod. It consolidates Game Rules, On Actions, Scripted Effects, and Scripted Triggers into a single, unified workflow. Instead of navigating separate directories in vanilla HOI4, you can manage your global logic directly within `.script` files.
 
 ---
 
 ### 1. Scripted Effects
-Scripted effects are reusable blocks of code. Once defined, you can call them from events, decisions, or focuses just by typing their id. (example of how to call a scripted effect: click_me_button_ad_effects = yes)
+Scripted effects are reusable blocks of execution logic. Once defined, you can invoke them directly inside events, decisions, focuses, or `on_action` blocks simply by referencing their ID (e.g., `trigger_event = yes`).
 
-```marshal
+```
+scripted effect trigger_event
+    random_list = {
+        50 = { 
+            country_event = { id = country_event.1 }
+        }
+        50 = { 
+            news_event = { id = news_event.1 }
+        }
+    }
+
 scripted effect click_me_button_ad_effects
     clr_country_flag = open_ad1
     random_list = {
@@ -20,19 +30,18 @@ scripted effect click_me_button_ad_effects
 ```
 
 ### 2. On Actions
-On Actions allow you to "hook" your code into the game engine's heartbeat (e.g., every day, every month, or when a state is occupied).
+On Actions allow you to hook code directly into engine lifecycle events (e.g., daily ticks, monthly ticks, or initial game startup).
 ```
 on action
     on_monthly = {
         effect = {
-            # Loop through everyone once per month
+            # Execute monthly logic across nations
             every_country = {
                 limit = {
                     has_stability < 0.05
                     has_civil_war = no
                 }
                 
-                # Use Marshal's if/then/else or standard vanilla limits
                 if = {
                     limit = { is_ai = yes }
                     random_civil_war = yes
@@ -46,35 +55,41 @@ on action
             }
         }
     }
-```
 
+    on_daily = {
+        effect = {
+            # Execute daily ticks
+        }
+    }
+
+    on_startup = {
+        effect = {
+            trigger_event = yes
+        }
+    }
+```
 ### 3. Scripted Triggers
-Triggers are boolean (true/false) checks used to simplify complex requirements(used inside if else statements).
+Scripted triggers represent reusable boolean condition checks, ideal for simplifying multi-step requirement blocks.
 ```
 scripted trigger is_germany
     tag = GER
 ```
 
 ### 4. Game Rules
-Game rules allow players to customize their experience in the pre-game lobby. Marshal simplifies the multi-file process of defining the rule, the group, and the localization into a single block.
+Game rules allow players to toggle custom options in the pre-game lobby. Marshal simplifies the setup process by organizing the rule parameters and localization into a single declaration.
 
-#### Defining the Rule
-In your Marshal file, you define the visual toggle for the lobby. Note that the rule block itself does **not** contain the logic for what happens in-game; it only defines the available choices.
-
+Defining the Lobby Rule (example_game_rules.script)
+The rule declaration defines the toggle interface, default settings, and available options:
 ```
 game rule enable_france
-    name "Enable France"
-    group "Custom Rules"
-  
+    name "enable fr*nce"
+    group "misc"
     default option "enable"
-    
     option "disable"
 ```
-### Implementing the Logic
-Because HoI4 treats game rules as global flags, you must check the state of the rule within an on_action (like on_startup), a national focus, or an event. You do this using the has_game_rule trigger.
 
-Example: Applying the rule on game start
-In your logic files, you would check the player's selection like this:
+Implementing the Logic
+Check the player's selected rule choice inside logic routines (such as an on_startup action) using the has_game_rule trigger:
 ```
 on action
     on_startup = {
@@ -85,13 +100,14 @@ on action
                     option = disable 
                 } 
                 then
-                    # The actual logic goes here
                     FRA = { set_cosmetic_tag = FRA_DISABLED_TAG }
         }
     }
 ```
 
-### 5. Why Use Marshal for Scripts?
-Centralized Logic: Keep your global triggers and effects organized without jumping between deep folder structures.
+### 5. Key Advantages
+Centralized Logic: Manage global triggers, effects, on-actions, and lobby rules inside clean .script source files.
 
-Simplified Game Rules: Defining a game rule in vanilla usually requires a rule file and a localization file. Marshal handles the strings and the functional logic in one block.
+Implicit Localization: Game rule titles and option labels inside quotes are automatically transpiled into properly formatted .yml localization keys.
+
+Direct Pass-Through: Standard Paradox triggers and effects function natively alongside Marshal Script's tabbed syntax structures.

@@ -5,14 +5,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ## 🛠 v1.3.0 – UX Update
 ### UX changes
 
-- **Tailwind CSS Architecture Migration:** Replace the legacy Sass preprocessor setup with Tailwind CSS. Leverage utility-first classes to drastically accelerate frontend layout changes, while utilizing Tailwind's compiler to purge unused styles and generate a highly optimized, lightweight production CSS bundle.
-
-- **Visual Workspace Personalization:** Add a dedicated Themes & Appearance tab in Global Application Settings. Users can now customize the IDE environment with selectable accent colors and define custom token colors for syntax highlighting.
-
-### Compiler changes
-- **Parser**: Shared coordinate saving method for parser, pass over what the syntax is eg: "position" OR "max size" and the raw line itself, and it will return X coordinates and Y coordinates!(this will make all parser work similarly)
-- **Validator**: Make the validators Save the data they check, they check if the ID is correct? also save the ID so that the parser doesn't have to do that exact same thing!(and maybe have a minor difference that leads to a hard to find bug)
-
 ## Fixes
 - **Compiler & Importer:** Fix and investigate more importer and compiler bugs
 
@@ -30,3 +22,9 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 - ### DSL Expansions
     - **MIO Support**: Dedicated DSL for Military Industrial Organizations.
     - **Country Definitions**: Streamlined syntax for defining new nations and tags.
+### Compiler changes
+    - **Parser**: Shared coordinate saving method for parser, pass over what the syntax is eg: "position" OR "max size" and the raw line itself, and it will return X coordinates and Y coordinates!(this will make all parser work similarly)
+    - **Validator**: Make the validators Save the data they check, they check if the ID is correct? also save the ID so that the parser doesn't have to do that exact same thing!(and maybe have a minor difference that leads to a hard to find bug)
+
+- **Visual Workspace Personalization:** Add a dedicated Themes & Appearance tab in Global Application Settings. Users can now customize the IDE environment with selectable accent colors and define custom token colors for syntax highlighting.
+

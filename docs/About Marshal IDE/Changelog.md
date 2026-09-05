@@ -2,7 +2,7 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
-## [1.3.0] - ?
+## [1.3.0] - ? - UX Update
 
 ### Added
 - **In-Line "Jump to Error" Navigation:** Error listings in the bottom console are now fully interactive. Clicking a validation error or warning line instantly targets the specific file tab, opens it, and - drops the editor cursor directly onto the offending line for immediate fixing.
@@ -12,6 +12,12 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Console warning tab:** Add a warning tab inside the console that will show all warnings the compiler has(less important things that dont have to be fixed but are recommended to be fixed)
 
 - **Drag-and-Drop Sidebar Image Importing:** Expanded the asset workflow by allowing users to drag .dds files directly from the OS file manager and drop them anywhere onto the left-hand PROJECT FILES sidebar. The IDE automatically routes them into the project's background GFX directory and refreshes the tree instantly.
+
+### Changed
+
+- **Tailwind CSS Architecture Migration:** Replace the legacy Sass preprocessor setup with Tailwind CSS. Leverage utility-first classes to drastically accelerate frontend layout changes, while utilizing Tailwind's compiler to purge unused styles and generate a highly optimized, lightweight production CSS bundle.
+
+- **Audit docs** audit all docs of Marshal IDE  to ensure everything is up to date and as clear and accurate as can be.
 
 ## Fixed
 

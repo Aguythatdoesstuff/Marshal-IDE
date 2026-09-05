@@ -64,9 +64,9 @@ This prevents **ghost files** from accumulating in your mod.
 
 The mod folder configured as your **Output Path** should be treated strictly as **generated output**. To ensure your project remains stable, follow these rules:
 
-1.  **Do Not Manual Edit**: Avoid changing files inside the output folder; the IDE will overwrite them during compilation.
-2.  **Source is King**: All development must take place inside your **Marshal Workspace**.
-3.  **Protect the Descriptor**: The Marshal IDE cannot currently edit or generate `descriptor.mod` files. 
+1. **Avoid Overwriting Output Files**: The IDE will freely overwrite compiler-generated files in your target mod directory. Never place original source assets or custom non-compiler files under names that match generated output files, or they will be overwritten without confirmation.
+2. **Source is King**: Use the workspace as the central hub for your project. Unsupported features or non-DSL files can exist outside the IDE without issue, but anything transpiled should originate within your workspace scripts.
+3. **Protect the Descriptor**: The Marshal IDE does not currently edit or generate `descriptor.mod` files. Always keep the launcher-generated descriptor intact in your target mod directory.
 
 > [!IMPORTANT]
 > **Do not delete the `descriptor.mod`** created by the Paradox Launcher. Without this specific file, Hearts of Iron IV will not recognize your mod, even if your Marshal Script compiles perfectly.
@@ -74,21 +74,17 @@ The mod folder configured as your **Output Path** should be treated strictly as 
 ---
 ---
 
-### Enforced Project Structure
+### Project Structure & Extensions
 
-Marshal IDE uses a structured project layout to understand what type of content each file represents.
+Marshal IDE uses folder-aware defaults to streamline file creation. 
 
-For example:
+When you create a file inside a designated directory (such as `events/`), the file creation wizard automatically selects the recommended compiler extension (e.g., `.event`). 
 
-events/my_event.event
+While you can technically place other file types inside different folders, using an extension that does not match the file's content will cause syntax checks to fail and generate malformed syntax errors in your console. 
 
-
-If you create a file inside the `events/` folder, the IDE will automatically add the `.event` extension.
-
-This allows the compiler to immediately understand what type of content you are editing and transpile it correctly.
-
-You normally do **not need to worry about file extensions**, as the IDE handles this automatically when creating new files.
-
+Key details to keep in mind:
+* **Recommended Extensions:** The IDE automatically selects the proper extension based on your target folder so you rarely have to adjust it manually.
+* **Folder Creation:** Creating custom folders directly within the IDE is currently disabled to ensure auto-selection works reliably.
 ---
 
 # Next Step
