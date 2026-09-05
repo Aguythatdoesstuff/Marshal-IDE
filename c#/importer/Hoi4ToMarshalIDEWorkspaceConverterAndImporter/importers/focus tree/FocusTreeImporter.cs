@@ -103,7 +103,7 @@ namespace importer
                 if (depth == 0 && cleanKey == "}")
                 {
                     Results.Add(FocusTreeValue);
-                    DebugLogger.Log("Compiler", "", LogLevel.Info, $"<<< Finished FocusTree: {{FocusTreeValue.Type}} (Saved {{FocusTreeValue.Options.Count}} options) with the id: {{FocusTreeValue.Id");
+                    DebugLogger.Log("Compiler", "", LogLevel.Info, $"<<< Finished FocusTree: {FocusTreeValue.Type} (Saved {FocusTreeValue.Options.Count} options) with the id: {FocusTreeValue.Id}");
                     _currentFocusTree.Value = null;
                     return;
                 }
@@ -116,39 +116,40 @@ namespace importer
                     // Closing the current list block
                     if (cleanKey == "}" && _currentListDepth.Value.HasValue && depth == _currentListDepth.Value)
                     {
-                        DebugLogger.Log("Compiler", "", LogLevel.Info, $"Closed List Block: {{_currentListContext.Value");
+                        DebugLogger.Log("Compiler", "", LogLevel.Info, $"Closed List Block: {_currentListContext.Value}");
                         _currentListContext.Value = null;
                         _currentListDepth.Value = null;
                         return;
                     }
 
-                    // Inside list entries: look for 'focus = id'
-                    if (cleanKey == "focus" && op == "=")
+                    // Accepts BOTH focus = <id> and id = <id>
+                    if ((cleanKey == "focus" || cleanKey == "id") && op == "=")
                     {
                         var fid = cleanValue;
                         if (!string.IsNullOrEmpty(fid))
                         {
                             if (_currentListContext.Value == "prerequisite")
                             {
-                                option.Prerequisites.Add(fid);
+                                if (!option.Prerequisites.Contains(fid)) option.Prerequisites.Add(fid);
                                 DebugLogger.Log("Compiler", "", LogLevel.Info, $"Added prerequisite: {fid}");
                             }
                             else if (_currentListContext.Value == "mutually_exclusive")
                             {
-                                option.MutuallyExclusive.Add(fid);
+                                if (!option.MutuallyExclusive.Contains(fid)) option.MutuallyExclusive.Add(fid);
                                 DebugLogger.Log("Compiler", "", LogLevel.Info, $"Added mutually_exclusive: {fid}");
                             }
                         }
                         return;
                     }
-                    // If we encounter a one-liner relationship while another list block is open,
-                    // still attempt to parse it (this can happen in some file layouts).
+
                     if (isOneLiner && (cleanKey == "prerequisite" || cleanKey == "mutually_exclusive") && op == "=")
                     {
                         var inner = rawValueTrimmed.Trim();
                         if (inner.StartsWith("{")) inner = inner.Substring(1).Trim();
                         if (inner.EndsWith("}")) inner = inner.Substring(0, inner.Length - 1).Trim();
-                        var matches = Regex.Matches(inner, "focus\\s*=\\s*['\"]?([A-Za-z0-9_\\-]+)['\"]?", RegexOptions.IgnoreCase);
+
+                        // Regex matches both 'focus =' and 'id ='
+                        var matches = Regex.Matches(inner, "(?:focus|id)\\s*=\\s*['\"]?([A-Za-z0-9_\\-]+)['\"]?", RegexOptions.IgnoreCase);
                         foreach (Match m in matches)
                         {
                             var fid = m.Groups[1].Value;
@@ -200,7 +201,7 @@ namespace importer
                     // For any other root-level or deeper tokens that are not part of an option, save the raw line
                     var rootLine = RawLineHelper.BuildAndLog(cleanKey, op, rawValueTrimmed, depth);
                     FocusTreeValue.Lines.Add(new ScriptedLine(rootLine, depth));
-                    DebugLogger.Log("Compiler", "", LogLevel.Info, $"Saved Root Line (D{{depth}}): {{rootLine");
+                    DebugLogger.Log("Compiler", "", LogLevel.Info, $"Saved Root Line (D{depth}): {rootLine}");
                     return;
                 }
                 // 4. We ARE inside an option block
@@ -284,32 +285,31 @@ namespace importer
                             if (inner.StartsWith("{")) inner = inner.Substring(1).Trim();
                             if (inner.EndsWith("}")) inner = inner.Substring(0, inner.Length - 1).Trim();
 
-                            var matches = Regex.Matches(inner, "focus\\s*=\\s*['\"]?([A-Za-z0-9_\\-]+)['\"]?", RegexOptions.IgnoreCase);
+                            var matches = Regex.Matches(inner, "(?:focus|id)\\s*=\\s*['\"]?([A-Za-z0-9_\\-]+)['\"]?", RegexOptions.IgnoreCase);
                             if (matches.Count == 0)
                             {
-                                DebugLogger.Log("Compiler", "", LogLevel.Info, $"One-liner had no focus= entries: {rawValueTrimmed}");
+                                DebugLogger.Log("Compiler", "", LogLevel.Info, $"One-liner had no relationship entries: {rawValueTrimmed}");
                             }
                             foreach (Match m in matches)
                             {
                                 var fid = m.Groups[1].Value;
                                 if (cleanKey == "prerequisite")
                                 {
-                                    option.Prerequisites.Add(fid);
+                                    if (!option.Prerequisites.Contains(fid)) option.Prerequisites.Add(fid);
                                     DebugLogger.Log("Compiler", "", LogLevel.Info, $"Added prerequisite (one-liner): {fid}");
                                 }
                                 else
                                 {
-                                    option.MutuallyExclusive.Add(fid);
+                                    if (!option.MutuallyExclusive.Contains(fid)) option.MutuallyExclusive.Add(fid);
                                     DebugLogger.Log("Compiler", "", LogLevel.Info, $"Added mutually_exclusive (one-liner): {fid}");
                                 }
                             }
                         }
                         else
                         {
-                            // Start of a multi-line block. Mark context so inner tokens are captured above.
-                            _currentListContext.Value = cleanKey; // 'prerequisite' or 'mutually_exclusive'
-                            _currentListDepth.Value = depth; // Block depth when entries are passed (closing '}' will be passed with this depth)
-                            DebugLogger.Log("Compiler", "", LogLevel.Info, $"Opened List Block: {{cleanKey}} at depth {{depth");
+                            _currentListContext.Value = cleanKey;
+                            _currentListDepth.Value = depth;
+                            DebugLogger.Log("Compiler", "", LogLevel.Info, $"Opened List Block: {cleanKey} at depth {depth}");
                         }
 
                         // In both cases we handled the relationship entries; do not save the wrapper/raw line
@@ -325,3 +325,6 @@ namespace importer
         }
     }
 }
+
+
+

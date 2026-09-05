@@ -46,7 +46,7 @@ namespace Compiler
                 double safeCost = exactCost + 0.001;
 
                 // Round to 3 decimal places
-                finalCost = (Math.Round(safeCost, 3))-0.02; // -0.02 to ensure the value is slightly lower then the exact cost/rounded up wich could cause a issue that 1 day could show up ad 2 days ingame
+                finalCost = (Math.Round(safeCost, 3)); //-0.02; // -0.02 to ensure the value is slightly lower then the exact cost/rounded up wich could cause a issue that 1 day could show up ad 2 days ingame
             }
 
             // "G" format string keeps it compact (e.g., 1.43 instead of 1.430)

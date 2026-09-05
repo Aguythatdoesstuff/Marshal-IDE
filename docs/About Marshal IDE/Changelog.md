@@ -13,6 +13,8 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 
 - **Drag-and-Drop Sidebar Image Importing:** Expanded the asset workflow by allowing users to drag .dds files directly from the OS file manager and drop them anywhere onto the left-hand PROJECT FILES sidebar. The IDE automatically routes them into the project's background GFX directory and refreshes the tree instantly.
 
+- **compiler focus tree:** Added the blocks "available, visible and allowed" to focuses
+
 ### Changed
 
 - **Tailwind CSS Architecture Migration:** Replace the legacy Sass preprocessor setup with Tailwind CSS. Leverage utility-first classes to drastically accelerate frontend layout changes, while utilizing Tailwind's compiler to purge unused styles and generate a highly optimized, lightweight production CSS bundle.
@@ -22,6 +24,10 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 ## Fixed
 
 - **file rename:** Fixed the ide renaming fail AND making the file be moved to the root of the input path instead of staying where it is originally at and being renamed.
+
+- **Importer:** Fixed importer not importing and outputing prevents blocks, require blocks and follow position of blocks for focus trees.
+
+- **fixed focus tree validator:** fixed the focus tree validator from expecting the next line to be +1 afther the syntax "follow position of" wich could lead sometimes to incorrect expectations on the next line.
 
 ## [1.2.2] - 2026-07-14
 ### Fixed

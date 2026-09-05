@@ -15,6 +15,9 @@ namespace Compiler
             ["name"] = new[] { 1, 2 },
             ["desc"] = new[] { 1, 2 },
             ["sprite"] = new[] { 1, 2 },
+            ["allowed"] = new[] { 1, 2 },
+            ["available"] = new[] { 1, 2 },
+            ["visible"] = new[] { 1, 2 },
         };
 
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
@@ -34,7 +37,7 @@ namespace Compiler
                 }
 
                 // Step up the expected depth for whatever logic is written INSIDE this option block
-                ExpectedDepth = currentDepth + 1;
+                ExpectedDepth = currentDepth;
                 return true;
             }
             // ==========================================
@@ -66,6 +69,8 @@ namespace Compiler
                         ));
                     }
                 }
+
+           
                 else // Country Specific Tree (e.g., "tree ukraine_focus for UKR")
                 {
                     string headerContent = trimmedLine.Substring("tree ".Length).Trim();

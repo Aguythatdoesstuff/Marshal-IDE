@@ -67,6 +67,25 @@ namespace Compiler.focus
                     {
                         sbFocus.AppendLine($"{indent2}relative_position_id = {focus.followPositionOf}");
                     }
+                    // Render optional named raw blocks: allowed, available, visible
+                    if (focus.allowed != null && focus.allowed.Count > 0)
+                    {
+                        sbFocus.AppendLine($"{indent2}allowed = {{");
+                        sbFocus.Append(RenderAllowed(focus.allowed, rl => rl.depth, rl => rl.trimmedLine));
+                        sbFocus.AppendLine($"{indent2}}}");
+                    }
+                    if (focus.available != null && focus.available.Count > 0)
+                    {
+                        sbFocus.AppendLine($"{indent2}available = {{");
+                        sbFocus.Append(RenderAllowed(focus.available, rl => rl.depth, rl => rl.trimmedLine));
+                        sbFocus.AppendLine($"{indent2}}}");
+                    }
+                    if (focus.visible != null && focus.visible.Count > 0)
+                    {
+                        sbFocus.AppendLine($"{indent2}visible = {{");
+                        sbFocus.Append(RenderAllowed(focus.visible, rl => rl.depth, rl => rl.trimmedLine));
+                        sbFocus.AppendLine($"{indent2}}}");
+                    }
                     sbFocus.Append(RenderAllowed(focus.rawLines, rl => rl.depth, rl => rl.trimmedLine));
                     sbFocus.AppendLine($"{indent2}completion_reward = {{");
                     sbFocus.Append(RenderAllowed(focus.onComplete, rl => rl.depth, rl => rl.trimmedLine));

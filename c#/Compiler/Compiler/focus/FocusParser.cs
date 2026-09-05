@@ -37,6 +37,10 @@ namespace Compiler
 
         // on complete raw grouping and other raw content
         public List<RawLine> onComplete = new List<RawLine>();
+        // allow/available/visible raw blocks
+        public List<RawLine> allowed = new List<RawLine>();
+        public List<RawLine> available = new List<RawLine>();
+        public List<RawLine> visible = new List<RawLine>();
         public List<RawLine> rawLines = new List<RawLine>();
     }
 
@@ -56,8 +60,8 @@ namespace Compiler
             Tree currentTree = null;
             Focus currentFocus = null;
 
-            // Active block tracking for 'on complete'
-            string activeBlock = null; // "on complete"
+            // Active block tracking for named blocks (on complete / allowed / available / visible)
+            string activeBlock = null; // "on complete", "allowed", "available", "visible"
             int blockBaseDepth = 0;
 
             // Generic raw grouping when not inside a named block
@@ -123,15 +127,19 @@ namespace Compiler
                     continue;
                 }
 
-                // If currently inside an active named block (on complete)
+                // If currently inside an active named block (on complete / allowed / available / visible)
                 if (!string.IsNullOrEmpty(activeBlock))
                 {
                     if (pl.Depth > blockBaseDepth)
                     {
                         // Each raw line inside the block is its own RawLine record
-                        if (activeBlock == "on complete" && currentFocus != null)
+                        if (currentFocus != null)
                         {
-                            currentFocus.onComplete.Add(new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth });
+                            var rl = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
+                            if (activeBlock == "on complete") currentFocus.onComplete.Add(rl);
+                            else if (activeBlock == "allowed") currentFocus.allowed.Add(rl);
+                            else if (activeBlock == "available") currentFocus.available.Add(rl);
+                            else if (activeBlock == "visible") currentFocus.visible.Add(rl);
                         }
                         continue;
                     }
@@ -306,11 +314,11 @@ namespace Compiler
                     }
                 }
 
-                // on complete
-                if (currentFocus != null && pl.TrimmedLine == "on complete")
+                // named blocks: on complete / allowed / available / visible
+                if (currentFocus != null && (pl.TrimmedLine == "on complete" || pl.TrimmedLine == "allowed" || pl.TrimmedLine == "available" || pl.TrimmedLine == "visible"))
                 {
                     genericOwner = null; genericBaseDepth = 0;
-                    activeBlock = "on complete";
+                    activeBlock = pl.TrimmedLine; // store block name directly
                     blockBaseDepth = pl.Depth;
 
                     continue;

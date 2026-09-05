@@ -139,6 +139,32 @@ namespace importer
                             var y = option.Y.GetValueOrDefault(0);
                             lines.Add($"        position x{x} y{y}");
                         }
+
+                        // Write prerequisite entries
+                        if (option.Prerequisites != null && option.Prerequisites.Count > 0)
+                        {
+                            lines.Add($"        require {option.Prerequisites[0]}");
+                            for (int i = 1; i < option.Prerequisites.Count; i++)
+                            {
+                                lines.Add($"            {option.Prerequisites[i]}");
+                            }
+                        }
+
+                        // Write mutually_exclusive entries
+                        if (option.MutuallyExclusive != null && option.MutuallyExclusive.Count > 0)
+                        {
+                            lines.Add($"        prevents {option.MutuallyExclusive[0]}");
+                            for (int i = 1; i < option.MutuallyExclusive.Count; i++)
+                            {
+                                lines.Add($"            {option.MutuallyExclusive[i]}");
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(option.RelativePositionId))
+                        {
+                            lines.Add($"        follow position of {option.RelativePositionId}");
+                        }
+
                         // Write the raw focused logic inside the option
                         foreach (var l in option.Lines)
                         {
