@@ -33,6 +33,7 @@ export default defineConfig({
       })
     ],
     build: {
+      sourcemap: true,
       outDir: resolve(__dirname, 'build/vite/main'),
       bytecode: true,
       lib: { entry: resolve(__dirname, 'main.js') },
