@@ -28,15 +28,27 @@
         <div class="flex min-h-0 flex-1 flex-col">
           <p class="text-sm text-gray-300">Here's a quick look at the main features and technical enhancements in this update:</p>
           <div class="min-h-0 flex-1 overflow-y-auto pr-3">
-            <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs uppercase tracking-widest text-marshal-primary">Added</h3>
+                        <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs uppercase tracking-widest text-marshal-primary">Added</h3>
             <ul class="mb-6 list-disc space-y-3 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
-              <li><strong class="font-semibold text-white">New Idea Category Support:</strong> Added compiler and importer support for <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">hidden_ideas</code> and <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">hidden_idea</code>.</li>
+              <li><strong class="font-semibold text-white">In-Line "Jump to Error" Navigation:</strong> Clicking a console error now instantly targets the specific file and line in the editor.</li>
+              <li><strong class="font-semibold text-white">Persistent Tab States:</strong> Reopening a project now restores your exact open tabs, their order, and filetree expansion state.</li>
+              <li><strong class="font-semibold text-white">Console Warning Tab:</strong> Added a dedicated view for non-critical compiler recommendations and warnings.</li>
+              <li><strong class="font-semibold text-white">Sidebar Asset Importing:</strong> Drag and drop <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">.dds</code> files directly onto the sidebar to import them instantly.</li>
+              <li><strong class="font-semibold text-white">Expanded Focus Blocks:</strong> Added support for <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">available</code>, <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">visible</code>, and <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">allowed</code> blocks in focuses.</li>
             </ul>
+
+            <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs uppercase tracking-widest text-marshal-primary">Changed</h3>
+            <ul class="mb-6 list-disc space-y-3 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
+              <li><strong class="font-semibold text-white">Tailwind CSS Migration:</strong> Fully refactored frontend architecture for better performance and easier UI customization.</li>
+              <li><strong class="font-semibold text-white">Monaco Editor Stability:</strong> Optimized tab switching and loading to prevent race conditions and "Canceled" rejections.</li>
+              <li><strong class="font-semibold text-white">Documentation Audit:</strong> Comprehensive update of all IDE guides for maximum clarity and accuracy.</li>
+            </ul>
+
             <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs uppercase tracking-widest text-orange-300">Fixed</h3>
             <ul class="list-disc space-y-3 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
-              <li><strong class="font-semibold text-white">Compiler:</strong> Fixed output replacement, duplicate code generation, Unicode whitespace, and indentation handling.</li>
-              <li><strong class="font-semibold text-white">Importer:</strong> Fixed focus, decision, scripted GUI, and asset importing behavior.</li>
-              <li><strong class="font-semibold text-white">Validation:</strong> Improved ID encoding and case validation.</li>
+              <li><strong class="font-semibold text-white">File Operations:</strong> Fixed issues with renaming and accidental file movement during path updates.</li>
+              <li><strong class="font-semibold text-white">Importer:</strong> Corrected missing block outputs for prevents, requires, and follow positions in focus trees.</li>
+              <li><strong class="font-semibold text-white">Validation:</strong> Fixed the focus tree validator's line expectation logic for follow positions.</li>
             </ul>
           </div>
           <div v-if="updateIsReadyToInstall" class="mt-4 rounded-md border border-marshal-primary bg-sky-950/50 p-4 text-center">
