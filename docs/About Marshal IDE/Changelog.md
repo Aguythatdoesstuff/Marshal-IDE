@@ -19,9 +19,11 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 
 - **Tailwind CSS Architecture Migration:** Replace the legacy Sass preprocessor setup with Tailwind CSS. Leverage utility-first classes to drastically accelerate frontend layout changes, while utilizing Tailwind's compiler to purge unused styles and generate a highly optimized, lightweight production CSS bundle.
 
-- **Audit docs** audit all docs of Marshal IDE  to ensure everything is up to date and as clear and accurate as can be.
+- **Audit docs:** Audit all docs of Marshal IDE to ensure everything is up to date and as clear and accurate as can be.
 
-## Fixed
+### Fixed
+
+- **Monaco Editor Stability Optimization:** Refactored the tab switching and restoration orchestration to eliminate race conditions that previously triggered "Canceled" promise rejections during rapid file navigation or bulk tab loading.
 
 - **file rename:** Fixed the ide renaming fail AND making the file be moved to the root of the input path instead of staying where it is originally at and being renamed.
 

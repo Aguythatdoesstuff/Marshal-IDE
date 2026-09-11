@@ -255,9 +255,11 @@ const vClickOutside = {
 };
 
 const setActiveTab = async (path) => {
-  if (isSwitchingTab) return;
+  if (isSwitchingTab && activeTabPath.value === path) return;
 
-  saveTabState();
+  const previousPath = activeTabPath.value;
+  if (previousPath) saveTabState(previousPath);
+
   isSwitchingTab = true;
   activeTabPath.value = path;
   
@@ -294,17 +296,17 @@ const setActiveTab = async (path) => {
       }
 
       const cleanNativeModel = toRaw(targetTab.monacoModel);
-      activeEditor.setModel(cleanNativeModel);
+      if (activeEditor.getModel() !== cleanNativeModel) {
+        activeEditor.setModel(cleanNativeModel);
+      }
       
       const currentLanguageId = getMonacoLanguage(path);
-      
-      setTimeout(() => {
-        try {
-          if (cleanNativeModel && typeof cleanNativeModel.isDisposed === 'function' && !cleanNativeModel.isDisposed()) {
-            monacoGlobal.editor.setModelLanguage(cleanNativeModel, currentLanguageId);
-          }
-        } catch (langErr) {}
-      }, 0);
+      if (cleanNativeModel && !cleanNativeModel.isDisposed()) {
+        const existingLang = cleanNativeModel.getLanguageId();
+        if (existingLang !== currentLanguageId) {
+          monacoGlobal.editor.setModelLanguage(cleanNativeModel, currentLanguageId);
+        }
+      }
 
       if (targetTab.lineNumber) {
         activeEditor.setPosition({ lineNumber: targetTab.lineNumber, column: 1 });
@@ -314,9 +316,10 @@ const setActiveTab = async (path) => {
       }
 
     } catch (runtimeErr) {
+      console.error('Error during tab activation:', runtimeErr);
     } finally {
       isSwitchingTab = false;
-      saveTabState();
+      saveTabState(path);
     }
   } else {
     isSwitchingTab = false;
@@ -406,25 +409,28 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
 
     await nextTick();
     
-    setTimeout(() => {
-      const activeEditor = editorInstance || window.editorInstance;
-      if (activeEditor && lineNumber !== undefined && lineNumber !== 'Unknown') {
-        const parsedLine = parseInt(lineNumber, 10);
-        if (!isNaN(parsedLine)) {
-          activeEditor.revealLineInCenter(parsedLine);
-          activeEditor.setPosition({ lineNumber: parsedLine, column: 1 });
-          const parsedScrollTop = parseInt(scrollTop, 10);
-          if (!isNaN(parsedScrollTop)) activeEditor.setScrollTop(parsedScrollTop);
-          const restoredTab = openTabs.value.find(t => t.path === actualPath);
-          if (restoredTab) {
-            restoredTab.lineNumber = parsedLine;
-            restoredTab.scrollTop = !isNaN(parsedScrollTop) ? parsedScrollTop : restoredTab.scrollTop;
+    await new Promise(resolve => {
+      setTimeout(() => {
+        const activeEditor = editorInstance || window.editorInstance;
+        if (activeEditor && lineNumber !== undefined && lineNumber !== 'Unknown') {
+          const parsedLine = parseInt(lineNumber, 10);
+          if (!isNaN(parsedLine)) {
+            activeEditor.revealLineInCenter(parsedLine);
+            activeEditor.setPosition({ lineNumber: parsedLine, column: 1 });
+            const parsedScrollTop = parseInt(scrollTop, 10);
+            if (!isNaN(parsedScrollTop)) activeEditor.setScrollTop(parsedScrollTop);
+            const restoredTab = openTabs.value.find(t => t.path === actualPath);
+            if (restoredTab) {
+              restoredTab.lineNumber = parsedLine;
+              restoredTab.scrollTop = !isNaN(parsedScrollTop) ? parsedScrollTop : restoredTab.scrollTop;
+            }
+            activeEditor.focus();
           }
-          activeEditor.focus();
         }
-      }
-      saveTabState();
-    }, 50);
+        saveTabState(actualPath);
+        resolve();
+      }, 50);
+    });
 
   } catch (err) {
     console.error("Failed to navigate to file/line:", err);
@@ -509,11 +515,12 @@ const handleConfirmCloseCancel = () => {
   closeConfirmVisible.value = false;
 };
 
-const saveTabState = () => {
+const saveTabState = (pathOverride = null) => {
   const activeEditor = editorInstance || window.editorInstance;
-  const activeTab = openTabs.value.find(t => t.path === activeTabPath.value);
+  const targetPath = pathOverride || activeTabPath.value;
+  const activeTab = openTabs.value.find(t => t.path === targetPath);
 
-  if (activeEditor && activeTab) {
+  if (activeEditor && activeTab && activeEditor.getModel()?.uri.toString() === window.monaco?.Uri.file(targetPath).toString()) {
     const position = activeEditor.getPosition();
     activeTab.lineNumber = position?.lineNumber || activeTab.lineNumber || 1;
     activeTab.scrollTop = activeEditor.getScrollTop();
@@ -531,6 +538,52 @@ const saveTabState = () => {
   localStorage.setItem(getWorkspaceTabsStorageKey(), JSON.stringify(payload));
 };
 
+const preloadFileTab = async (filePath, lineNumber, scrollTop) => {
+  try {
+    let existingTab = openTabs.value.find(t => t.path === filePath);
+    if (existingTab) return existingTab;
+
+    const res = await window.api.invoke('get-file-content', { filePath });
+    if (res && (res.success !== false)) {
+      const rawContent = typeof res === 'string' ? res : (res.content || '');
+      const monacoGlobal = window.monaco;
+      let tabModel = null;
+      
+      if (monacoGlobal) {
+        const languageId = getMonacoLanguage(filePath);
+        const modelUri = monacoGlobal.Uri.file(filePath);
+        tabModel = monacoGlobal.editor.getModel(modelUri);
+        
+        if (!tabModel) {
+          tabModel = monacoGlobal.editor.createModel(rawContent, languageId, modelUri);
+          tabModel.onDidChangeContent(() => {
+            const currentVal = tabModel.getValue();
+            const tabItem = openTabs.value.find(t => t.path === filePath);
+            if (tabItem && tabItem.content !== currentVal) {
+              tabItem.isDirty = true;
+            }
+          });
+        }
+      }
+
+      const newTab = {
+        name: filePath.split(/[\\/]/).pop(),
+        path: filePath,
+        content: rawContent,
+        isDirty: false,
+        lineNumber: lineNumber || 1,
+        scrollTop: scrollTop || 0,
+        monacoModel: tabModel ? markRaw(tabModel) : null 
+      };
+      openTabs.value.push(newTab);
+      return newTab;
+    }
+  } catch (err) {
+    console.error('Failed to preload tab:', filePath, err);
+  }
+  return null;
+};
+
 const restoreTabState = async () => {
   const storedState = localStorage.getItem(getWorkspaceTabsStorageKey());
   if (!storedState) return;
@@ -539,15 +592,21 @@ const restoreTabState = async () => {
     const payload = JSON.parse(storedState);
     if (!Array.isArray(payload.tabs)) return;
 
-    for (const tab of payload.tabs) {
-      if (tab?.path) await navigateToFileAndLine(tab.path, tab.lineNumber, tab.scrollTop);
-    }
+    // Phase 1: Load all tab data and models in parallel WITHOUT switching the editor
+    const loadPromises = payload.tabs.map(tab => {
+      if (tab?.path) return preloadFileTab(tab.path, tab.lineNumber, tab.scrollTop);
+      return null;
+    });
+    
+    await Promise.all(loadPromises);
 
+    // Phase 2: Set the active tab ONLY ONCE at the end
     if (payload.activeTabPath && openTabs.value.some(tab => tab.path === payload.activeTabPath)) {
+      const activeTab = openTabs.value.find(tab => tab.path === payload.activeTabPath);
       await navigateToFileAndLine(
         payload.activeTabPath,
-        openTabs.value.find(tab => tab.path === payload.activeTabPath)?.lineNumber,
-        openTabs.value.find(tab => tab.path === payload.activeTabPath)?.scrollTop
+        activeTab?.lineNumber,
+        activeTab?.scrollTop
       );
     }
   } catch (err) {
@@ -757,7 +816,34 @@ const handleWindowResize = () => {
   activeEd?.layout();
 };
 
+/**
+ * Silences Monaco Editor's internal 'Canceled' promise rejections.
+ * 
+ * Monaco uses thrown cancellation errors as standard control flow to abort 
+ * stale background worker tasks (e.g., hover, auto-complete, language service) 
+ * when models are switched, updated, or disposed. These are non-fatal, expected 
+ * engine signals rather than actual runtime crashes.
+ */
+const handleUnhandledRejection = (event) => {
+  const reason = event.reason;
+  if (reason) {
+    // Check for Monaco's cancellation errors
+    const isCanceled = 
+      reason.name === 'Canceled' || 
+      reason.message === 'Canceled' || 
+      (typeof reason === 'string' && reason === 'Canceled') ||
+      (reason.message && reason.message.includes('Canceled'));
+
+    if (isCanceled) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+  }
+};
+
 onMounted(() => {
+  window.addEventListener('unhandledrejection', handleUnhandledRejection);
   window.addEventListener('keydown', handleGlobalShortcuts);
   window.addEventListener('resize', handleWindowResize);
   window.navigateToFileAndLine = navigateToFileAndLine;
@@ -843,6 +929,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener('unhandledrejection', handleUnhandledRejection);
   window.removeEventListener('keydown', handleGlobalShortcuts);
   window.removeEventListener('resize', handleWindowResize);
   
