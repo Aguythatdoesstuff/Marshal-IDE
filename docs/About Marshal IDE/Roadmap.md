@@ -7,6 +7,7 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
     - **MIO Support**: Dedicated DSL for Military Industrial Organizations.(https://hoi4.paradoxwikis.com/Military_industrial_organization_modding)
     - **Division Support**: Dedicated DSL for Division modding.(https://hoi4.paradoxwikis.com/Division_modding)
     - **Unit Support**: Dedicated DSL for Unit modding.(https://hoi4.paradoxwikis.com/Unit_modding)
+    - **Equipment Support**: Dedicated DSL for Equipment modding.(https://hoi4.paradoxwikis.com/Equipment_modding)
 
 
 ---
