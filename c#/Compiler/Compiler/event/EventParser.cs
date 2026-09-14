@@ -38,15 +38,30 @@ namespace Compiler
         public List<Option> option = new List<Option>();
     }
     public class EventParser : BaseParser
-    {
-        public EventParser()
-        {
-            Compiler.Logging.Logger.LogComponent("Parser", "EventParser initialized.");
-        }
-        // store the most recently parsed file for other components to use
-        public ParsedEventFile LastParsedFile { get; private set; }
+       {
+           public EventParser()
+           {
+               Compiler.Logging.Logger.LogComponent("Parser", "EventParser initialized.");
+           }
+            // store the most recently parsed file for other components to use
+            public ParsedEventFile LastParsedFile { get; private set; }
 
-        // Receive preprocessed lines from the validator (BaseValidator.PreprocessedLine). Implementation left empty on purpose.
+       /// <summary>
+       /// Helper method to commit the open option to the current event and reset option-related state variables.
+       /// This prevents options from one event from leaking into the next event.
+       /// </summary>
+       private void CommitOptionAndResetState(Event currentEvent, ref bool inOption, ref Option currentOption, ref int optionBaseDepth)
+       {
+           if (inOption && currentOption != null && currentEvent != null)
+           {
+               currentEvent.option.Add(currentOption);
+           }
+           inOption = false;
+           currentOption = null;
+           optionBaseDepth = 0;
+       }
+
+       // Receive preprocessed lines from the validator (BaseValidator.PreprocessedLine). Implementation left empty on purpose.
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
 
@@ -70,6 +85,9 @@ namespace Compiler
                 // Always detect the start of a new event. If another event was open, commit it first.
                 if (pl.TrimmedLine.StartsWith("country event", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Commit any open option before discarding the current event
+                    CommitOptionAndResetState(NewEvent, ref inOption, ref currentOption, ref optionBaseDepth);
+
                     if (NewEvent != null) parsedFile.Events.Add(NewEvent);
                     NewEvent = new Event() { type = EventType.Country };
                     NewEvent.id = pl.TrimmedLine.Substring("country event".Length).Trim();
@@ -78,6 +96,9 @@ namespace Compiler
                 }
                 else if (pl.TrimmedLine.StartsWith("news event", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Commit any open option before discarding the current event
+                    CommitOptionAndResetState(NewEvent, ref inOption, ref currentOption, ref optionBaseDepth);
+
                     if (NewEvent != null) parsedFile.Events.Add(NewEvent);
                     NewEvent = new Event() { type = EventType.News };
                     NewEvent.id = pl.TrimmedLine.Substring("news event".Length).Trim();
@@ -162,11 +183,8 @@ namespace Compiler
                     continue;
                 }
             }
-            // if file ends while still in an option, commit it
-            if (inOption && currentOption != null && NewEvent != null)
-            {
-                NewEvent.option.Add(currentOption);
-            }
+            // if file ends while still in an option, commit it (using the helper for consistency)
+            CommitOptionAndResetState(NewEvent, ref inOption, ref currentOption, ref optionBaseDepth);
 
             // commit last open event
             if (NewEvent != null)

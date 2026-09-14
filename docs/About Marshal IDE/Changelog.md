@@ -2,7 +2,13 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
-## [1.3.0] - ? - UX Update
+## [1.4.0] - 2026-09-12 - Compiler Update
+
+### Fixed
+
+- **Event compiler:** Resolved an off-by-one state leak bug where event options were shifting into subsequent events or duplicating. Added explicit state flushing on event boundaries to ensure open option blocks are committed to their parent event before transitioning to new events or namespaces.
+
+## [1.3.0] - 2026-09-12 - UX Update
 
 ### Added
 - **In-Line "Jump to Error" Navigation:** Error listings in the bottom console are now fully interactive. Clicking a validation error or warning line instantly targets the specific file tab, opens it, and - drops the editor cursor directly onto the offending line for immediate fixing.
@@ -30,6 +36,8 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 - **Importer:** Fixed importer not importing and outputing prevents blocks, require blocks and follow position of blocks for focus trees.
 
 - **fixed focus tree validator:** fixed the focus tree validator from expecting the next line to be +1 afther the syntax "follow position of" wich could lead sometimes to incorrect expectations on the next line.
+
+- **fixed update available modal:** fixed update available modal incorrectly showing whats new modal instead of update available modal (whats new modal only includes whats new on the current installed latest version)
 
 ## [1.2.2] - 2026-07-14
 ### Fixed
