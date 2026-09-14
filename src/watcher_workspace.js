@@ -1,5 +1,4 @@
 // watcher_workspace.js (Child Process)
-// watcher_workspace.js (Child Process)
 import fs from 'fs-extra';
 import * as path from 'path';
 import chokidar from 'chokidar';
@@ -9,15 +8,13 @@ import { handleDeletion, handleRename } from './deletion_handler.js';
 import { SyncEngine } from './sync_engine.js'; 
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 let config; 
 let compilerProcess = null; 
 let outputBaseDir; 
-let trackedGfxFiles = new Set();
 
-// Allowed extensions extracted from previous runtime compilers configuration
 const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds']);
+
 // --- Process Safety ---
 const checkParentAndExit = () => {
     if (!process.connected) process.exit(0);
@@ -27,27 +24,7 @@ setInterval(checkParentAndExit, 2000);
 
 export function logToMain(type, message, source) {
     const normalizedType = type.toLowerCase();
-    const finalSource = source || 'Watcher-Process';
-    if (process.send) {
-        process.send({ type: normalizedType, message, source });
-    } else {
-        const consoleMethod = console[normalizedType] || console.log;
-        consoleMethod(`[${source.toUpperCase()}] - ${message}`);
-    }
-}
-
-// --- GFX Helpers ---
-function cleanEmptyGfxDefinition() {
-    const GFX_DEF_PATH = "interface/marshalIDE_definitions.gfx"; 
-    const finalPath = path.join(config.output_dir, GFX_DEF_PATH);
-    if (fs.existsSync(finalPath)) {
-        fs.writeFileSync(finalPath, "spriteTypes = {\n}", 'utf8');
-        logToMain('info', `🧹 Cleared GFX definitions.`, 'Watcher-Clean');
-    }
-}
-
-function ensureDirectoryExistence(dirPath) {
-    if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+    process.send({ type: normalizedType, message, source });
 }
 
 async function setupWorkspace() {
@@ -101,7 +78,7 @@ async function setupWorkspace() {
         });
 
         compilerProcess.on('close', (code) => {
-            logToMain('warn', `Compiler process exited with code ${code}`, SOURCE);
+            logToMain('error', `Compiler process exited with code ${code}`, SOURCE);
         });
 
         compilerProcess.on('error', (err) => {
@@ -110,7 +87,7 @@ async function setupWorkspace() {
 
         // Safe auto-cleanup when the parent script exits
         process.on('exit', () => {
-            if (compilerProcess) compilerProcess.kill();
+            stopCompilerProcess();
         });
 
     } catch (error) {
@@ -119,27 +96,13 @@ async function setupWorkspace() {
     }
 }
 
-function writeFileWithBomLogic(filePath, content) {
-    const isBOMNeeded = filePath.endsWith('.yml');
-    let contentToWrite = content;
-    if (isBOMNeeded) {
-        contentToWrite = contentToWrite.replace(/^\ufeff+/, '').trimStart().replace(/\u00A0/g, ' ');
-        contentToWrite = '\ufeff' + contentToWrite;
-    }
-    fs.writeFileSync(filePath, contentToWrite, 'utf8');
-}
-
 function triggerCompilation(filePath) {
     const SOURCE = 'Watcher-Compile';
     const ext = path.extname(filePath).toLowerCase();
 
-    // Whitelist and accept only matching valid extension paths 
-    const allowedExts = ['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds'];
-    if (!allowedExts.includes(ext)) return;
+    // Whitelist check
+    if (!ALLOWED_EXTENSIONS.has(ext)) return;
 
-    const normalizedFilePath = filePath.split(path.sep).join(path.posix.sep);
-    if (ext === '.dds') trackedGfxFiles.add(normalizedFilePath);
-    
     try {
         if (compilerProcess && compilerProcess.stdin && compilerProcess.stdin.writable) {
             const absolutePath = path.resolve(filePath);
@@ -175,30 +138,9 @@ async function startWatcher() {
         }
     }
 
-    // IPC listener to handle the frontend recompile command
-    process.on('message', async (packet) => {
-        if (packet && packet.action === 'recompile-all') {
-            logToMain('info', 'Recompile all requested by front-end. Wiping manifest...', SOURCE);
-            try {
-                if (await fs.pathExists(syncEngine.manifestPath)) {
-                    await fs.remove(syncEngine.manifestPath);
-                }
-                const reindexStats = await syncEngine.performInitialSync();
-                if (reindexStats && Array.isArray(reindexStats.changedFiles)) {
-                    logToMain('info', `Forcing full recompilation of all ${reindexStats.changedFiles.length} files...`, SOURCE);
-                    for (const filePath of reindexStats.changedFiles) {
-                        triggerCompilation(filePath);
-                    }
-                }
-            } catch (err) {
-                logToMain('error', `Failed to execute recompile-all: ${err.message}`, SOURCE);
-            }
-        }
-    });
-
     const watcher = chokidar.watch(config.input_dir, {
         persistent: true,
-        ignoreInitial: true, // Prevents chokidar from emitting 'add' events for existing files during discovery
+        ignoreInitial: true, 
         ignored: (p) => {
             const fileName = path.basename(p);
             return fileName.startsWith('.') && fileName !== '.' && fileName !== '..';
@@ -211,8 +153,6 @@ async function startWatcher() {
             syncEngine.addFile(relPath).catch(() => {});
             
             if (lastUnlinkedPath) {
-                const oldNorm = lastUnlinkedPath.split(path.sep).join(path.posix.sep);
-                trackedGfxFiles.delete(oldNorm);
                 handleRename(lastUnlinkedPath, filePath, outputBaseDir);
                 lastUnlinkedPath = null; 
             }
@@ -231,15 +171,6 @@ async function startWatcher() {
 
             setTimeout(() => {
                 if (lastUnlinkedPath === filePath) {
-                    const norm = filePath.split(path.sep).join(path.posix.sep);
-                    if (trackedGfxFiles.has(norm)) {
-                        trackedGfxFiles.delete(norm);
-                        if (trackedGfxFiles.size > 0) {
-                            triggerCompilation(Array.from(trackedGfxFiles)[0]);
-                        } else {
-                            cleanEmptyGfxDefinition();
-                        }
-                    }
                     handleDeletion(filePath, outputBaseDir);
                     lastUnlinkedPath = null;
                 }
@@ -260,19 +191,25 @@ function walkAndCompile(dirPath) {
         }
     }
 }
+function stopCompilerProcess(source = 'Watcher-Lifecycle') {
+    if (!compilerProcess) return;
 
+    try {
+        compilerProcess.kill('SIGTERM');
+    } catch (e) {
+        logToMain('error', `Watcher process failed to SIGTERM compiler process (${e.message}), sending SIGKILL command.`, source);
+        try { 
+            compilerProcess.kill('SIGKILL'); 
+        } catch (err) {
+            logToMain('error', `Failed to SIGKILL compiler process (exiting anyway): ${err.message}`, source);
+        }
+    }
+}
 // --- IPC Directive Router for Main Process Directives ---
 process.on('message', (packet) => {
     if (!packet || typeof packet !== 'object') return;
 
     switch (packet.action) {
-        case 'manual-compile':
-            if (packet.filePath) {
-                logToMain('info', `Received explicit manual compile demand for single-file context: ${path.basename(packet.filePath)}`, 'Watcher-IPC');
-                triggerCompilation(packet.filePath);
-            }
-            break;
-
         case 'manual-recompile-all':
             logToMain('info', 'Received master workspace-wide rebuild instruction. Initiating complete compiler pass...', 'Watcher-IPC');
             
@@ -283,14 +220,8 @@ process.on('message', (packet) => {
             break;
             
         case 'shutdown':
-            logToMain('warn', 'Watcher process received lifecycle shutdown signal from parent app. Terminating persistent compilation sub-server...', 'Watcher-IPC');
-            if (compilerProcess) {
-                try {
-                    compilerProcess.kill('SIGTERM');
-                } catch (e) {
-                    try { compilerProcess.kill('SIGKILL'); } catch(err) {}
-                }
-            }
+            logToMain('info', 'Watcher process received lifecycle shutdown signal from parent app. Terminating persistent compilation process...', 'Watcher-IPC');
+            stopCompilerProcess();
             process.exit(0);
             break;
 
@@ -301,12 +232,8 @@ process.on('message', (packet) => {
 
 // --- Dynamic POSIX OS Termination Interceptors ---
 process.on('SIGTERM', () => {
-    logToMain('warn', 'Watcher Terminating compiler process...', 'Watcher-Lifecycle');
-    if (compilerProcess) {
-        try {
-            compilerProcess.kill('SIGTERM');
-        } catch(e) {}
-    }
+    logToMain('warn', 'Received SIGTERM from unknown source. Watcher terminating compiler process...', 'Watcher-Lifecycle');
+    stopCompilerProcess();
     process.exit(0);
 });
 

@@ -158,8 +158,7 @@
               "RelativeToolTip": "Compiler\\idea\\IdeaValidator.cs",
               "ViewState": "AgIAACAAAAAAAAAAAAAAADIAAAAXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-07-14T09:57:42.108Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-07-14T09:57:42.108Z"
             },
             {
               "$type": "Document",
@@ -171,8 +170,7 @@
               "RelativeToolTip": "Compiler\\BaseFileValidator.cs",
               "ViewState": "AgIAAMQBAAAAAAAAAAD4v9QBAAAyAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-07-14T09:33:13.66Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-07-14T09:33:13.66Z"
             },
             {
               "$type": "Document",
@@ -206,7 +204,7 @@
               "RelativeDocumentMoniker": "Compiler\\focus\\FocusValidator.cs",
               "ToolTip": "C:\\Users\\kjkoc\\Desktop\\Marshal-IDE\\c#\\Compiler\\Compiler\\focus\\FocusValidator.cs",
               "RelativeToolTip": "Compiler\\focus\\FocusValidator.cs",
-              "ViewState": "AgIAAAwAAAAAAAAAAAA9wCEAAAAjAAAAAAAAAA==",
+              "ViewState": "AgIAAA0AAAAAAAAAAAAowCEAAAAjAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-06-15T15:56:41.261Z",
               "EditorCaption": ""
@@ -221,8 +219,7 @@
               "RelativeToolTip": "Compiler\\scriptedGui\\ScriptedGUIValidator.cs",
               "ViewState": "AgIAADMAAAAAAAAAAAAIwDkAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-11T17:19:42.972Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-11T17:19:42.972Z"
             },
             {
               "$type": "Document",
@@ -438,8 +435,7 @@
               "RelativeToolTip": "Compiler\\focus\\FocusParser.cs",
               "ViewState": "AgIAACwBAAAAAAAAAAAAwD0BAACLAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-04T17:07:43.777Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-04T17:07:43.777Z"
             },
             {
               "$type": "Document",
@@ -451,8 +447,7 @@
               "RelativeToolTip": "Compiler\\focus\\FocusCompiler.cs",
               "ViewState": "AgIAADsAAAAAAAAAAAAlwBUAAAAmAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-04T17:57:26.736Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-06-04T17:57:26.736Z"
             }
           ]
         }
