@@ -1,0 +1,193 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+namespace Compiler
+{
+    // Represents a single line's data
+    public class EquipmentLineData
+    {
+        public int LineNumber { get; set; } // The line number in the source file used by the parser for direct lookups
+        public string Id { get; set; } // The validated equipment identifier found on this line
+        public string Misc { get; set; } // Extra syntax/parameters on the line (e.g., availability conditions or extra flags)
+    }
+
+    // The main object passed to the parser
+    public class EquipmentMetadata
+    {
+        public Dictionary<int, EquipmentLineData> Lines { get; set; } = new();
+    }
+
+    public class EquipmentValidator : BaseValidator
+    {
+        protected override BaseParser Parser => new EquipmentParser();
+
+        protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["name"] = new[] { 2, 3 },
+            ["desc"] = new[] { 2, 3 },
+            ["short desc"] = new[] { 2, 3 },
+            ["for units"] = new[] { 1 },
+            ["resources"] = new[] { 2, 3 },
+        };
+
+        protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
+        {
+            // ==========================================
+            // HANDLE TYPE DEFINITIONS (DEPTH 0)
+            // ==========================================
+            if (trimmedLine.StartsWith("define type "))
+            {
+                if (currentDepth != 0)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! ROOT-LEVEL SYNTAX AT NON-ZERO DEPTH: Type definitions must be at depth 0, but found at depth {currentDepth}."
+                    ));
+                }
+
+                string typeId = trimmedLine.Substring("define type ".Length).Trim();
+
+                // Extract the type ID (before any "available from" clause)
+                int availableIndex = typeId.IndexOf(" available ", StringComparison.OrdinalIgnoreCase);
+                if (availableIndex != -1)
+                {
+                    typeId = typeId.Substring(0, availableIndex).Trim();
+                }
+
+                if (!IsValidId(typeId, fileName, lineNumber, ComponentName, DotsAllowed))
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID TYPE ID: '{typeId}' must be a valid identifier."
+                    ));
+                }
+
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+
+            // ==========================================
+            // HANDLE FOR UNITS BLOCKS (DEPTH 1)
+            // ==========================================
+            if (trimmedLine.StartsWith("for units"))
+            {
+                if (currentDepth != 1)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID SYNTAX DEPTH: 'for units' declaration must be at depth 1, but found at depth {currentDepth}."
+                    ));
+                }
+
+                ExpectedDepth = currentDepth;
+                return true;
+            }
+
+            // Validate unit type IDs inside "for units" blocks (depth 2)
+            if (currentDepth == 2)
+            {
+                // If we're at depth 2 and line is just an ID (no special keywords), it's a unit type ID
+                if (!trimmedLine.StartsWith("name ") && !trimmedLine.StartsWith("desc ") &&
+                    !trimmedLine.StartsWith("short desc ") && !trimmedLine.StartsWith("sprite ") &&
+                    !trimmedLine.StartsWith("group_by") && !trimmedLine.StartsWith("interface_category") &&
+                    !trimmedLine.StartsWith("reliability") && !trimmedLine.StartsWith("maximum_speed") &&
+                    !trimmedLine.StartsWith("defense") && !trimmedLine.StartsWith("breakthrough") &&
+                    !trimmedLine.StartsWith("hardness") && !trimmedLine.StartsWith("armor_value") &&
+                    !trimmedLine.StartsWith("soft_attack") && !trimmedLine.StartsWith("hard_attack") &&
+                    !trimmedLine.StartsWith("ap_attack") && !trimmedLine.StartsWith("air_attack") &&
+                    !trimmedLine.StartsWith("lend_lease_cost") && !trimmedLine.StartsWith("build_cost_ic") &&
+                    !trimmedLine.StartsWith("resources") && !trimmedLine.StartsWith("priority") &&
+                    !trimmedLine.StartsWith("visual_level") && !trimmedLine.StartsWith("equipment") &&
+                    !trimmedLine.StartsWith("for ") && !trimmedLine.StartsWith("available ") &&
+                    !trimmedLine.Contains("=") && !string.IsNullOrWhiteSpace(trimmedLine) &&
+                    trimmedLine != "}")
+                {
+                    // This is a unit type ID
+                    if (!IsValidId(trimmedLine, fileName, lineNumber, ComponentName, DotsAllowed))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID UNIT TYPE ID: '{trimmedLine}' must be a valid identifier."
+                        ));
+                    }
+                    return true;
+                }
+            }
+
+            // ==========================================
+            // HANDLE EQUIPMENT DEFINITIONS (DEPTH 2 or 3)
+            // ==========================================
+            if (trimmedLine.StartsWith("equipment "))
+            {
+                if (currentDepth != 2 && currentDepth != 3)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID SYNTAX DEPTH: 'equipment' declarations must be at depth 2 or 3, but found at depth {currentDepth}."
+                    ));
+                }
+
+                string content = trimmedLine.Substring("equipment ".Length).Trim();
+
+                // Extract the equipment ID (before any "available from" clause)
+                int availableIndex = content.IndexOf(" available ", StringComparison.OrdinalIgnoreCase);
+                string equipmentId = availableIndex != -1
+                    ? content.Substring(0, availableIndex).Trim()
+                    : content.Trim();
+
+                if (!IsValidId(equipmentId, fileName, lineNumber, ComponentName, DotsAllowed))
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID EQUIPMENT ID: '{equipmentId}' must be a valid identifier."
+                    ));
+                }
+
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+
+            // ==========================================
+            // HANDLE LOCALIZED NAME/DESC (DEPTH 2 or 3)
+            // ==========================================
+            if (trimmedLine.StartsWith("name for ") || trimmedLine.StartsWith("desc for ") || trimmedLine.StartsWith("short desc for "))
+            {
+                string prefix = "";
+                if (trimmedLine.StartsWith("name for "))
+                    prefix = "name for ";
+                else if (trimmedLine.StartsWith("desc for "))
+                    prefix = "desc for ";
+                else if (trimmedLine.StartsWith("short desc for "))
+                    prefix = "short desc for ";
+
+                string content = trimmedLine.Substring(prefix.Length).Trim();
+
+                // Extract country tag (should be first token after "for")
+                int spaceIndex = content.IndexOf(' ');
+                if (spaceIndex != -1)
+                {
+                    string countryTag = content.Substring(0, spaceIndex).Trim();
+                    if (!IsValidCountryId(countryTag))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID COUNTRY TAG: '{countryTag}' must be exactly 3 alphanumeric characters long."
+                        ));
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+    }
+}

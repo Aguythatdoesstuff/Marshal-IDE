@@ -1,0 +1,91 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Compiler
+{
+    public class ParsedEquipmentFile
+    {
+        public string SourceFileName { get; set; } = string.Empty;
+        public EquipmentMetadata Metadata { get; set; } = new EquipmentMetadata();
+    }
+
+    public class EquipmentParser : BaseParser
+    {
+        public EquipmentParser()
+        {
+            Compiler.Logging.Logger.LogComponent("Parser", "EquipmentParser initialized.");
+        }
+
+        // Store the most recently parsed file for other components to use
+        public ParsedEquipmentFile LastParsedFile { get; private set; }
+
+        public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
+        {
+            try
+            {
+                var metadata = new EquipmentMetadata();
+
+                foreach (var line in preprocessedLines)
+                {
+                    string trimmed = line.TrimmedLine.Trim();
+
+                    // Skip empty lines and closing braces
+                    if (string.IsNullOrWhiteSpace(trimmed) || trimmed == "}")
+                        continue;
+
+                    // Parse "define type" declarations
+                    if (trimmed.StartsWith("define type "))
+                    {
+                        string content = trimmed.Substring("define type ".Length).Trim();
+                        int availableIndex = content.IndexOf(" available ", StringComparison.OrdinalIgnoreCase);
+                        string typeId = availableIndex != -1
+                            ? content.Substring(0, availableIndex).Trim()
+                            : content.Trim();
+
+                        metadata.Lines[line.LineNumber] = new EquipmentLineData
+                        {
+                            LineNumber = line.LineNumber,
+                            Id = typeId,
+                            Misc = availableIndex != -1
+                                ? content.Substring(availableIndex).Trim()
+                                : string.Empty
+                        };
+                    }
+
+                    // Parse "equipment" declarations
+                    else if (trimmed.StartsWith("equipment "))
+                    {
+                        string content = trimmed.Substring("equipment ".Length).Trim();
+                        int availableIndex = content.IndexOf(" available ", StringComparison.OrdinalIgnoreCase);
+                        string equipmentId = availableIndex != -1
+                            ? content.Substring(0, availableIndex).Trim()
+                            : content.Trim();
+
+                        metadata.Lines[line.LineNumber] = new EquipmentLineData
+                        {
+                            LineNumber = line.LineNumber,
+                            Id = equipmentId,
+                            Misc = availableIndex != -1
+                                ? content.Substring(availableIndex).Trim()
+                                : string.Empty
+                        };
+                    }
+                }
+
+                LastParsedFile = new ParsedEquipmentFile
+                {
+                    SourceFileName = fileName,
+                    Metadata = metadata
+                };
+
+                Compiler.Logging.Logger.LogComponent("Parser", $"Equipment file parsed: {fileName}, {metadata.Lines.Count} definitions found.");
+            }
+            catch (Exception ex)
+            {
+                Errors.Add(new ParsingError(fileName, 0, $"ERROR! PARSER EXCEPTION: {ex.Message}"));
+                Compiler.Logging.Logger.LogComponent("Parser", $"Equipment parsing error: {ex}");
+            }
+        }
+    }
+}

@@ -1,0 +1,365 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+namespace Compiler
+{
+    // Represents a single line's data
+    public class EquipmentLineData
+    {
+        public int LineNumber { get; set; }
+        public string Id { get; set; }
+        public string Misc { get; set; }
+        public List<string> MiscList { get; set; } = new();
+    }
+
+    // The main object passed to the parser
+    public class EquipmentMetadata
+    {
+        public Dictionary<int, EquipmentLineData> Lines { get; set; } = new();
+    }
+
+    public class EquipmentValidator : BaseValidator
+    {
+        public EquipmentMetadata Metadata { get; private set; } = new EquipmentMetadata();
+
+        /// Check if the current line is inside a for units block by scanning upward
+        /// to find a parent line at currentDepth - 1 that starts with "for units".
+        private bool IsInsideForUnitsBlock(int lineNumber, int currentDepth)
+        {
+            if (FileLines == null || currentDepth < 2)
+                return false;
+
+            int targetDepth = currentDepth - 1;
+
+            // Walk backward from current line to find a parent at targetDepth
+            for (int i = lineNumber - 2; i >= 0; i--)
+            {
+                string line = FileLines[i] ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                int depth = GetDepthAt(i);
+
+                if (depth < targetDepth)
+                {
+                    // Passed the target depth without finding a parent
+                    return false;
+                }
+
+                if (depth == targetDepth)
+                {
+                    string trimmed = line.Trim();
+                    return trimmed.StartsWith("for units");
+                }
+            }
+
+            return false;
+        }
+
+        /// Find the header line number of the enclosing for units block.
+        /// Returns the line number if found, or -1 if not found.
+        private int FindForUnitsBlockHeaderLine(int lineNumber, int currentDepth)
+        {
+            if (FileLines == null || currentDepth < 2)
+                return -1;
+
+            int targetDepth = currentDepth - 1;
+
+            // Walk backward from current line to find the header at targetDepth
+            for (int i = lineNumber - 2; i >= 0; i--)
+            {
+                string line = FileLines[i] ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                int depth = GetDepthAt(i);
+
+                if (depth < targetDepth)
+                {
+                    // Passed the target depth without finding a header
+                    return -1;
+                }
+
+                if (depth == targetDepth)
+                {
+                    string trimmed = line.Trim();
+                    if (trimmed.StartsWith("for units"))
+                    {
+                        return i + 1; // Line numbers are 1-based in Metadata
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
+        {
+            // ==========================================
+            // HANDLE TYPE DEFINITIONS (DEPTH 0)
+            // ==========================================
+            if (trimmedLine.StartsWith("define type "))
+            {
+                if (currentDepth != 0)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! ROOT-LEVEL SYNTAX AT NON-ZERO DEPTH: Type definitions must be at depth 0, but found at depth {currentDepth}."
+                    ));
+                }
+
+                string content = trimmedLine.Substring("define type ".Length).Trim();
+                int availableFromIndex = content.IndexOf(" available from ", StringComparison.OrdinalIgnoreCase);
+
+                if (availableFromIndex == -1)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! MISSING REQUIRED YEAR: 'available from <year>' is mandatory for type definitions."
+                    ));
+                }
+                else
+                {
+                    string typeId = content.Substring(0, availableFromIndex).Trim();
+                    string yearValue = content.Substring(availableFromIndex + " available from ".Length).Trim();
+
+                    if (!IsValidId(typeId, fileName, lineNumber, ComponentName, DotsAllowed))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID TYPE ID: '{typeId}' must be a valid identifier."
+                        ));
+                    }
+                    else if (!int.TryParse(yearValue, out _))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID YEAR VALUE: '{yearValue}' must be a valid integer."
+                        ));
+                    }
+                    else
+                    {
+                        Metadata.Lines[lineNumber] = new EquipmentLineData
+                        {
+                            LineNumber = lineNumber,
+                            Id = typeId,
+                            Misc = yearValue
+                        };
+                    }
+                }
+
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+
+            // ==========================================
+            // HANDLE SPRITE (DEPTH 1+)
+            // ==========================================
+            if (trimmedLine.StartsWith("sprite "))
+            {
+                string content = trimmedLine.Substring("sprite ".Length).Trim();
+
+                if (content.StartsWith("\"") && content.EndsWith("\""))
+                {
+                    string inner = content.Substring(1, content.Length - 2);
+                    if (!IsValidGfxName(inner, false, fileName, lineNumber, ComponentName))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID SPRITE NAME: '{inner}' must be a valid GFX name."
+                        ));
+                    }
+                    else
+                    {
+                        Metadata.Lines[lineNumber] = new EquipmentLineData
+                        {
+                            LineNumber = lineNumber,
+                            Id = inner,
+                            Misc = string.Empty
+                        };
+                    }
+                }
+
+                return true;
+            }
+
+            // ==========================================
+            // HANDLE FOR UNITS BLOCKS (DEPTH 1)
+            // ==========================================
+            if (trimmedLine.StartsWith("for units"))
+            {
+                if (currentDepth != 1)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID SYNTAX DEPTH: 'for units' declaration must be at depth 1, but found at depth {currentDepth}."
+                    ));
+                }
+
+                // Check for inline syntax: "for units <id>"
+                string content = trimmedLine.Substring("for units".Length).Trim();
+                string inlineId = null;
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    if (IsValidId(content, fileName, lineNumber, ComponentName, DotsAllowed))
+                    {
+                        inlineId = content;
+                    }
+                }
+
+                // Create metadata entry for the header line
+                Metadata.Lines[lineNumber] = new EquipmentLineData
+                {
+                    LineNumber = lineNumber,
+                    Id = inlineId ?? string.Empty,
+                    Misc = string.Empty,
+                    MiscList = new List<string>()
+                };
+
+                if (inlineId != null)
+                {
+                    Metadata.Lines[lineNumber].MiscList.Add(inlineId);
+                }
+
+                ExpectedDepth = currentDepth;
+                return true;
+            }
+
+            // Validate unit type IDs inside "for units" blocks
+            if (IsInsideForUnitsBlock(lineNumber, currentDepth) && !trimmedLine.StartsWith("equipment ") && 
+                !string.IsNullOrWhiteSpace(trimmedLine) && trimmedLine != "}")
+            {
+                if (IsValidId(trimmedLine, fileName, lineNumber, ComponentName, DotsAllowed))
+                {
+                    // Create the child's own metadata entry
+                    Metadata.Lines[lineNumber] = new EquipmentLineData
+                    {
+                        LineNumber = lineNumber,
+                        Id = trimmedLine,
+                        Misc = string.Empty
+                    };
+
+                    // Find parent header and add to its MiscList
+                    int headerLineNumber = FindForUnitsBlockHeaderLine(lineNumber, currentDepth);
+                    if (headerLineNumber != -1 && Metadata.Lines.ContainsKey(headerLineNumber))
+                    {
+                        Metadata.Lines[headerLineNumber].MiscList.Add(trimmedLine);
+                    }
+
+                    return true;
+                }
+            }
+
+            // ==========================================
+            // HANDLE LOCALIZED NAME/DESC (DEPTH 2+)
+            // ==========================================
+            if (trimmedLine.StartsWith("name for ") || trimmedLine.StartsWith("desc for ") || trimmedLine.StartsWith("short desc for "))
+            {
+                string prefix = "";
+                if (trimmedLine.StartsWith("name for "))
+                    prefix = "name for ";
+                else if (trimmedLine.StartsWith("desc for "))
+                    prefix = "desc for ";
+                else if (trimmedLine.StartsWith("short desc for "))
+                    prefix = "short desc for ";
+
+                string content = trimmedLine.Substring(prefix.Length).Trim();
+                int spaceIndex = content.IndexOf(' ');
+                if (spaceIndex != -1)
+                {
+                    string countryTag = content.Substring(0, spaceIndex).Trim();
+                    if (!IsValidCountryId(countryTag))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID COUNTRY TAG: '{countryTag}' must be exactly 3 alphanumeric characters long."
+                        ));
+                    }
+                    else
+                    {
+                        Metadata.Lines[lineNumber] = new EquipmentLineData
+                        {
+                            LineNumber = lineNumber,
+                            Id = countryTag,
+                            Misc = string.Empty
+                        };
+                    }
+                }
+
+                return true;
+            }
+
+            // ==========================================
+            // HANDLE EQUIPMENT DEFINITIONS (DEPTH 2+)
+            // ==========================================
+            if (trimmedLine.StartsWith("equipment "))
+            {
+                if (currentDepth < 2)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID SYNTAX DEPTH: 'equipment' declarations must be at depth 2 or deeper, but found at depth {currentDepth}."
+                    ));
+                }
+
+                string content = trimmedLine.Substring("equipment ".Length).Trim();
+                int availableFromIndex = content.IndexOf(" available from ", StringComparison.OrdinalIgnoreCase);
+
+                if (availableFromIndex == -1)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! MISSING REQUIRED YEAR: 'available from <year>' is mandatory for equipment definitions."
+                    ));
+                }
+                else
+                {
+                    string equipmentId = content.Substring(0, availableFromIndex).Trim();
+                    string yearValue = content.Substring(availableFromIndex + " available from ".Length).Trim();
+
+                    if (!IsValidId(equipmentId, fileName, lineNumber, ComponentName, DotsAllowed))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID EQUIPMENT ID: '{equipmentId}' must be a valid identifier."
+                        ));
+                    }
+                    else if (!int.TryParse(yearValue, out _))
+                    {
+                        Errors.Add(new ValidationError(
+                            fileName,
+                            lineNumber,
+                            $"ERROR! INVALID YEAR VALUE: '{yearValue}' must be a valid integer."
+                        ));
+                    }
+                    else
+                    {
+                        Metadata.Lines[lineNumber] = new EquipmentLineData
+                        {
+                            LineNumber = lineNumber,
+                            Id = equipmentId,
+                            Misc = yearValue
+                        };
+                    }
+                }
+
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+
+            return false;
+        }
+    }
+}

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -813,7 +813,7 @@ namespace Compiler
             // Allow both ASCII and Unicode letters for IDs. Optionally allow dots
             // as a separator character when dotsAllowed is true. We still warn above
             // for non-ASCII characters but accept them in the pattern so identifiers
-            // containing characters like '�' validate (with a warning).
+            // containing characters like 'Ü' validate (with a warning).
             var pattern = dotsAllowed ? "^[\\p{L}0-9_\\.]+$" : "^[\\p{L}0-9_]+$";
             return Regex.IsMatch(s, pattern);
         }

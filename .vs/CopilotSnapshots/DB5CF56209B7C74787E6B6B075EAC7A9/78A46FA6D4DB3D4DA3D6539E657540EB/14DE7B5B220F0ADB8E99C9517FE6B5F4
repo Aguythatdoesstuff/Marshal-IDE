@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -813,7 +813,7 @@ namespace Compiler
             // Allow both ASCII and Unicode letters for IDs. Optionally allow dots
             // as a separator character when dotsAllowed is true. We still warn above
             // for non-ASCII characters but accept them in the pattern so identifiers
-            // containing characters like '�' validate (with a warning).
+            // containing characters like 'Ü' validate (with a warning).
             var pattern = dotsAllowed ? "^[\\p{L}0-9_\\.]+$" : "^[\\p{L}0-9_]+$";
             return Regex.IsMatch(s, pattern);
         }
@@ -875,81 +875,6 @@ namespace Compiler
                 }
             }
             return result.ToString().Trim();
-        }
-
-        /// <summary>
-        /// Check if the current line is inside a block where the parent at currentDepth - 1
-        /// starts with the specified blockPrefix.
-        /// </summary>
-        protected bool IsInsideBlock(int lineNumber, int currentDepth, string blockPrefix)
-        {
-            if (FileLines == null || currentDepth < 2)
-                return false;
-
-            int targetDepth = currentDepth - 1;
-
-            // Walk backward from current line to find a parent at targetDepth
-            for (int i = lineNumber - 2; i >= 0; i--)
-            {
-                string line = FileLines[i] ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                int depth = GetDepthAt(i);
-
-                if (depth < targetDepth)
-                {
-                    // Passed the target depth without finding a parent
-                    return false;
-                }
-
-                if (depth == targetDepth)
-                {
-                    string trimmed = line.Trim();
-                    return trimmed.StartsWith(blockPrefix);
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Find the header line number of the enclosing block where the parent at currentDepth - 1
-        /// starts with the specified blockPrefix. Returns the line number (1-based) if found, or -1 if not.
-        /// </summary>
-        protected int FindBlockHeaderLine(int lineNumber, int currentDepth, string blockPrefix)
-        {
-            if (FileLines == null || currentDepth < 2)
-                return -1;
-
-            int targetDepth = currentDepth - 1;
-
-            // Walk backward from current line to find the header at targetDepth
-            for (int i = lineNumber - 2; i >= 0; i--)
-            {
-                string line = FileLines[i] ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                int depth = GetDepthAt(i);
-
-                if (depth < targetDepth)
-                {
-                    // Passed the target depth without finding a header
-                    return -1;
-                }
-
-                if (depth == targetDepth)
-                {
-                    string trimmed = line.Trim();
-                    if (trimmed.StartsWith(blockPrefix))
-                    {
-                        return i + 1; // Line numbers are 1-based in metadata
-                    }
-                }
-            }
-
-            return -1;
         }
     }
 }
