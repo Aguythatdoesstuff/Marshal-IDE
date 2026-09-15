@@ -1,3 +1,6 @@
+# ==========================================
+# Root Node / General / Main project
+# ==========================================
 # Dependencies
 node_modules/
 
@@ -9,3 +12,114 @@ build/vite/
 # Local environment files
 .env
 .DS_Store
+
+
+# ==========================================
+# VS Code
+# ==========================================
+.vscode/
+*.code-workspace
+
+
+
+# ==========================================
+# C# / Visual Studio (Applies recursively to all subfolders)
+# ==========================================
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options directory
+.vs/
+Generated\ Files/
+
+# MSTest / NUnit
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# Files built by Visual Studio / .NET Core
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Visual C++ & Cache files
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+
+# Profiler & Tools
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+coverage*.json
+coverage*.xml
+*.coverage
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# Miscellaneous Cache & Temps
+*.[Cc]ache
+!?*.[Cc]ache/
+~$*
+*~
+*.binlog
