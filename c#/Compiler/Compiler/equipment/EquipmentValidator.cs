@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text.RegularExpressions;
 
 namespace Compiler
@@ -21,6 +22,8 @@ namespace Compiler
 
     public class EquipmentValidator : BaseValidator
     {
+        protected override BaseParser Parser => new EquipmentParser();
+
         public EquipmentMetadata Metadata { get; private set; } = new EquipmentMetadata();
 
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
@@ -28,7 +31,7 @@ namespace Compiler
             // ==========================================
             // HANDLE TYPE DEFINITIONS (DEPTH 0)
             // ==========================================
-            if (trimmedLine.StartsWith("define type "))
+            if (trimmedLine.StartsWith("define type ", StringComparison.OrdinalIgnoreCase))
             {
                 if (currentDepth != 0)
                 {
@@ -89,7 +92,7 @@ namespace Compiler
             // ==========================================
             // HANDLE SPRITE (DEPTH 1+)
             // ==========================================
-            if (trimmedLine.StartsWith("sprite "))
+            if (trimmedLine.StartsWith("sprite ", StringComparison.OrdinalIgnoreCase))
             {
                 string content = trimmedLine.Substring("sprite ".Length).Trim();
 
@@ -121,7 +124,7 @@ namespace Compiler
             // ==========================================
             // HANDLE FOR UNITS BLOCKS (DEPTH 1)
             // ==========================================
-            if (trimmedLine.StartsWith("for units"))
+            if (trimmedLine.StartsWith("for units", StringComparison.OrdinalIgnoreCase))
             {
                 if (currentDepth != 1)
                 {
@@ -158,13 +161,12 @@ namespace Compiler
                     Metadata.Lines[lineNumber].MiscList.Add(inlineId);
                 }
 
-                ExpectedDepth = currentDepth;
+                ExpectedDepth = currentDepth + 1;
                 return true;
             }
 
             // Validate unit type IDs inside "for units" blocks
-            if (IsInsideBlock(lineNumber, currentDepth, "for units") && !trimmedLine.StartsWith("equipment ") && 
-                !string.IsNullOrWhiteSpace(trimmedLine) && trimmedLine != "}")
+            if (IsInsideBlock(lineNumber, currentDepth, "for units") && !trimmedLine.StartsWith("equipment ", StringComparison.OrdinalIgnoreCase))
             {
                 if (IsValidId(trimmedLine, fileName, lineNumber, ComponentName, DotsAllowed))
                 {
@@ -185,19 +187,27 @@ namespace Compiler
 
                     return true;
                 }
+                else
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID UNIT TYPE ID: '{trimmedLine}' must be a valid identifier."
+                    ));
+                }
             }
 
             // ==========================================
             // HANDLE LOCALIZED NAME/DESC (DEPTH 2+)
             // ==========================================
-            if (trimmedLine.StartsWith("name for ") || trimmedLine.StartsWith("desc for ") || trimmedLine.StartsWith("short desc for "))
+            if (trimmedLine.StartsWith("name for ", StringComparison.OrdinalIgnoreCase) || trimmedLine.StartsWith("desc for ", StringComparison.OrdinalIgnoreCase) || trimmedLine.StartsWith("short desc for ", StringComparison.OrdinalIgnoreCase))
             {
                 string prefix = "";
-                if (trimmedLine.StartsWith("name for "))
+                if (trimmedLine.StartsWith("name for ", StringComparison.OrdinalIgnoreCase))
                     prefix = "name for ";
-                else if (trimmedLine.StartsWith("desc for "))
+                else if (trimmedLine.StartsWith("desc for ", StringComparison.OrdinalIgnoreCase))
                     prefix = "desc for ";
-                else if (trimmedLine.StartsWith("short desc for "))
+                else if (trimmedLine.StartsWith("short desc for ", StringComparison.OrdinalIgnoreCase))
                     prefix = "short desc for ";
 
                 string content = trimmedLine.Substring(prefix.Length).Trim();
@@ -205,7 +215,7 @@ namespace Compiler
                 if (spaceIndex != -1)
                 {
                     string countryTag = content.Substring(0, spaceIndex).Trim();
-                    if (!IsValidCountryId(countryTag))
+                    if (!IsValidCountryId(countryTag, fileName, lineNumber, "Equipment validator"))
                     {
                         Errors.Add(new ValidationError(
                             fileName,
@@ -230,7 +240,7 @@ namespace Compiler
             // ==========================================
             // HANDLE EQUIPMENT DEFINITIONS (DEPTH 2+)
             // ==========================================
-            if (trimmedLine.StartsWith("equipment "))
+            if (trimmedLine.StartsWith("equipment ", StringComparison.OrdinalIgnoreCase))
             {
                 if (currentDepth < 2)
                 {

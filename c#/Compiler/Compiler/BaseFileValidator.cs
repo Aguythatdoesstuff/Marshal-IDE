@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -818,12 +819,11 @@ namespace Compiler
             return Regex.IsMatch(s, pattern);
         }
 
-        protected bool IsValidEventId(string s, string fileName = null, int lineNumber = 0, string component = null)
+        protected bool IsValidEventId(string s, string fileName, int lineNumber, string component)
         {
-            component ??= "Validator";
             if (string.IsNullOrEmpty(s)) return false;
 
-            // Warn on non-ASCII inside event id
+            // Warn on non-ASCII characters
             bool asciiOk = true;
             foreach (char c in s)
             {
@@ -839,8 +839,21 @@ namespace Compiler
         }
 
         // Validates country tag rules: exactly 3 characters, alphanumeric only
-        protected static bool IsValidCountryId(string s)
+        protected bool IsValidCountryId(string s, string fileName, int lineNumber, string component)
         {
+            if (string.IsNullOrEmpty(s)) return false;
+
+            // Warn on non-ASCII characters
+            bool asciiOk = true;
+            foreach (char c in s)
+            {
+                if (c > 127) { asciiOk = false; break; }
+            }
+            if (!asciiOk)
+            {
+                Warnings.Add(new ValidationWarning(fileName, lineNumber, $"NON-ASCII CHARACTERS DETECTED: '{s}' contains non-ASCII characters which may cause unexpected engine behavior."));
+            }
+
             return Regex.IsMatch(s, "^[a-zA-Z0-9]{3}$");
         }
 
@@ -877,10 +890,8 @@ namespace Compiler
             return result.ToString().Trim();
         }
 
-        /// <summary>
         /// Check if the current line is inside a block where the parent at currentDepth - 1
         /// starts with the specified blockPrefix.
-        /// </summary>
         protected bool IsInsideBlock(int lineNumber, int currentDepth, string blockPrefix)
         {
             if (FileLines == null || currentDepth < 2)
@@ -906,17 +917,15 @@ namespace Compiler
                 if (depth == targetDepth)
                 {
                     string trimmed = line.Trim();
-                    return trimmed.StartsWith(blockPrefix);
+                    return trimmed.StartsWith(blockPrefix, StringComparison.OrdinalIgnoreCase);
                 }
             }
 
             return false;
         }
 
-        /// <summary>
         /// Find the header line number of the enclosing block where the parent at currentDepth - 1
         /// starts with the specified blockPrefix. Returns the line number (1-based) if found, or -1 if not.
-        /// </summary>
         protected int FindBlockHeaderLine(int lineNumber, int currentDepth, string blockPrefix)
         {
             if (FileLines == null || currentDepth < 2)

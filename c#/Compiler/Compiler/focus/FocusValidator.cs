@@ -100,7 +100,7 @@ namespace Compiler
                             ));
                         }
 
-                        if (!IsValidCountryId(countryTag))
+                        if (!IsValidCountryId(countryTag, fileName, lineNumber, "Focus validator"))
                         {
                             Errors.Add(new ValidationError(
                                 fileName,
