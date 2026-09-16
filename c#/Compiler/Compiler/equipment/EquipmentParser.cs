@@ -69,6 +69,10 @@ namespace Compiler
             var equipmentByDepth = new Dictionary<int, Equipment>();
             Archetype currentArchetype = null;
 
+            // Track if we are currently reading unit IDs under a "for units" block
+            bool insideForUnitsBlock = false;
+            int forUnitsDepth = -1;
+
             for (int i = 0; i < preprocessedLines.Count; i++)
             {
                 var pl = preprocessedLines[i];
@@ -85,6 +89,7 @@ namespace Compiler
                 // Detect headers at root (depth 0)
                 if (pl.Depth == 0)
                 {
+                    insideForUnitsBlock = false;
                     if (pl.TrimmedLine.StartsWith("define type ", StringComparison.OrdinalIgnoreCase))
                     {
                         // Look up the metadata for this line using the line number
@@ -117,9 +122,56 @@ namespace Compiler
                     continue;
                 }
 
+                // ==========================================
+                // 1. FOR UNITS BLOCK HANDLING
+                // ==========================================
+                if (pl.TrimmedLine.StartsWith("for units", StringComparison.OrdinalIgnoreCase))
+                {
+                    insideForUnitsBlock = true;
+                    forUnitsDepth = pl.Depth;
+
+                    if (Metadata.Lines.TryGetValue(pl.LineNumber, out var lineData) && lineData.MiscList.Count > 0)
+                    {
+                        foreach (var uId in lineData.MiscList)
+                        {
+                            if (!currentArchetype.ForUnits.Contains(uId))
+                            {
+                                currentArchetype.ForUnits.Add(uId);
+                            }
+                        }
+                    }
+                    continue;
+                }
+
+                if (insideForUnitsBlock && pl.Depth <= forUnitsDepth)
+                {
+                    insideForUnitsBlock = false;
+                }
+
+                if (insideForUnitsBlock && pl.Depth > forUnitsDepth && !pl.TrimmedLine.StartsWith("equipment ", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (Metadata.Lines.TryGetValue(pl.LineNumber, out var lineData) && !string.IsNullOrEmpty(lineData.Id))
+                    {
+                        if (!currentArchetype.ForUnits.Contains(lineData.Id))
+                        {
+                            currentArchetype.ForUnits.Add(lineData.Id);
+                        }
+                    }
+                    else
+                    {
+                        string unitId = pl.TrimmedLine.Split(' ')[0].Trim();
+                        if (!string.IsNullOrEmpty(unitId) && !currentArchetype.ForUnits.Contains(unitId))
+                        {
+                            currentArchetype.ForUnits.Add(unitId);
+                        }
+                    }
+                    continue;
+                }
+
                 // Handle nested equipment definitions
                 if (pl.TrimmedLine.StartsWith("equipment ", StringComparison.OrdinalIgnoreCase))
                 {
+                    insideForUnitsBlock = false;
                     // Look up the metadata for this line using the line number
                     if (Metadata.Lines.TryGetValue(pl.LineNumber, out var lineData))
                     {
@@ -317,30 +369,16 @@ namespace Compiler
                 }
 
                 // Unrecognized content: save as raw line
-                // If depth 1: save to archetype
-                // If depth >= 2: must have a parent equipment, otherwise error
                 var rawLine = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
 
-                if (pl.Depth == 1)
+                int parentEquipmentDepth = equipmentByDepth.Keys.Where(k => k < pl.Depth).DefaultIfEmpty(-1).Max();
+                if (parentEquipmentDepth != -1 && equipmentByDepth.TryGetValue(parentEquipmentDepth, out var parentEquipment))
+                {
+                    parentEquipment.RawLines.Add(rawLine);
+                }
+                else
                 {
                     currentArchetype.RawLines.Add(rawLine);
-                }
-                else if (pl.Depth >= 2)
-                {
-                    int shallowerDepth = equipmentByDepth.Keys.Where(k => k < pl.Depth).DefaultIfEmpty(-1).Max();
-                    if (shallowerDepth != -1 && equipmentByDepth.TryGetValue(shallowerDepth, out var equipment))
-                    {
-                        equipment.RawLines.Add(rawLine);
-                    }
-                    else
-                    {
-                        // No parent equipment found at higher depth - this is an error
-                        Errors.Add(new ParsingError(
-                            fileName,
-                            pl.LineNumber,
-                            $"Content at depth {pl.Depth} found without a parent 'equipment' definition at shallower depth."
-                        ));
-                    }
                 }
             }
 
