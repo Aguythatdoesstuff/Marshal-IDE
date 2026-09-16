@@ -906,7 +906,7 @@ namespace Compiler
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
 
-                int depth = GetDepthAt(i);
+                int depth = GetLeadingSpaceCount(line) / 4;
 
                 if (depth < targetDepth)
                 {
@@ -940,7 +940,7 @@ namespace Compiler
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
 
-                int depth = GetDepthAt(i);
+                int depth = GetLeadingSpaceCount(line) / 4;
 
                 if (depth < targetDepth)
                 {

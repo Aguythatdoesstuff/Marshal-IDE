@@ -13,7 +13,7 @@ let config;
 let compilerProcess = null; 
 let outputBaseDir; 
 
-const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds', 'equipment']);
+const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds', '.equipment']);
 
 // --- Process Safety ---
 const checkParentAndExit = () => {
@@ -104,13 +104,11 @@ function triggerCompilation(filePath) {
     if (!ALLOWED_EXTENSIONS.has(ext)) return;
 
     try {
-        if (compilerProcess && compilerProcess.stdin && compilerProcess.stdin.writable) {
+                if (compilerProcess && compilerProcess.stdin && compilerProcess.stdin.writable) {
             const absolutePath = path.resolve(filePath);
-            if (compilerProcess && compilerProcess.stdin && compilerProcess.stdin.writable) {
-                const safeJsonPath = JSON.stringify(filePath);
-                
-                compilerProcess.stdin.write(`${safeJsonPath}\n`); 
-            }
+            const safeJsonPath = JSON.stringify(absolutePath);
+            
+            compilerProcess.stdin.write(`${safeJsonPath}\n`); 
             logToMain('info', `Sent absolute path to persistent compiler: ${absolutePath}`, SOURCE);
         } else {
             logToMain('error', `Compiler process is not running or stdin is unavailable.`, SOURCE);

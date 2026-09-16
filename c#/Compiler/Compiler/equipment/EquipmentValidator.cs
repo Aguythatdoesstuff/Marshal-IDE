@@ -38,6 +38,12 @@ namespace Compiler
 
         public EquipmentMetadata Metadata { get; private set; } = new EquipmentMetadata();
 
+        protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["define type"] = new[] { 1 },
+            ["for units"] = new[] { 1 },
+        };
+
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
             // ==========================================
@@ -97,7 +103,7 @@ namespace Compiler
                     }
                 }
 
-                ExpectedDepth = currentDepth + 1;
+                ExpectedDepth = currentDepth;
                 return true;
             }
 
@@ -197,6 +203,7 @@ namespace Compiler
                         Metadata.Lines[headerLineNumber].MiscList.Add(trimmedLine);
                     }
 
+                    ExpectedDepth = currentDepth;
                     return true;
                 }
                 else
@@ -206,6 +213,8 @@ namespace Compiler
                         lineNumber,
                         $"ERROR! INVALID UNIT TYPE ID: '{trimmedLine}' must be a valid identifier."
                     ));
+                    ExpectedDepth = currentDepth;
+                    return true;
                 }
             }
 
@@ -246,6 +255,20 @@ namespace Compiler
                     }
                 }
 
+                ExpectedDepth = currentDepth;
+                return true;
+            }
+
+            // ==========================================
+            // HANDLE SIMPLE NAME/DESC/SHORT DESC (DEPTH 2+)
+            // ==========================================
+            if (trimmedLine.StartsWith("name ", StringComparison.OrdinalIgnoreCase) || 
+                trimmedLine.StartsWith("desc ", StringComparison.OrdinalIgnoreCase) || 
+                trimmedLine.StartsWith("short desc ", StringComparison.OrdinalIgnoreCase))
+            {
+                // These are simple property assignments that pass through
+                // They should not open blocks, so ExpectedDepth stays the same
+                ExpectedDepth = currentDepth;
                 return true;
             }
 
@@ -254,12 +277,12 @@ namespace Compiler
             // ==========================================
             if (trimmedLine.StartsWith("equipment ", StringComparison.OrdinalIgnoreCase))
             {
-                if (currentDepth < 2)
+                if (currentDepth < 1)
                 {
                     Errors.Add(new ValidationError(
                         fileName,
                         lineNumber,
-                        $"ERROR! INVALID SYNTAX DEPTH: 'equipment' declarations must be at depth 2 or deeper, but found at depth {currentDepth}."
+                        $"ERROR! INVALID SYNTAX DEPTH: 'equipment' declarations must be at depth 1 or deeper, but found at depth {currentDepth}."
                     ));
                 }
 

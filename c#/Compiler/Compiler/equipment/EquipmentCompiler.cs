@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using static Compiler.EquipmentParser;
 
-namespace Compiler.script
+namespace Compiler
 {
     public class EquipmentCompiler : BaseCompiler
     {

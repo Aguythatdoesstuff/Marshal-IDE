@@ -14,6 +14,7 @@ namespace Compiler
         private static readonly string[] SupportedExtensions = new[]
         {
             ".decision",
+            ".equipment",
             ".event",
             ".focus",
             ".idea",
@@ -123,6 +124,9 @@ namespace Compiler
                 case ".decision":
                     validator = new DecisionValidator();
                     break;
+                case ".equipment":
+                    validator = new EquipmentValidator();
+                    break;
                 case ".event":
                     validator = new EventValidator();
                     break;
@@ -218,6 +222,9 @@ namespace Compiler
                 case ".decision":
                     compiler = new Compiler.decision.DecisionCompiler();
                     break;
+                case ".equipment":
+                    compiler = new EquipmentCompiler();
+                    break;
                 case ".event":
                     compiler = new Compiler.@event.EventCompiler();
                     break;
@@ -281,6 +288,11 @@ namespace Compiler
                         if (parserInstance is DecisionParser dParser && compiler is Compiler.decision.DecisionCompiler dCompiler)
                         {
                             dCompiler.PassedData = dParser.LastParsedFile;
+                        }
+
+                        if (parserInstance is EquipmentParser eqParser && compiler is EquipmentCompiler eqCompiler)
+                        {
+                            eqCompiler.PassedData = eqParser.LastParsedFile;
                         }
 
                         if (parserInstance is ScriptParser sParser && compiler is Compiler.script.ScriptCompiler sCompiler)
