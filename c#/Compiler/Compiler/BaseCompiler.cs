@@ -138,14 +138,24 @@ namespace Compiler
             };
         }
 
+        /// Generates a country-tag-dependent localization key.
+        /// If countryTag is provided, returns: countryTag_baseKey
+        /// Otherwise, returns just: baseKey
+        protected static string GenerateCountryTagLocalizationKey(string baseKey, string? countryTag)
+        {
+            if (string.IsNullOrEmpty(countryTag))
+            {
+                return baseKey;
+            }
+            return $"{countryTag}_{baseKey}";
+        }
+
         public abstract void Compile();
 
-        /// <summary>
         /// Clears the internal tracker of output files that have been created during
         /// the current process run. Call at the start of a full processing pass so
         /// files are created/truncated on first write within that pass instead of
         /// being treated as already-created and appended to.
-        /// </summary>
         public static void ResetCreatedOutputFiles()
         {
             lock (_writtenFilesLock)

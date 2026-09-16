@@ -22,7 +22,19 @@ namespace Compiler
 
     public class EquipmentValidator : BaseValidator
     {
-        protected override BaseParser Parser => new EquipmentParser();
+        private EquipmentParser _parser;
+
+        protected override BaseParser Parser
+        {
+            get
+            {
+                if (_parser == null)
+                {
+                    _parser = new EquipmentParser { Metadata = Metadata };
+                }
+                return _parser;
+            }
+        }
 
         public EquipmentMetadata Metadata { get; private set; } = new EquipmentMetadata();
 
