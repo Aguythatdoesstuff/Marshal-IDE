@@ -29,6 +29,10 @@
         "image":"common/national_focus",
         "definition":"localisation/english/national_focus"
     },
+    "equipment": {
+        "definition":"common/units/equipment",
+        "localisation":"localisation/english/equipment"
+    },
     ".dds": {
         "definition":"interface/marshalIDE_definitions.gfx",
         "images":"gfx/interface/handledByMarshalIDE"

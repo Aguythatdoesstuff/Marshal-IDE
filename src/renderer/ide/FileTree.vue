@@ -69,6 +69,7 @@ const FILE_COLOR_MAP = {
   '.script': '#3b82f6',     // Blue
   '.idea': '#f97316',       // Orange
   '.focus': '#22c55e',      // Green
+  'equipment': '854848',
   '.unknown': '#8a8a93'     // Muted Gray
 };
 

@@ -44,15 +44,18 @@ function deriveOutputFileList(inputPath) {
             else if (checkDir.includes('localisation')) {
                 extension = '.yml';
                 suffix = '_l_english'; 
-            } else if (checkDir.includes('interface')) {
-		    // Push both .gui and .gfx versions
-		    const guiFile = `${baseName}.gui`;
-		    const gfxFile = `${baseName}.gfx`;
-		    
-		    outputFiles.push(path.join(targetDir, guiFile));
-		    outputFiles.push(path.join(targetDir, gfxFile));
-		    
-		    continue; // Skip the default push at the bottom of the loop for this special case
+            } else if (key === 'interface' || checkDir.includes('interface')) {
+                // Push both .gui and .gfx versions
+                const guiFile = `${baseName}.gui`;
+                const gfxFile = `${baseName}.gfx`;
+                
+                outputFiles.push(path.join(targetDir, guiFile));
+                outputFiles.push(path.join(targetDir, gfxFile));
+                
+                continue; // Skip the default push at the bottom of the loop for this special case
+            } else if (key === 'definition' || checkDir.includes('common')) {
+                extension = '.txt';
+                suffix = '';
             }
 
             const finalFilename = `${baseName}${suffix}${extension}`;

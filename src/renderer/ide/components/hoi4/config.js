@@ -8,6 +8,7 @@ export const FILE_EXTENSION_MAP = {
     'scripted gui': '.scriptedgui',
     'scripts': '.script',
     'ideas': '.idea',
+    'equipment': '.equipment',
     'focuses': '.focus'
 };
 
