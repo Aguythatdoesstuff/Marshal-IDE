@@ -53,6 +53,11 @@ namespace Compiler
             // Start archetype block
             sbEquipment.AppendLine($"{Ident(1)}{archetype.Id} = {{");
             sbEquipment.AppendLine($"{Ident(2)}year = {archetype.AvailableFromYear}");
+            sbEquipment.AppendLine($"{Ident(2)}is_archetype = yes");
+            if (!string.IsNullOrEmpty(archetype.Picture))
+            {
+                sbEquipment.AppendLine($"{Ident(2)}picture = \"{archetype.Picture}\"");
+            }
             if (archetype.ForUnits != null && archetype.ForUnits.Count > 0)
             {
                 sbEquipment.AppendLine($"{Ident(2)}type = {{");
@@ -111,6 +116,8 @@ namespace Compiler
             sbEquipment.AppendLine($"{Ident(2)}archetype = {archeTypeId}");
             if (!string.IsNullOrEmpty(parentEquipmentId))
                 sbEquipment.AppendLine($"{Ident(2)}parent = {parentEquipmentId}");
+            if (!string.IsNullOrEmpty(equipment.Picture))
+                sbEquipment.AppendLine($"{Ident(2)}picture = \"{equipment.Picture}\"");
 
             // Add raw lines if any
             if (equipment.RawLines != null && equipment.RawLines.Count > 0)

@@ -23,6 +23,7 @@ namespace Compiler
         {
             public string Id { get; set; } = string.Empty;
             public int AvailableFromYear { get; set; }
+            public string Picture { get; set; } = string.Empty;
 
             public List<LocalizedText> Names { get; set; } = new List<LocalizedText>();
             public List<LocalizedText> Descriptions { get; set; } = new List<LocalizedText>();
@@ -38,6 +39,7 @@ namespace Compiler
         {
             public string Id { get; set; } = string.Empty;
             public int AvailableFromYear { get; set; }
+            public string Picture { get; set; } = string.Empty;
 
             public List<string> ForUnits { get; set; } = new List<string>(); // Unit IDs
 
@@ -119,6 +121,27 @@ namespace Compiler
                         pl.LineNumber,
                         $"Content at depth {pl.Depth} found without a parent 'define type <id> available from <year>' archetype."
                     ));
+                    continue;
+                }
+
+                if (pl.TrimmedLine.StartsWith("sprite ", StringComparison.OrdinalIgnoreCase))
+                {
+                    string gfxDefinition = GetQuotedContent(pl.TrimmedLine);
+
+                    // If depth is 1, assign directly to the archetype
+                    if (pl.Depth == 1)
+                    {
+                        currentArchetype.Picture = gfxDefinition;
+                    }
+                    // If depth is >= 2, assign to the currently tracked equipment at that depth level
+                    else if (pl.Depth >= 2)
+                    {
+                        int targetEquipmentDepth = equipmentByDepth.Keys.Where(k => k < pl.Depth).DefaultIfEmpty(-1).Max();
+                        if (targetEquipmentDepth != -1 && equipmentByDepth.TryGetValue(targetEquipmentDepth, out var equipment))
+                        {
+                            equipment.Picture = gfxDefinition;
+                        }
+                    }
                     continue;
                 }
 
