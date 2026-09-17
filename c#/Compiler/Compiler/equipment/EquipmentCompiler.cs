@@ -65,7 +65,7 @@ namespace Compiler
             // Add raw lines if any
             if (archetype.RawLines != null && archetype.RawLines.Count > 0)
             {
-                sbEquipment.Append(RenderAllowedToString(archetype.RawLines, r => r.depth, r => r.trimmedLine)); // depth in DSL compared to output is different due to the game eninge requiring a wrapper called "equipments" wich the dsl doesnt use
+                sbEquipment.Append(RenderAllowedToString(archetype.RawLines, r => r.depth + 1, r => r.trimmedLine)); // depth in DSL compared to output is different due to the game eninge requiring a wrapper called "equipments" wich the dsl doesnt use
             }
 
             sbEquipment.AppendLine($"{Ident(1)}}}\n");
@@ -115,7 +115,7 @@ namespace Compiler
             // Add raw lines if any
             if (equipment.RawLines != null && equipment.RawLines.Count > 0)
             {
-                sbEquipment.Append(RenderAllowedToString(equipment.RawLines, r => r.depth, r => r.trimmedLine)); // depth in DSL compared to output is different due to the game eninge requiring a wrapper called "equipments" wich the dsl doesnt use
+                sbEquipment.Append(RenderAllowedToString(equipment.RawLines, r => r.depth + 1, r => r.trimmedLine)); // depth in DSL compared to output is different due to the game eninge requiring a wrapper called "equipments" wich the dsl doesnt use
             }
 
             sbEquipment.AppendLine($"{Ident(1)}}}\n");
