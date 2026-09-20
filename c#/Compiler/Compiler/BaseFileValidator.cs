@@ -291,12 +291,16 @@ namespace Compiler
         {
             if (string.IsNullOrEmpty(line)) return string.Empty;
 
+            // Convert tab characters to 4 spaces right away so GetLeadingSpaceCount 
+            // and downstream depth calculators evaluate tab indentation accurately.
+            line = line.Replace("\t", "    ");
+
             // ALOT easier to strip out a not necessery for syntax closing bracket then to handle it later on in the pipeline!
             if (line.Trim() == "}")
             {
                 try
                 {
-                    var visual = line.Replace(" ", "[SPACE]").Replace("\t", "[TAB]");
+                    var visual = line.Replace(" ", "[SPACE]");
                     Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] SanitizeLine: Stripping standalone closing brace. Original=" + visual);
                 }
                 catch { }
