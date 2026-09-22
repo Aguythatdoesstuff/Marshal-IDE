@@ -13,7 +13,7 @@ let config;
 let compilerProcess = null; 
 let outputBaseDir; 
 
-const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds', '.equipment']);
+const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds', '.equipment', '.unit']);
 
 // --- Process Safety ---
 const checkParentAndExit = () => {

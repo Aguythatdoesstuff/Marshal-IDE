@@ -2,15 +2,14 @@ unit artillery
     abbreviation "ART"
     name "Artillery"
     desc "Artillery"
-    sprite "artillery"
+    unit model "artillery"
 
     unit types some_other_type
         infantry
         support
 
-    unit categories
+    unit categories category_divisional_support_battalions
         category_support_battalions
-        category_divisional_support_battalions
         category_army
         category_artillery
         category_support_artillery
