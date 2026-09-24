@@ -40,17 +40,67 @@ namespace Compiler
 
         protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
         {
-            ["unit"] = new[] { 0 },
             ["unit types"] = new[] { 1 },
             ["unit categories"] = new[] { 1 },
+            ["required equipment"] = new[] { 1 },
+            ["name"] = new[] { 1 },
+            ["desc"] = new[] { 1 },
+            ["unit model"] = new[] { 1 },
+            ["abbreviation"] = new[] { 1 },
         };
 
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
             // ==========================================
+            // HANDLE "unit types"
+            // ==========================================
+                if (ValidateBlockSection(
+                    trimmedLine, currentDepth, lineNumber, fileName,
+                    keyword: "unit types",
+                    expectedHeaderDepth: 1,
+                    parentBlockHeader: "unit",
+                    errorMessagePrefix: "UNIT TYPE",
+                    metadataLines: Metadata.Lines))
+                {
+                    ExpectedDepth = currentDepth + 1;
+                    return true;
+                }
+
+            // ==========================================
+            // HANDLE "unit categories"
+            // ==========================================
+                if (ValidateBlockSection(
+                    trimmedLine, currentDepth, lineNumber, fileName,
+                    keyword: "unit categories",
+                    expectedHeaderDepth: 1,
+                    parentBlockHeader: "unit",
+                    errorMessagePrefix: "UNIT CATEGORY",
+                    metadataLines: Metadata.Lines))
+                {
+                    ExpectedDepth = currentDepth + 1;
+                    return true;
+                }
+
+            // ==========================================
+            // HANDLE "required equipment"
+            // ==========================================
+                if (ValidateBlockSection(
+                    trimmedLine, currentDepth, lineNumber, fileName,
+                    keyword: "required equipment",
+                    expectedHeaderDepth: 1,
+                    parentBlockHeader: "unit",
+                    errorMessagePrefix: "REQUIRED EQUIPMENT",
+                    metadataLines: Metadata.Lines))
+                {
+                    ExpectedDepth = currentDepth + 1;
+                    return true;
+                }
+
+            // ==========================================
             // HANDLE TYPE DEFINITIONS (DEPTH 0)
             // ==========================================
-            if (trimmedLine.StartsWith("unit ", StringComparison.OrdinalIgnoreCase))
+            if (trimmedLine.StartsWith("unit ", StringComparison.OrdinalIgnoreCase) &&
+               !trimmedLine.StartsWith("unit model", StringComparison.OrdinalIgnoreCase))
             {
                 if (currentDepth != 0)
                 {
@@ -79,43 +129,9 @@ namespace Compiler
                     };
                 }
 
-                ExpectedDepth = currentDepth;
+                ExpectedDepth = currentDepth + 1;
                 return true;
             }
-
-            // ==========================================
-            // HANDLE "unit types"
-            // ==========================================
-            if (!trimmedLine.StartsWith("equipment ", StringComparison.OrdinalIgnoreCase))
-            {
-                if (ValidateBlockSection(
-                    trimmedLine, currentDepth, lineNumber, fileName,
-                    keyword: "unit types",
-                    expectedHeaderDepth: 1,
-                    parentBlockHeader: "for units",
-                    errorMessagePrefix: "UNIT TYPE",
-                    metadataLines: Metadata.Lines))
-                {
-                    return true;
-                }
-            }
-
-            // ==========================================
-            // HANDLE "unit categories"
-            // ==========================================
-            if (ValidateBlockSection(
-                trimmedLine, currentDepth, lineNumber, fileName,
-                keyword: "unit categories",
-                expectedHeaderDepth: 1,
-                parentBlockHeader: "for units",
-                errorMessagePrefix: "UNIT CATEGORY",
-                metadataLines: Metadata.Lines))
-            {
-                return true;
-            }
-
-            
-
 
             return false;
         }
