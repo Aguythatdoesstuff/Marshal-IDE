@@ -7,6 +7,13 @@ using System.Text.RegularExpressions;
 
 namespace Compiler
 {
+    public interface IMiscListLineData
+    {
+        int LineNumber { get; set; }
+        string Id { get; set; }
+        string Misc { get; set; }
+        List<string> MiscList { get; set; }
+    }
     public record ValidationError(string FileName, int LineNumber, string ErrorMessage);
     public record ValidationWarning(string FileName, int LineNumber, string WarningMessage);
 
@@ -964,5 +971,96 @@ namespace Compiler
 
             return -1;
         }
+        protected bool ValidateBlockSection<TLineData>(
+            string trimmedLine,
+            int currentDepth,
+            int lineNumber,
+            string fileName,
+            string keyword,
+            int expectedHeaderDepth,
+            string parentBlockHeader,
+            string errorMessagePrefix,
+            Dictionary<int, TLineData> metadataLines,
+            Action<string> onLineValidated = null) where TLineData : IMiscListLineData, new()
+        {
+            // ==========================================
+            // 1. HANDLE BLOCK HEADER
+            // ==========================================
+            if (trimmedLine.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+            {
+                if (currentDepth != expectedHeaderDepth)
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID SYNTAX DEPTH: '{keyword}' declaration must be at depth {expectedHeaderDepth}, but found at depth {currentDepth}."
+                    ));
+                }
+
+                string content = trimmedLine.Substring(keyword.Length).Trim();
+                string inlineId = null;
+
+                if (!string.IsNullOrWhiteSpace(content) && IsValidId(content, fileName, lineNumber, ComponentName, DotsAllowed))
+                {
+                    inlineId = content;
+                }
+
+                var headerLineData = new TLineData
+                {
+                    LineNumber = lineNumber,
+                    Id = inlineId ?? string.Empty,
+                    Misc = string.Empty,
+                    MiscList = new List<string>()
+                };
+
+                if (inlineId != null)
+                {
+                    headerLineData.MiscList.Add(inlineId);
+                }
+
+                metadataLines[lineNumber] = headerLineData;
+                ExpectedDepth = currentDepth + 1;
+                return true;
+            }
+
+            // ==========================================
+            // 2. HANDLE ITEMS INSIDE BLOCK
+            // ==========================================
+            if (IsInsideBlock(lineNumber, currentDepth, keyword))
+            {
+                if (IsValidId(trimmedLine, fileName, lineNumber, ComponentName, DotsAllowed))
+                {
+                    metadataLines[lineNumber] = new TLineData
+                    {
+                        LineNumber = lineNumber,
+                        Id = trimmedLine,
+                        Misc = string.Empty
+                    };
+
+                    int headerLineNumber = FindBlockHeaderLine(lineNumber, currentDepth, parentBlockHeader);
+                    if (headerLineNumber != -1 && metadataLines.TryGetValue(headerLineNumber, out var parentData))
+                    {
+                        parentData.MiscList.Add(trimmedLine);
+                    }
+
+                    onLineValidated?.Invoke(trimmedLine);
+                    ExpectedDepth = currentDepth;
+                    return true;
+                }
+                else
+                {
+                    Errors.Add(new ValidationError(
+                        fileName,
+                        lineNumber,
+                        $"ERROR! INVALID {errorMessagePrefix} ID: '{trimmedLine}' must be a valid identifier."
+                    ));
+                    ExpectedDepth = currentDepth;
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
+
 }

@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace Compiler
 {
     // Represents a single line's data
-    public class EquipmentLineData
+    public class EquipmentLineData : IMiscListLineData
     {
         public int LineNumber { get; set; }
         public string Id { get; set; }
@@ -139,84 +139,24 @@ namespace Compiler
                 return true;
             }
 
+
             // ==========================================
             // HANDLE FOR UNITS BLOCKS (DEPTH 1)
             // ==========================================
-            if (trimmedLine.StartsWith("for units", StringComparison.OrdinalIgnoreCase))
+            if (!trimmedLine.StartsWith("equipment ", StringComparison.OrdinalIgnoreCase))
             {
-                if (currentDepth != 1)
+                if (ValidateBlockSection(
+                    trimmedLine, currentDepth, lineNumber, fileName,
+                    keyword: "for units",
+                    expectedHeaderDepth: 1,
+                    parentBlockHeader: "for units",
+                    errorMessagePrefix: "UNIT TYPE",
+                    metadataLines: Metadata.Lines))
                 {
-                    Errors.Add(new ValidationError(
-                        fileName,
-                        lineNumber,
-                        $"ERROR! INVALID SYNTAX DEPTH: 'for units' declaration must be at depth 1, but found at depth {currentDepth}."
-                    ));
-                }
-
-                // Check for inline syntax: "for units <id>"
-                string content = trimmedLine.Substring("for units".Length).Trim();
-                string inlineId = null;
-
-                if (!string.IsNullOrWhiteSpace(content))
-                {
-                    if (IsValidId(content, fileName, lineNumber, ComponentName, DotsAllowed))
-                    {
-                        inlineId = content;
-                    }
-                }
-
-                // Create metadata entry for the header line
-                Metadata.Lines[lineNumber] = new EquipmentLineData
-                {
-                    LineNumber = lineNumber,
-                    Id = inlineId ?? string.Empty,
-                    Misc = string.Empty,
-                    MiscList = new List<string>()
-                };
-
-                if (inlineId != null)
-                {
-                    Metadata.Lines[lineNumber].MiscList.Add(inlineId);
-                }
-
-                ExpectedDepth = currentDepth + 1;
-                return true;
-            }
-
-            // Validate unit type IDs inside "for units" blocks
-            if (IsInsideBlock(lineNumber, currentDepth, "for units") && !trimmedLine.StartsWith("equipment ", StringComparison.OrdinalIgnoreCase))
-            {
-                if (IsValidId(trimmedLine, fileName, lineNumber, ComponentName, DotsAllowed))
-                {
-                    // Create the child's own metadata entry
-                    Metadata.Lines[lineNumber] = new EquipmentLineData
-                    {
-                        LineNumber = lineNumber,
-                        Id = trimmedLine,
-                        Misc = string.Empty
-                    };
-
-                    // Find parent header and add to its MiscList
-                    int headerLineNumber = FindBlockHeaderLine(lineNumber, currentDepth, "for units");
-                    if (headerLineNumber != -1 && Metadata.Lines.ContainsKey(headerLineNumber))
-                    {
-                        Metadata.Lines[headerLineNumber].MiscList.Add(trimmedLine);
-                    }
-
-                    ExpectedDepth = currentDepth;
-                    return true;
-                }
-                else
-                {
-                    Errors.Add(new ValidationError(
-                        fileName,
-                        lineNumber,
-                        $"ERROR! INVALID UNIT TYPE ID: '{trimmedLine}' must be a valid identifier."
-                    ));
-                    ExpectedDepth = currentDepth;
                     return true;
                 }
             }
+
 
             // ==========================================
             // HANDLE LOCALIZED NAME/DESC (DEPTH 2+)

@@ -18,6 +18,7 @@ namespace Compiler
             ".event",
             ".focus",
             ".idea",
+            ".unit",
             ".scriptedgui",
             ".script",
             ".dds"
@@ -126,6 +127,9 @@ namespace Compiler
                     break;
                 case ".equipment":
                     validator = new EquipmentValidator();
+                    break;
+                case ".unit":
+                    validator = new UnitValidator();
                     break;
                 case ".event":
                     validator = new EventValidator();
