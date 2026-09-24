@@ -229,6 +229,9 @@ namespace Compiler
                 case ".equipment":
                     compiler = new EquipmentCompiler();
                     break;
+                case ".unit":
+                    compiler = new UnitCompiler();
+                    break;
                 case ".event":
                     compiler = new Compiler.@event.EventCompiler();
                     break;
@@ -297,6 +300,11 @@ namespace Compiler
                         if (parserInstance is EquipmentParser eqParser && compiler is EquipmentCompiler eqCompiler)
                         {
                             eqCompiler.PassedData = eqParser.LastParsedFile;
+                        }
+
+                        if (parserInstance is UnitParser uParser && compiler is UnitCompiler uCompiler)
+                        {
+                            uCompiler.PassedData = uParser.LastParsedFile;
                         }
 
                         if (parserInstance is ScriptParser sParser && compiler is Compiler.script.ScriptCompiler sCompiler)
