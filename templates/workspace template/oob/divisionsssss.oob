@@ -1,0 +1,84 @@
+division template "My cool template"
+    infantry = { x = 0 y = 0 }
+    cavalry = { x = 0 y = 1 }
+    camelry = { x = 0 y = 2 }
+    motorized = { x = 0 y = 3 }
+    mechanized = { x = 0 y = 4 }
+
+    light_armor = { x = 1 y = 0 }
+    medium_armor = { x = 1 y = 1 }
+    heavy_armor = { x = 1 y = 2 }
+    super_heavy_armor = { x = 1 y = 3 }
+    modern_armor = { x = 1 y = 4 }
+
+    marine = { x = 2 y = 0 }
+    paratrooper = { x = 2 y = 1 }
+    mountaineers = { x = 2 y = 2 }
+    bicycle_battalion = { x = 2 y = 3 }
+    amphibious_mechanized = { x = 2 y = 4 }
+
+    artillery_brigade = { x = 3 y = 0 }
+    anti_tank_brigade = { x = 3 y = 1 }
+    anti_air_brigade = { x = 3 y = 2 }
+    rocket_artillery_brigade = { x = 3 y = 3 }
+    armored_car = { x = 3 y = 4 }
+
+    mot_artillery_brigade = { x = 4 y = 0 }
+    mot_anti_tank_brigade = { x = 4 y = 1 }
+    mot_anti_air_brigade = { x = 4 y = 2 }
+    mot_rocket_artillery_brigade = { x = 4 y = 3 }
+    motorized_rocket_brigade = { x = 4 y = 4 }
+
+    support units
+        support_artillery = { x = 0 y = 0 }
+        engineer = { x = 0 y = 1 }
+        recon = { x = 0 y = 2 }
+        field_hospital = { x = 0 y = 3 }
+        logistics_company = { x = 0 y = 4 }
+
+place division "1st cool division" at 9392 using template "My cool template"
+    start_experience_factor = 0.5
+    start_equipment_factor = 1.0
+    start_manpower_factor = 1.0
+
+
+
+place airwings at 500
+    fighter_equipment_0 = { owner = "GER" amount = 100 }
+    cv_fighter_equipment_0 = { owner = "GER" amount = 50 } # Carrier Variant
+    jet_fighter_equipment_1 = { owner = "GER" amount = 50 }
+
+    CAS_equipment_1 = { owner = "GER" amount = 100 }
+    cv_CAS_equipment_1 = { owner = "GER" amount = 50 }
+
+    nav_bomber_equipment_1 = { owner = "GER" amount = 100 }
+    cv_nav_bomber_equipment_1 = { owner = "GER" amount = 50 }
+
+    heavy_fighter_equipment_1 = { owner = "GER" amount = 100 }
+    scout_plane_equipment_1 = { owner = "GER" amount = 20 }
+
+    tac_bomber_equipment_1 = { owner = "GER" amount = 100 }
+    jet_tac_bomber_equipment_1 = { owner = "GER" amount = 50 }
+    strat_bomber_equipment_1 = { owner = "GER" amount = 100 }
+    jet_strat_bomber_equipment_1 = { owner = "GER" amount = 50 }
+
+    rocket_suicide_equipment_1 = { owner = "GER" amount = 100 }
+
+place fleet "My cool fleet 1" at 10980
+    place taskforce "Battleship taskforce" at 10980
+        ship "HMS Goodnight" using archetype ship_hull_heavy_1 for GER
+            using design "My cool design" # defined inside the countries history file!!!
+            category "battleship"
+            pride_of_the_fleet = yes
+
+
+place fleet "Legacy cool fleet" at 12364
+    place taskforce "Main Battle Group" at 12364
+        ship "Cool ship 2" using archetype ship_hull_heavy_1 for GER
+            category battleship #IMPORTANT! by not adding use design "Design name" we assume its the legacy fleet/ship and gets treated as such!!(same as the game engine handles it)
+            pride_of_the_fleet = yes 
+
+add production infantry_equipment_0 for GER
+    requested_factories = 5
+    progress = 0.20
+    efficiency = 100

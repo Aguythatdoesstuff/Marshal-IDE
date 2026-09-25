@@ -10,7 +10,8 @@ export const FILE_EXTENSION_MAP = {
     'ideas': '.idea',
     'equipment': '.equipment',
     'focuses': '.focus',
-    'units': '.unit'
+    'units': '.unit',
+    'divisions': '.division',
 };
 
 /**
@@ -26,7 +27,8 @@ export const getMonacoLanguage = (pathStr) => {
     case 'script':      return 'scriptsLang'; 
     case 'idea':        return 'ideaLang'; 
     case 'focus':       return 'focusLang'; 
-    case 'equipment':        return 'plaintext';
+    case 'equipment':   return 'plaintext';
+    case 'oob':    return 'plaintext';
     case 'unit':        return 'plaintext';
     default:            return 'plaintext';
   }

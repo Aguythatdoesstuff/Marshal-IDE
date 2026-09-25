@@ -3,6 +3,9 @@
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
 ## [1.4.0] - 2026-09-12 - Compiler Update
+### Added
+    - **Unit Support**: Dedicated DSL for Unit modding.(https://hoi4.paradoxwikis.com/Unit_modding)
+    - **Equipment Support**: Dedicated DSL for Equipment modding.(https://hoi4.paradoxwikis.com/Equipment_modding)
 
 ### Fixed
 

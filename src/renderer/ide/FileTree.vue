@@ -71,6 +71,7 @@ const FILE_COLOR_MAP = {
   '.focus': '#22c55e',      // Green
   '.equipment': '#06b6d4',  // Cyan (Military/Steel)
   '.unit': '#14b8a6',       // Teal / Unit Green
+  '.oob': '#801414',
   '.unknown': '#8a8a93'     // Muted Gray
 };
 

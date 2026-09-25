@@ -21,6 +21,7 @@ namespace Compiler
             ".unit",
             ".scriptedgui",
             ".script",
+            ".oob",
             ".dds"
         };
 
@@ -137,6 +138,9 @@ namespace Compiler
                 case ".focus":
                     validator = new FocusValidator();
                     break;
+                case ".oob":
+                    validator = new OobValidator();
+                    break;
                 case ".idea":
                     validator = new IdeaValidator();
                     break;
@@ -232,6 +236,9 @@ namespace Compiler
                 case ".unit":
                     compiler = new UnitCompiler();
                     break;
+                case ".oob":
+                    compiler = new OobCompiler();
+                    break;
                 case ".event":
                     compiler = new Compiler.@event.EventCompiler();
                     break;
@@ -311,6 +318,12 @@ namespace Compiler
                         {
                             sCompiler.PassedData = sParser.LastParsedFile;
                         }
+
+                        if (parserInstance is OobParser oParser && compiler is OobCompiler oCompiler)
+                        {
+                            oCompiler.PassedData = oParser.LastParsedFile;
+                        }
+
                         if (parserInstance is ScriptedGUIParser sgParser && compiler is Compiler.scriptedGui.ScriptedGUICompiler sgCompiler)
                         {
                             sgCompiler.PassedData = sgParser.LastParsedFile;
