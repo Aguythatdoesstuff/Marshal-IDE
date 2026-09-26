@@ -44,15 +44,16 @@ namespace Compiler
 
         protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
         {
-            ["place fleet"] = new[] { 0 },
-            ["place airwings"] = new[] { 0 },
-            ["place division"] = new[] { 0 },
-            ["division template"] = new[] { 0 },
-            ["add production"] = new[] { 0 },
+            ["place fleet \""] = new[] { 0 },
+            ["place airwings "] = new[] { 0 },
+            ["place division \""] = new[] { 0 },
+            ["division template \""] = new[] { 0 },
+            ["add production \""] = new[] { 0 },
             ["support units"] = new[] { 1 },
-            ["place taskforce"] = new[] { 1 },
-            ["ship "] = new[] { 2 },
-            ["using design "] = new[] { 3 },
+            ["place taskforce \""] = new[] { 1 },
+            ["ship \""] = new[] { 2 },
+            ["using design \""] = new[] { 3 },
+            ["category \""] = new[] { 3 },
         };
 
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)

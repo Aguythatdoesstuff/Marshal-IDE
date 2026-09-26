@@ -487,12 +487,22 @@ namespace Compiler
                 string op = assignMatch.Groups[2].Value;
                 string rhs = assignMatch.Groups[3].Value.Trim();
 
-                // If RHS starts with a brace this is an opening pass-through block.
+                // If RHS starts with a brace, check if it's a multi-line or single-line block
                 if (rhs.StartsWith("{"))
                 {
                     lineRecognized = true;
-                    ExpectedDepth = currentDepth + 1; // block opens
-                    try { Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLineContent: Line {lineNumber}: Assignment opens block. New ExpectedDepth={ExpectedDepth}"); } catch { }
+
+                    // If the line opens AND closes on the same line (e.g. { x = 4 y = 3 }), depth stays the same
+                    if (rhs.EndsWith("}"))
+                    {
+                        ExpectedDepth = currentDepth;
+                    }
+                    else
+                    {
+                        ExpectedDepth = currentDepth + 1; // Multi-line block opens
+                    }
+
+                    try { Compiler.Logging.Logger.LogComponent("DEBUG-DEPTH", $"[DEBUG-DEPTH] ValidateLineContent: Line {lineNumber}: Assignment brace handling. New ExpectedDepth={ExpectedDepth}"); } catch { }
                     return;
                 }
 
@@ -610,6 +620,11 @@ namespace Compiler
                         {
                             string allowedText = allowedDepths == null || allowedDepths.Length == 0 ? "(none)" : string.Join(",", allowedDepths);
                             Errors.Add(new ValidationError(fileName, lineNumber, $"'{matchedPrefix}' is not allowed at depth {currentDepth}. Allowed depths: {allowedText}."));
+                        }
+                        else
+                        {
+                            // Override expected depth with current depth if explicitly permitted by the child validator
+                            ExpectedDepth = currentDepth;
                         }
                     }
 
@@ -748,6 +763,10 @@ namespace Compiler
             if (!lineRecognized)
             {
                 lineRecognized = ValidateCustomContent(trimmedLine, currentDepth, lineNumber, fileName);
+                if (lineRecognized)
+                {
+                    ExpectedDepth = currentDepth;
+                }
             }
 
             if (!lineRecognized)
@@ -986,7 +1005,7 @@ namespace Compiler
             // ==========================================
             // 1. HANDLE BLOCK HEADER
             // ==========================================
-            if (trimmedLine.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+            if (trimmedLine.StartsWith(keyword, StringComparison.OrdinalIgnoreCase) && !trimmedLine.Contains("="))
             {
                 if (currentDepth != expectedHeaderDepth)
                 {

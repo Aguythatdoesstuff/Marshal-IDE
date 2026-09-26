@@ -11,7 +11,7 @@ export const FILE_EXTENSION_MAP = {
     'equipment': '.equipment',
     'focuses': '.focus',
     'units': '.unit',
-    'divisions': '.division',
+    'oob': '.oob',
 };
 
 /**
