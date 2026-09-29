@@ -4,7 +4,7 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 
 ## 🛠 v1.4.0 – Compiler Update
 ### Compiler changes
-    - **MIO Support**: Dedicated DSL for Military Industrial Organizations.(https://hoi4.paradoxwikis.com/Military_industrial_organization_modding)
+    - **Country Support**: Dedicated DSL for country modding.(https://hoi4.paradoxwikis.com/Country_creation)
 
 
 ---
