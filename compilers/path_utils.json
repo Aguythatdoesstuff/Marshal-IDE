@@ -36,5 +36,12 @@
     ".dds": {
         "definition":"interface/marshalIDE_definitions.gfx",
         "images":"gfx/interface/handledByMarshalIDE"
+    },
+    ".oob": {
+        "unit": "history/units"
+    },
+    ".unit": {
+        "definition": "common/units",
+        "localisation": "localisation/english/units"
     }
 }
