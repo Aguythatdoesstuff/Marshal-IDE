@@ -1,0 +1,91 @@
+
+Illegal country tags:
+Tag | Reason to avoid
+
+NOT | Used as a flow control tool that comes up as true when any of the triggers within is false.
+AND | Used as a flow control tool that comes up as true when all of the triggers within are true.
+TAG | Used as a trigger that checks the country being chosen.
+OOB | Used within country history files as an argument deciding the loaded order of battle file | deciding the amount of divisions and where they are located.
+LOG | Used as an effect or a trigger that writes the specified argument within the user directory's /Hearts of Iron IV/logs/game.log file or in console if it is open.
+NUM | Used for arrays in order to count the amount of elements within them. This will break the resistance system as the scripted trigger responsible for deciding when resistance must be enabled utilises this.
+RED | Used within custom map modes as a temporary variable deciding how red the state should be. This will make every custom map mode always have 0 as the red value.
+Numbers | Numbers meaning an entirely numeric country tag such as 123, although the game prevents tags from beginning with numbers. While numbers can be used within country tags (such as D01), if it's entirely numeric there might be confusion whether, for example, 123 would refer to a state ID or a country tag.
+
+
+
+
+
+
+country "Poland" with tag POL
+    # Base names
+    name "Scotland"
+    name def "Scotland"
+    name adj "Scottish"
+
+    # advanced localisation works like this: [Key Prefix] + [Joined Condition Tokens] + [Tail Suffix]
+    # examples:
+
+    # Ideology group variants (outputs: TAG_ideology, TAG_ideology_DEF, TAG_ideology_ADJ)
+    name if ideology democratic "Republic of Scotland"
+    name if ideology democratic def "the Republic of Scotland"
+    name if ideology democratic adj "Scottish"
+
+    # Sub-ideology and ideology get handlet the same
+    name if sub-ideology liberalism "Federal Republic of Scotland"
+    #IMPORTANT!! ideology or sub-ideology get handled the same, sub-ideology is a allias of ideology as the game engine handles localisation for both the same
+
+
+    # Subject & Autonomy variants
+    name if is subject "$OVERLORDADJ$ Scotland"
+    name if subject of IRE "Alba"
+    name if autonomy is dominion "Dominion of Scotland"
+    
+    # Fully dynamic chain: name combined [overlord] [ideology] [autonomy]
+    name if subject of IRE and ideology democratic and autonomy integrated_puppet "Most Northern Ireland"
+
+    # Generic country prefix rule (outputs: COUNTRY_TAG_autonomy_...)
+    name if overlord of generic and autonomy dominion "Comhairle nan $NONIDEOLOGY$" # subjects of scotland if theire autonomy is dominion get called "Comhairle nan $NONIDEOLOGY$"
+
+    # Political party names
+    party name communism "SCP"
+    party name communism long "Scottish Communist Party"
+    party name neutrality "True Scotsman"
+
+
+    capital 121
+    map color 2 10 222 # RGB definition about the country's default colour on the political map mode
+    ui color 255 255 155 # coloring for common/countries/colors.txt is currently likley unsupported and needs manual action, specifically this: color_ui = rgb { 255 255 155 }
+
+    # everything from here on is just pass through hoi4 DSL that goes into the countries history file!
+    if = {
+        limit = { has_dlc = "Man the Guns" }
+        set_naval_oob = "SCO_1936_naval_mtg"
+    }
+    if = {
+        limit = { NOT = { has_dlc = "Man the Guns" } }
+        set_naval_oob = "SCO_1936_naval_legacy"
+    }
+    if = {
+        limit = { has_dlc = "By Blood Alone" }
+        set_air_oob = "SCO_1936_air_bba"
+    }
+    if = {
+        limit = { NOT = { has_dlc = "By Blood Alone" } }
+        set_air_oob = "SCO_1936_air_legacy"
+    }
+
+    add_ideas = {
+        henschel
+        GER_autarky_idea
+        #laws #Remember that the sharp sign is used to mark comments.
+        war_economy
+        extensive_conscription
+    }
+    set_technology = {
+        infantry_weapons = 1
+        infantry_weapons1 = 1
+        gw_artillery = 1
+        interwar_antiair = 1
+        fuel_silos = 1
+        basic_train = 1
+    }

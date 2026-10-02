@@ -11,6 +11,7 @@ export const FILE_EXTENSION_MAP = {
     'equipment': '.equipment',
     'focuses': '.focus',
     'units': '.unit',
+    'history': '.history',
     'oob': '.oob',
 };
 
@@ -29,6 +30,7 @@ export const getMonacoLanguage = (pathStr) => {
     case 'focus':       return 'focusLang'; 
     case 'equipment':   return 'plaintext';
     case 'oob':    return 'plaintext';
+    case 'history':    return 'plaintext';
     case 'unit':        return 'plaintext';
     default:            return 'plaintext';
   }
