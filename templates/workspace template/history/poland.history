@@ -1,5 +1,5 @@
-
-Illegal country tags:
+#{
+Illegal country tags at all circumstances:
 Tag | Reason to avoid
 
 NOT | Used as a flow control tool that comes up as true when any of the triggers within is false.
@@ -10,15 +10,14 @@ LOG | Used as an effect or a trigger that writes the specified argument within t
 NUM | Used for arrays in order to count the amount of elements within them. This will break the resistance system as the scripted trigger responsible for deciding when resistance must be enabled utilises this.
 RED | Used within custom map modes as a temporary variable deciding how red the state should be. This will make every custom map mode always have 0 as the red value.
 Numbers | Numbers meaning an entirely numeric country tag such as 123, although the game prevents tags from beginning with numbers. While numbers can be used within country tags (such as D01), if it's entirely numeric there might be confusion whether, for example, 123 would refer to a state ID or a country tag.
+#}
 
 
 
 
 
-
-country "Poland" with tag POL
+country "Scotland" with tag POL
     # Base names
-    name "Scotland"
     name def "Scotland"
     name adj "Scottish"
 
@@ -37,7 +36,7 @@ country "Poland" with tag POL
 
     # Subject & Autonomy variants
     name if is subject "$OVERLORDADJ$ Scotland"
-    name if subject of IRE "Alba"
+    name if is subject of IRE "Alba"
     name if autonomy is dominion "Dominion of Scotland"
     
     # Fully dynamic chain: name combined [overlord] [ideology] [autonomy]

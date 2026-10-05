@@ -213,6 +213,8 @@ namespace importer
             }
             // Print per-importer diagnostics
             DebugLogger.Log("Global", "", LogLevel.Info, "IMPORTER METRICS");
+            IPC.Send("Metrics", "IMPORTER METRICS");
+
             int totalImportedFiles = 0;
             foreach (var imp in importers)
             {
@@ -220,18 +222,25 @@ namespace importer
                 double memDeltaMb = (imp.MemoryAfterBytes - imp.MemoryBeforeBytes) / 1024.0 / 1024.0;
                 double throughput = imp.ImportDuration.TotalSeconds > 0 ? imp.ProcessedFileCount / imp.ImportDuration.TotalSeconds : imp.ProcessedFileCount;
                 DebugLogger.Log(imp.GetType().Name, "", LogLevel.Info, $"Files={imp.ProcessedFileCount}, Time={imp.ImportDuration.TotalSeconds:F2}s, Throughput={throughput:F02} files/s, MemDelta={memDeltaMb:F2} MB");
+                IPC.Send(imp.GetType().Name, $"Files={imp.ProcessedFileCount}, Time={imp.ImportDuration.TotalSeconds:F2}s, Throughput={throughput:F02} files/s, MemDelta={memDeltaMb:F2} MB");
             }
             DebugLogger.Log("Global", "", LogLevel.Info, "COMPILER METRICS");
+            IPC.Send("Metrics", "COMPILER METRICS");
             foreach (var cr in compilerResults)
             {
                 DebugLogger.Log("Global", "", LogLevel.Info, $"{cr.Name}: Time={cr.Duration.TotalSeconds:F2}s, Success={(cr.Success ? "Yes" : "No")}");
+                IPC.Send("Metrics", $"{cr.Name}: Time={cr.Duration.TotalSeconds:F2}s, Success={(cr.Success ? "Yes" : "No")}");
             }
             DebugLogger.Log("Global", "", LogLevel.Info, "PERFORMANCE METRICS");
             DebugLogger.Log("Global", "", LogLevel.Info, $"Total Time: {totalSeconds:F2} seconds");
             DebugLogger.Log("Global", "", LogLevel.Info, $"Total files processed by importers: {totalImportedFiles}");
             DebugLogger.Log("Global", "", LogLevel.Info, "All processing complete.");
             DebugLogger.Log("Global", "", LogLevel.Info, "Exiting...");
-
+            IPC.Send("Metrics", "PERFORMANCE METRICS");
+            IPC.Send("Metrics", $"Total Time: {totalSeconds:F2} seconds");
+            IPC.Send("Metrics", $"Total files processed by importers: {totalImportedFiles}");
+            IPC.Send("Metrics", "All processing complete.");
+            IPC.Send("Metrics", "Exiting...");
             // Write out debug logs to files
             DebugLogger.WriteOut(importers, compilerResults, totalSeconds, totalImportedFiles);
 
@@ -295,15 +304,18 @@ namespace importer
                     }
 
                     DebugLogger.Log("Global", "", LogLevel.Info, "Cleanup completed successfully.");
+                    IPC.Send("Global", $"Cleanup completed successfully.");
                 }
                 catch (IOException ioEx)
                 {
                     // Usually happens if a file is still locked by an importer or the OS
                     DebugLogger.Log("CRASH_HANDLER", "", LogLevel.Warning, $"Cleanup I/O Warning: {ioEx.Message}");
+                    IPC.Send("CRASH_HANDLER", $"Cleanup I/O Warning: {ioEx.Message}");
                 }
                 catch (Exception ex)
                 {
                     DebugLogger.Log("CRASH_HANDLER", "", LogLevel.Error, $"Cleanup failed: {ex.Message}");
+                    IPC.Send("CRASH_HANDLER", $"Cleanup failed: {ex.Message}");
                 }
             });
         }

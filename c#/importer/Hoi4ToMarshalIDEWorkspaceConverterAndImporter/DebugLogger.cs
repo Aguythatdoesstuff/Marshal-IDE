@@ -198,7 +198,7 @@ namespace importer
             if (string.IsNullOrEmpty(_rootDir)) _rootDir = Path.Combine(Directory.GetCurrentDirectory(), "Debbug");
             Directory.CreateDirectory(_rootDir);
 
-            var crashFile = Path.Combine(_rootDir, $"CRASH_REPORT_{DateTime.Now:yyyyMMdd_HHmmss}.md");
+            var crashFile = Path.Combine(_rootDir, $"IMPORTER_CRASH_REPORT_{DateTime.Now:yyyyMMdd_HHmmss}.md");
 
             // We pull the logs from the "Global" bucket where CRASH_HANDLER logs
             if (_logs.TryGetValue("Global", out var fileDict) && fileDict.TryGetValue("global", out var bag))
