@@ -1,255 +1,212 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using static Compiler.HistoryParser;
 
 namespace Compiler
 {
     public class HistoryCompiler : BaseCompiler
     {
-        // Parsed OOB data provided by the parser
+        // Parsed history data provided by the parser
         public HistoryParser.ParsedHistoryFile PassedData { get; set; }
 
         public override void Compile()
         {
-            if (PassedData == null) return;
+            if (PassedData?.Historys == null) return;
 
-            var sbHistory = new System.Text.StringBuilder();
-
-            if (PassedData.Historys != null && PassedData.Historys.Count > 0)
+            foreach (var historys in PassedData.Historys)
             {
-                foreach (var oob in PassedData.Historys)
+                if (historys?.Countrys == null) continue;
+
+                foreach (var country in historys.Countrys)
                 {
-                    CompileHistory(oob, sbHistory);
+                    if (string.IsNullOrEmpty(country.Tag))
+                        continue;
+
+                    string fileName = $"{country.Tag} - {country.Name}";
+
+                    // Write history file
+                    WriteFile("history/countries/", fileName, ".txt", (sw, created) =>
+                    {
+                        WriteCountryHistoryFile(sw, country);
+                    });
+
+                    // Write conditional country names to localisation
+                    if (country.ConditionalNames != null && country.ConditionalNames.Count > 0)
+                    {
+                        WriteConditionalNamesLocalisation(country);
+                    }
+
+                    // Write conditional party names to localisation
+                    if (country.ConditionalPartyNames != null && country.ConditionalPartyNames.Count > 0)
+                    {
+                        WriteConditionalPartyNamesLocalisation(country);
+                    }
                 }
-            }
-
-            // Flush OOB buffer using WriteFile
-            if (sbHistory.Length > 0)
-            {
-                WriteFile("history/units/", PassedData.SourceFileName, ".txt", (sw, created) =>
-                {
-                    sw.Write(sbHistory.ToString());
-                });
             }
         }
 
-        private void CompileHistory(HistoryParser.History oob, System.Text.StringBuilder sbHistory)
+        private void WriteCountryHistoryFile(StreamWriter sw, HistoryParser.Country country)
         {
-            // 1. Division Templates
-            if (oob.DivisionTemplates != null && oob.DivisionTemplates.Count > 0)
+            // Write capital if present
+            if (!string.IsNullOrEmpty(country.Capital))
             {
-                foreach (var template in oob.DivisionTemplates)
-                {
-                    sbHistory.AppendLine("division_template = {");
-                    sbHistory.AppendLine($"{Ident(1)}name = \"{template.Id}\"");
-                    sbHistory.AppendLine($"{Ident(1)}regiments = {{");
-                    if (template.RawLines != null && template.RawLines.Count > 0)
-                    {
-                        sbHistory.Append(RenderAllowedToString(template.RawLines, r => r.depth + 1, r => r.trimmedLine));
-                    }
-                    sbHistory.AppendLine($"{Ident(1)}}}");
-                    sbHistory.AppendLine($"{Ident(1)}support  = {{");
-                    if (template.SupportUnits != null && template.SupportUnits.RawLines != null && template.SupportUnits.RawLines.Count > 0)
-                    {
-                        sbHistory.Append(RenderAllowedToString(template.SupportUnits.RawLines, r => r.depth + 1, r => r.trimmedLine));
-                    }
-                    sbHistory.AppendLine($"{Ident(1)}}}");
-                    sbHistory.AppendLine("}\n");
-                }
+                sw.WriteLine($"capital = {country.Capital}");
             }
 
-            // 2. Units Block (Divisions & Fleets)
-            bool hasDivisions = oob.DivisionPlacements != null && oob.DivisionPlacements.Count > 0;
-            bool hasFleets = oob.FleetPlacements != null && oob.FleetPlacements.Count > 0;
-
-            if (hasDivisions || hasFleets)
+            // Write unconditional base name
+            if (!string.IsNullOrEmpty(country.Name))
             {
-                sbHistory.AppendLine("units = {");
-
-                // Land Divisions
-                if (hasDivisions)
-                {
-                    foreach (var division in oob.DivisionPlacements)
-                    {
-                        sbHistory.AppendLine($"{Ident(1)}division = {{");
-
-                        if (!string.IsNullOrEmpty(division.Id))
-                        {
-                            sbHistory.AppendLine($"{Ident(2)}name = \"{division.Id}\"");
-                        }
-
-                        if (!string.IsNullOrEmpty(division.Coordinates))
-                        {
-                            sbHistory.AppendLine($"{Ident(2)}location = {division.Coordinates}");
-                        }
-
-                        if (!string.IsNullOrEmpty(division.ForeignId))
-                        {
-                            sbHistory.AppendLine($"{Ident(2)}division_template = \"{division.ForeignId}\"");
-                        }
-
-                        if (division.RawLines != null && division.RawLines.Count > 0)
-                        {
-                            sbHistory.Append(RenderAllowedToString(division.RawLines, r => r.depth + 1, r => r.trimmedLine));
-                        }
-
-                        sbHistory.AppendLine($"{Ident(1)}}}");
-                    }
-                }
-
-                // Fleets & Task Forces
-                if (hasFleets)
-                {
-                    foreach (var fleet in oob.FleetPlacements)
-                    {
-                        sbHistory.AppendLine($"{Ident(1)}fleet = {{");
-
-                        if (!string.IsNullOrEmpty(fleet.Id))
-                        {
-                            sbHistory.AppendLine($"{Ident(2)}name = \"{fleet.Id}\"");
-                        }
-
-                        if (!string.IsNullOrEmpty(fleet.Coordinates))
-                        {
-                            sbHistory.AppendLine($"{Ident(2)}naval_base = {fleet.Coordinates}");
-                        }
-
-                        if (fleet.TaskForces != null && fleet.TaskForces.Count > 0)
-                        {
-                            foreach (var tf in fleet.TaskForces)
-                            {
-                                sbHistory.AppendLine($"{Ident(2)}task_force = {{");
-
-                                if (!string.IsNullOrEmpty(tf.Id))
-                                {
-                                    sbHistory.AppendLine($"{Ident(3)}name = \"{tf.Id}\"");
-                                }
-
-                                if (!string.IsNullOrEmpty(tf.Coordinates))
-                                {
-                                    sbHistory.AppendLine($"{Ident(3)}location = {tf.Coordinates}");
-                                }
-
-                                if (tf.Ships != null && tf.Ships.Count > 0)
-                                {
-                                    foreach (var ship in tf.Ships)
-                                    {
-                                        sbHistory.AppendLine($"{Ident(3)}ship = {{");
-
-                                        if (!string.IsNullOrEmpty(ship.Id))
-                                        {
-                                            sbHistory.AppendLine($"{Ident(4)}name = \"{ship.Id}\"");
-                                        }
-
-                                        if (!string.IsNullOrEmpty(ship.CategoryId))
-                                        {
-                                            sbHistory.AppendLine($"{Ident(4)}definition = {ship.CategoryId}");
-                                        }
-
-                                        if (!string.IsNullOrEmpty(ship.ForeignId))
-                                        {
-                                            sbHistory.AppendLine($"{Ident(4)}equipment = {{");
-                                            sbHistory.AppendLine($"{Ident(5)}{ship.ForeignId} = {{");
-                                            sbHistory.AppendLine($"{Ident(6)}amount = 1");
-
-                                            if (!string.IsNullOrEmpty(ship.CountryTag))
-                                            {
-                                                sbHistory.AppendLine($"{Ident(6)}owner = {ship.CountryTag}");
-                                            }
-
-                                            if (!string.IsNullOrEmpty(ship.DesignId))
-                                            {
-                                                sbHistory.AppendLine($"{Ident(6)}version_name = \"{ship.DesignId}\"");
-                                            }
-
-                                            sbHistory.AppendLine($"{Ident(5)}}}");
-                                            sbHistory.AppendLine($"{Ident(4)}}}");
-                                        }
-
-                                        if (ship.RawLines != null && ship.RawLines.Count > 0)
-                                        {
-                                            sbHistory.Append(RenderAllowedToString(ship.RawLines, r => r.depth + 2, r => r.trimmedLine));
-                                        }
-
-                                        sbHistory.AppendLine($"{Ident(3)}}}");
-                                    }
-                                }
-
-                                sbHistory.AppendLine($"{Ident(2)}}}");
-                            }
-                        }
-
-                        sbHistory.AppendLine($"{Ident(1)}}}");
-                    }
-                }
-
-                sbHistory.AppendLine("}\n");
+                sw.WriteLine($"name = \"{country.Name}\"");
             }
 
-            // 3. Air Wings
-            if (oob.AirWingPlacements != null && oob.AirWingPlacements.Count > 0)
+            // Write raw lines (already at the correct indentation depth for country level)
+            if (country.RawLines != null && country.RawLines.Count > 0)
             {
-                sbHistory.AppendLine("air_wings = {");
-
-                foreach (var airWing in oob.AirWingPlacements)
-                {
-                    if (!string.IsNullOrEmpty(airWing.Coordinates))
-                    {
-                        sbHistory.AppendLine($"{Ident(1)}{airWing.Coordinates} = {{");
-                    }
-                    else
-                    {
-                        sbHistory.AppendLine($"{Ident(1)}0 = {{");
-                    }
-
-                    if (airWing.RawLines != null && airWing.RawLines.Count > 0)
-                    {
-                        sbHistory.Append(RenderAllowedToString(airWing.RawLines, r => r.depth + 1, r => r.trimmedLine));
-                    }
-
-                    sbHistory.AppendLine($"{Ident(1)}}}");
-                }
-
-                sbHistory.AppendLine("}\n");
-            }
-
-            // 4. Equipment Production (instant_effect)
-            if (oob.AddProductions != null && oob.AddProductions.Count > 0)
-            {
-                sbHistory.AppendLine("instant_effect = {");
-
-                foreach (var prod in oob.AddProductions)
-                {
-                    sbHistory.AppendLine($"{Ident(1)}add_equipment_production = {{");
-
-                    if (!string.IsNullOrEmpty(prod.EquipmentId) || !string.IsNullOrEmpty(prod.CountryTag))
-                    {
-                        sbHistory.AppendLine($"{Ident(2)}equipment = {{");
-
-                        if (!string.IsNullOrEmpty(prod.EquipmentId))
-                        {
-                            sbHistory.AppendLine($"{Ident(3)}type = {prod.EquipmentId}");
-                        }
-
-                        if (!string.IsNullOrEmpty(prod.CountryTag))
-                        {
-                            sbHistory.AppendLine($"{Ident(3)}creator = \"{prod.CountryTag}\"");
-                        }
-
-                        sbHistory.AppendLine($"{Ident(2)}}}");
-                    }
-
-                    if (prod.RawLines != null && prod.RawLines.Count > 0)
-                    {
-                        sbHistory.Append(RenderAllowedToString(prod.RawLines, r => r.depth + 1, r => r.trimmedLine));
-                    }
-
-                    sbHistory.AppendLine($"{Ident(1)}}}");
-                }
-
-                sbHistory.AppendLine("}\n");
+                WriteAllowedWithConversions(sw, country.RawLines, r => r.depth, r => r.trimmedLine);
             }
         }
+
+        private void WriteConditionalNamesLocalisation(HistoryParser.Country country)
+        {
+            string fileName = country.Tag;
+
+            WriteFile("localisation/english/", fileName, ".yml", (sw, created) =>
+            {
+                if (created)
+                {
+                    sw.WriteLine("l_english:");
+                }
+
+                // Group conditional names by their condition combinations
+                var groupedNames = GroupConditions(country.ConditionalNames);
+
+                foreach (var group in groupedNames)
+                {
+                    if (string.IsNullOrEmpty(group.Key) || group.Any(c => string.IsNullOrEmpty(c.Name)))
+                        continue;
+
+                    string locKey = BuildLocalisationKey(country.Tag, group.Key);
+                    string nameValue = group.First().Name; // All names in the group should be the same
+
+                    sw.WriteLine($" {locKey}: \"{nameValue}\"");
+                }
+            });
+        }
+
+        private void WriteConditionalPartyNamesLocalisation(HistoryParser.Country country)
+        {
+            string fileName = country.Tag;
+
+            WriteFile("localisation/english/", fileName, ".yml", (sw, created) =>
+            {
+                if (created)
+                {
+                    sw.WriteLine("l_english:");
+                }
+
+                // Group conditional party names by their condition combinations
+                var groupedPartyNames = GroupConditions(country.ConditionalPartyNames);
+
+                foreach (var group in groupedPartyNames)
+                {
+                    if (string.IsNullOrEmpty(group.Key) || group.Any(c => string.IsNullOrEmpty(c.Name)))
+                        continue;
+
+                    string partyName = group.First().Name;
+                    string conditionKey = group.Key;
+
+                    // Build party name keys: TAG_ideology_party and TAG_ideology_party_long
+                    string baseKey = BuildLocalisationKey(country.Tag, $"{conditionKey}_party");
+                    string longKey = $"{baseKey}_long";
+
+                    sw.WriteLine($" {baseKey}: \"{partyName}\"");
+                    sw.WriteLine($" {longKey}: \"{partyName}\"");
+                }
+            });
+        }
+
+        /// Groups conditional names/party names by their combined condition keys
+        /// Returns a list of groups where each group contains items with the same condition combination
+        private List<IGrouping<string, T>> GroupConditions<T>(List<T> items) where T : class
+        {
+            if (items == null || items.Count == 0)
+                return new List<IGrouping<string, T>>();
+
+            var groupDict = new Dictionary<string, List<T>>();
+
+            foreach (var item in items)
+            {
+                string conditionKey = ExtractConditionKey(item);
+
+                if (!groupDict.ContainsKey(conditionKey))
+                {
+                    groupDict[conditionKey] = new List<T>();
+                }
+                groupDict[conditionKey].Add(item);
+            }
+
+            return groupDict.Select(kvp => new ConditionGrouping<T>(kvp.Key, kvp.Value)).Cast<IGrouping<string, T>>().ToList();
+        }
+
+        /// Extracts and normalizes the condition key from a ConditionalName or ConditionalPartyName
+        private string ExtractConditionKey(object item)
+        {
+            if (item == null) return string.Empty;
+
+            var conditionalName = item as HistoryParser.ConditionalName;
+            var conditionalPartyName = item as HistoryParser.ConditionalPartyName;
+
+            var condition = conditionalName?.Condition ?? conditionalPartyName?.Condition;
+
+            if (condition == null || string.IsNullOrEmpty(condition.Type))
+                return string.Empty;
+
+            // Normalize the condition value to camelCase/lowercase (e.g., "integrated_puppet" for autonomy values)
+            string normalizedValue = NormalizeConditionValue(condition.ConditionValue);
+
+            return $"{condition.Type}_{normalizedValue}";
+        }
+
+        /// Normalizes condition values to match HOI4 localisation key conventions
+        /// e.g., "autonomy_integrated_puppet" -> "autonomy_integrated_puppet"
+        private string NormalizeConditionValue(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return string.Empty;
+
+            return value.ToLower().Replace(" ", "_").Replace("-", "_");
+        }
+
+        /// Builds a localisation key from tag and condition key
+        /// e.g., BuildLocalisationKey("SCO", "liberalism") -> "SCO_liberalism"
+        private string BuildLocalisationKey(string tag, string conditionKey)
+        {
+            if (string.IsNullOrEmpty(conditionKey))
+                return tag;
+
+            return $"{tag}_{conditionKey}";
+        }
+    }
+
+    /// Helper class to group conditional items by their condition key
+    internal class ConditionGrouping<T> : IGrouping<string, T> where T : class
+    {
+        private readonly string _key;
+        private readonly List<T> _items;
+
+        public ConditionGrouping(string key, List<T> items)
+        {
+            _key = key;
+            _items = items;
+        }
+
+        public string Key => _key;
+
+        public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _items.GetEnumerator();
     }
 }

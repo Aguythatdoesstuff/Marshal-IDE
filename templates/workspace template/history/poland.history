@@ -46,7 +46,7 @@ country "Scotland" with tag POL
     name if overlord of generic and autonomy dominion "Comhairle nan $NONIDEOLOGY$" # subjects of scotland if theire autonomy is dominion get called "Comhairle nan $NONIDEOLOGY$"
 
     # Political party names
-    party name communism "SCP"
+    party name communism short "SCP"
     party name communism long "Scottish Communist Party"
     party name neutrality "True Scotsman"
 

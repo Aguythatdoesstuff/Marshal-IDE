@@ -15,75 +15,47 @@ namespace Compiler
             Compiler.Logging.Logger.LogComponent("Parser", "HistoryParser initialized.");
         }
 
-        public class History
+        public class Historys
         {
-            public List<DivisionTemplate> DivisionTemplates { get; set; } = new List<DivisionTemplate>();
-            public List<DivisionPlacement> DivisionPlacements { get; set; } = new List<DivisionPlacement>();
-            public List<AirWingPlacement> AirWingPlacements { get; set; } = new List<AirWingPlacement>();
-            public List<FleetPlacement> FleetPlacements { get; set; } = new List<FleetPlacement>();
-            public List<AddProduction> AddProductions { get; set; } = new List<AddProduction>();
+            public List<Country> Countrys { get; set; } = new List<Country>();
         }
 
-        public class DivisionTemplate
+        public class Country
         {
             public string Id { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+            public string Tag { get; set; } = string.Empty;
+            public string Capital { get; set; } = string.Empty;
+            public RGBColor MapColor { get; set; } = null;
+            public RGBColor UiColor { get; set; } = null;
             public List<RawLine> RawLines { get; set; } = new List<RawLine>();
-            public SupportUnits SupportUnits { get; set; } = new SupportUnits();
-        }
-        public class SupportUnits
-        {
-            public List<RawLine> RawLines { get; set; } = new List<RawLine>();
+            public List<ConditionalName> ConditionalNames { get; set; } = new List<ConditionalName>();
+            public List<ConditionalPartyName> ConditionalPartyNames { get; set; } = new List<ConditionalPartyName>();
         }
 
-        public class DivisionPlacement
+        public class Condition
         {
-            public string Id { get; set; } = string.Empty;
-            public string Coordinates { get; set; } = string.Empty;
-            public string ForeignId { get; set; } = string.Empty; // References DivisionTemplate Id
-            public List<RawLine> RawLines { get; set; } = new List<RawLine>();
+            public string Type { get; set; } = string.Empty;
+            public string ConditionValue { get; set; } = string.Empty;
         }
 
-        public class AirWingPlacement
+        public class ConditionalName
         {
-            public string Coordinates { get; set; } = string.Empty;
-            public List<RawLine> RawLines { get; set; } = new List<RawLine>();
+            public string Name { get; set; } = string.Empty;
+            public Condition Condition { get; set; } = new Condition();
         }
 
-        public class FleetPlacement
+        public class ConditionalPartyName
         {
-            public string Id { get; set; } = string.Empty;
-            public string Coordinates { get; set; } = string.Empty;
-            public List<TaskForcePlacement> TaskForces { get; set; } = new List<TaskForcePlacement>();
+            public string Name { get; set; } = string.Empty;
+            public Condition Condition { get; set; } = new Condition();
         }
 
-        public class TaskForcePlacement
-        {
-            public string Id { get; set; } = string.Empty;
-            public string Coordinates { get; set; } = string.Empty;
-            public List<Ship> Ships { get; set; } = new List<Ship>();
-        }
-
-        public class Ship
-        {
-            public string Id { get; set; } = string.Empty;
-            public string ForeignId { get; set; } = string.Empty; // Archetype ID
-            public string CountryTag { get; set; } = string.Empty;
-            public string CategoryId { get; set; } = string.Empty;
-            public string DesignId { get; set; } = string.Empty;
-            public List<RawLine> RawLines { get; set; } = new List<RawLine>();
-        }
-
-        public class AddProduction
-        {
-            public string EquipmentId { get; set; } = string.Empty;
-            public string CountryTag { get; set; } = string.Empty;
-            public List<RawLine> RawLines { get; set; } = new List<RawLine>();
-        }
 
         public class ParsedHistoryFile
         {
             public string SourceFileName { get; set; } = string.Empty;
-            public List<History> Historys { get; set; } = new List<History>();
+            public List<Historys> Historys { get; set; } = new List<Historys>();
         }
 
         // Store the most recently parsed file for other components to use
@@ -92,238 +64,144 @@ namespace Compiler
         public override void ParseFile(string filePath, string fileName, List<BaseValidator.PreprocessedLine> preprocessedLines)
         {
             var parsedFile = new ParsedHistoryFile { SourceFileName = fileName };
-            var currentHistory = new History();
-            parsedFile.Historys.Add(currentHistory);
+            var historys = new Historys();
+            Country currentCountry = null;
 
-            if (Metadata == null)
+            foreach (var preprocessedLine in preprocessedLines)
             {
-                Errors.Add(new ParsingError(
-                    fileName,
-                    0,
-                    $"ERROR! FAILED TO RETRIEVE ALL FILE METADATA FOR EQUIPMENT IN FILE: {filePath}."
-                ));
-                return;
-            }
+                var trimmedLine = preprocessedLine.TrimmedLine;
+                var depth = preprocessedLine.Depth;
+                var lineNumber = preprocessedLine.LineNumber;
 
-            DivisionTemplate currentTemplate = null;
-            DivisionPlacement currentDivision = null;
-            AirWingPlacement currentAirWing = null;
-            FleetPlacement currentFleet = null;
-            TaskForcePlacement currentTaskForce = null;
-            Ship currentShip = null;
-            AddProduction currentProduction = null;
-            bool isInsideSupportUnits = false;
-
-            for (int i = 0; i < preprocessedLines.Count; i++)
-            {
-                var pl = preprocessedLines[i];
-                string lineText = pl.TrimmedLine;
-
-                // ==========================================
-                // DEPTH 0: BLOCK HEADERS
-                // ==========================================
-                if (pl.Depth == 0)
+                // Handle country line
+                if (trimmedLine.StartsWith("country \"", StringComparison.OrdinalIgnoreCase) && depth == 0)
                 {
-                    // Reset all active contexts
-                    currentTemplate = null;
-                    currentDivision = null;
-                    currentAirWing = null;
-                    currentFleet = null;
-                    currentTaskForce = null;
-                    currentShip = null;
-                    currentProduction = null;
-                    isInsideSupportUnits = false;
-
-                    if (lineText.StartsWith("division template ", StringComparison.OrdinalIgnoreCase))
+                    var countryName = GetQuotedContent(trimmedLine);
+                    currentCountry = new Country
                     {
-                        currentTemplate = new DivisionTemplate
-                        {
-                            Id = GetQuotedContent(lineText.Substring("division template ".Length))
-                        };
-                        currentHistory.DivisionTemplates.Add(currentTemplate);
-                    }
-                    else if (lineText.StartsWith("place division ", StringComparison.OrdinalIgnoreCase))
+                        Name = countryName,
+                    };
+
+                    // Get tag from metadata
+                    if (Metadata?.Lines != null && Metadata.Lines.TryGetValue(lineNumber, out var metadataLine))
                     {
-                        string id = GetQuotedContent(lineText);
-                        string coordinates = string.Empty;
-                        string templateId = string.Empty;
-
-                        if (Metadata.Lines.TryGetValue(pl.LineNumber, out var lineData))
-                        {
-                            coordinates = lineData.Coordinates ?? string.Empty;
-                        }
-
-                        int usingIndex = lineText.IndexOf(" using template ", StringComparison.OrdinalIgnoreCase);
-                        if (usingIndex != -1)
-                        {
-                            templateId = GetQuotedContent(lineText.Substring(usingIndex + " using template ".Length));
-                        }
-
-                        currentDivision = new DivisionPlacement
-                        {
-                            Id = id,
-                            Coordinates = coordinates,
-                            ForeignId = templateId
-                        };
-                        currentHistory.DivisionPlacements.Add(currentDivision);
-                    }
-                    else if (lineText.StartsWith("place airwings at ", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string coordinates = string.Empty;
-                        if (Metadata.Lines.TryGetValue(pl.LineNumber, out var lineData))
-                        {
-                            coordinates = lineData.Coordinates ?? string.Empty;
-                        }
-
-                        currentAirWing = new AirWingPlacement
-                        {
-                            Coordinates = coordinates
-                        };
-                        currentHistory.AirWingPlacements.Add(currentAirWing);
-                    }
-                    else if (lineText.StartsWith("place fleet ", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string id = GetQuotedContent(lineText);
-                        string coordinates = string.Empty;
-                        if (Metadata.Lines.TryGetValue(pl.LineNumber, out var lineData))
-                        {
-                            coordinates = lineData.Coordinates ?? string.Empty;
-                        }
-
-                        currentFleet = new FleetPlacement
-                        {
-                            Id = id,
-                            Coordinates = coordinates
-                        };
-                        currentHistory.FleetPlacements.Add(currentFleet);
-                    }
-                    else if (lineText.StartsWith("add production ", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string equipmentId = string.Empty;
-                        string countryTag = string.Empty;
-
-                        if (Metadata.Lines.TryGetValue(pl.LineNumber, out var lineData))
-                        {
-                            equipmentId = lineData.Id ?? string.Empty;
-                            countryTag = lineData.CountryTag ?? string.Empty;
-                        }
-
-                        currentProduction = new AddProduction
-                        {
-                            EquipmentId = equipmentId,
-                            CountryTag = countryTag
-                        };
-                        currentHistory.AddProductions.Add(currentProduction);
+                        currentCountry.Id = metadataLine.Id;
+                        currentCountry.Tag = metadataLine.Id;
                     }
 
-                    continue;
+                    historys.Countrys.Add(currentCountry);
                 }
-
-                // ==========================================
-                // NESTED CONTENT HANDLING (DEPTH >= 1)
-                // ==========================================
-                var raw = new RawLine { trimmedLine = pl.TrimmedLine, depth = pl.Depth };
-
-                if (currentTemplate != null)
+                // Handle capital line
+                else if (trimmedLine.StartsWith("capital ", StringComparison.OrdinalIgnoreCase) && depth == 1 && currentCountry != null)
                 {
-                    // Check if entering or exiting support units scope
-                    if (lineText.StartsWith("support", StringComparison.OrdinalIgnoreCase))
+                    if (Metadata?.Lines != null && Metadata.Lines.TryGetValue(lineNumber, out var metadataLine))
                     {
-                        isInsideSupportUnits = true;
-                        continue; // Skip saving the 'support' block header line itself
+                        currentCountry.Capital = metadataLine.Id;
                     }
-
-                    if (isInsideSupportUnits)
+                }
+                // Handle map color line
+                else if (trimmedLine.StartsWith("map color ", StringComparison.OrdinalIgnoreCase) && depth == 1 && currentCountry != null)
+                {
+                    if (Metadata?.Lines != null && Metadata.Lines.TryGetValue(lineNumber, out var metadataLine))
                     {
-                        // If we drop back to depth 1 (or root of template), exit support units context
-                        if (pl.Depth == 1 && !lineText.StartsWith("support", StringComparison.OrdinalIgnoreCase))
+                        if (metadataLine.RgbValue != null)
                         {
-                            isInsideSupportUnits = false;
-                            currentTemplate.RawLines.Add(raw);
+                            currentCountry.MapColor = new RGBColor
+                            {
+                                Red = metadataLine.RgbValue.Red,
+                                Green = metadataLine.RgbValue.Green,
+                                Blue = metadataLine.RgbValue.Blue
+                            };
+                        }
+                    }
+                }
+                // Handle ui color line
+                else if (trimmedLine.StartsWith("ui color ", StringComparison.OrdinalIgnoreCase) && depth == 1 && currentCountry != null)
+                {
+                    if (Metadata?.Lines != null && Metadata.Lines.TryGetValue(lineNumber, out var metadataLine))
+                    {
+                        if (metadataLine.RgbValue != null)
+                        {
+                            currentCountry.UiColor = new RGBColor
+                            {
+                                Red = metadataLine.RgbValue.Red,
+                                Green = metadataLine.RgbValue.Green,
+                                Blue = metadataLine.RgbValue.Blue
+                            };
+                        }
+                    }
+                }
+                // Handle name line with conditions
+                else if (trimmedLine.StartsWith("name ", StringComparison.OrdinalIgnoreCase) && depth == 1 && currentCountry != null)
+                {
+                    if (Metadata?.Lines != null && Metadata.Lines.TryGetValue(lineNumber, out var metadataLine))
+                    {
+                        // Get the quoted name content
+                        var nameContent = GetQuotedContent(trimmedLine);
+
+                        // If there are conditions, create ConditionalName entries for each condition
+                        if (metadataLine.NameConditions != null && metadataLine.NameConditions.Count > 0)
+                        {
+                            foreach (var condition in metadataLine.NameConditions)
+                            {
+                                var conditionalName = new ConditionalName
+                                {
+                                    Name = nameContent,
+                                    Condition = new Condition
+                                    {
+                                        Type = condition.Type.ToString().ToLower(),
+                                        ConditionValue = condition.Value
+                                    }
+                                };
+                                currentCountry.ConditionalNames.Add(conditionalName);
+                            }
                         }
                         else
                         {
-                            currentTemplate.SupportUnits.RawLines.Add(raw);
+                            // No conditions, just set the default name
+                            currentCountry.Name = nameContent;
                         }
                     }
-                    else
+                }
+                // Handle party name line with conditions
+                else if (trimmedLine.StartsWith("party name ", StringComparison.OrdinalIgnoreCase) && depth == 1 && currentCountry != null)
+                {
+                    if (Metadata?.Lines != null && Metadata.Lines.TryGetValue(lineNumber, out var metadataLine))
                     {
-                        currentTemplate.RawLines.Add(raw);
+                        // Get the quoted name content
+                        var nameContent = GetQuotedContent(trimmedLine);
+
+                        // If there are conditions, create ConditionalPartyName entries for each condition
+                        if (metadataLine.NameConditions != null && metadataLine.NameConditions.Count > 0)
+                        {
+                            foreach (var condition in metadataLine.NameConditions)
+                            {
+                                var conditionalPartyName = new ConditionalPartyName
+                                {
+                                    Name = nameContent,
+                                    Condition = new Condition
+                                    {
+                                        Type = condition.Type.ToString().ToLower(),
+                                        ConditionValue = condition.Value
+                                    }
+                                };
+                                currentCountry.ConditionalPartyNames.Add(conditionalPartyName);
+                            }
+                        }
                     }
                 }
-                else if (currentDivision != null)
+                // Save all other lines as raw lines (inside country blocks)
+                else if (depth >= 1 && currentCountry != null && trimmedLine != "}")
                 {
-                    currentDivision.RawLines.Add(raw);
-                }
-                else if (currentAirWing != null)
-                {
-                    currentAirWing.RawLines.Add(raw);
-                }
-                else if (currentProduction != null)
-                {
-                    currentProduction.RawLines.Add(raw);
-                }
-                else if (currentFleet != null)
-                {
-                    if (pl.Depth == 1 && lineText.StartsWith("place taskforce ", StringComparison.OrdinalIgnoreCase))
+                    currentCountry.RawLines.Add(new RawLine
                     {
-                        currentShip = null;
-                        string tfId = GetQuotedContent(lineText);
-                        string coordinates = string.Empty;
-
-                        if (Metadata.Lines.TryGetValue(pl.LineNumber, out var lineData))
-                        {
-                            coordinates = lineData.Coordinates ?? string.Empty;
-                        }
-
-                        currentTaskForce = new TaskForcePlacement
-                        {
-                            Id = tfId,
-                            Coordinates = coordinates
-                        };
-                        currentFleet.TaskForces.Add(currentTaskForce);
-                    }
-                    else if (currentTaskForce != null)
-                    {
-                        if (pl.Depth == 2 && lineText.StartsWith("ship ", StringComparison.OrdinalIgnoreCase))
-                        {
-                            string shipId = GetQuotedContent(lineText);
-                            string archetypeId = string.Empty;
-                            string countryTag = string.Empty;
-
-                            if (Metadata.Lines.TryGetValue(pl.LineNumber, out var lineData))
-                            {
-                                archetypeId = lineData.Id ?? string.Empty;
-                                countryTag = lineData.CountryTag ?? string.Empty;
-                            }
-
-                            currentShip = new Ship
-                            {
-                                Id = shipId,
-                                ForeignId = archetypeId,
-                                CountryTag = countryTag
-                            };
-                            currentTaskForce.Ships.Add(currentShip);
-                        }
-                        else if (currentShip != null && pl.Depth >= 3)
-                        {
-                            if (lineText.StartsWith("using design ", StringComparison.OrdinalIgnoreCase))
-                            {
-                                currentShip.DesignId = GetQuotedContent(lineText.Substring("using design ".Length));
-                            }
-                            else if (lineText.StartsWith("category ", StringComparison.OrdinalIgnoreCase))
-                            {
-                                currentShip.CategoryId = GetQuotedContent(lineText.Substring("category ".Length));
-                            }
-                            else
-                            {
-                                currentShip.RawLines.Add(raw);
-                            }
-                        }
-                    }
+                        trimmedLine = trimmedLine,
+                        depth = depth
+                    });
                 }
             }
 
+            parsedFile.Historys.Add(historys);
             LastParsedFile = parsedFile;
         }
     }

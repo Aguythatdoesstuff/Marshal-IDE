@@ -7,15 +7,40 @@ using System.Text.RegularExpressions;
 
 namespace Compiler
 {
+    // Known condition types for history conditions
+    public enum ConditionType
+    {
+        Ideology, // sub-ideology is allias of ideology!!!
+        Subject,
+        Overlord,
+        Party,
+        Autonomy
+    }
+
+    public class RGBColor
+    {
+        public int Red { get; set; }
+        public int Green { get; set; }
+        public int Blue { get; set; }
+    }
+
     // Represents a single line's data
     public class HistoryLineData : IMiscListLineData
     {
         public int LineNumber { get; set; }
         public string Id { get; set; }
-        public string Coordinates { get; set; }
-        public string CountryTag { get; set; }
         public string Misc { get; set; }
+        public RGBColor RgbValue { get; set; }
+        public List<Condition> NameConditions { get; set; } = new();
         public List<string> MiscList { get; set; } = new();
+
+        public class Condition
+        {
+            public ConditionType Type { get; set; }
+            public bool isdef { get; set; } = false;
+            public bool isAdj { get; set; } = false;
+            public string Value { get; set; } // e.g. liberalism
+        }
     }
 
     // The main object passed to the parser
@@ -44,40 +69,27 @@ namespace Compiler
 
         protected override Dictionary<string, int[]> AllowedBlockDepths => new(StringComparer.OrdinalIgnoreCase)
         {
-            ["place fleet \""] = new[] { 0 },
-            ["place airwings "] = new[] { 0 },
-            ["place division \""] = new[] { 0 },
-            ["division template \""] = new[] { 0 },
-            ["add production \""] = new[] { 0 },
-            ["support units"] = new[] { 1 },
-            ["place taskforce \""] = new[] { 1 },
-            ["ship \""] = new[] { 2 },
-            ["using design \""] = new[] { 3 },
-            ["category \""] = new[] { 3 },
+            ["country \""] = new[] { 0 },
+            ["name "] = new[] { 1 },
+            ["party name "] = new[] { 1 },
+            ["capital "] = new[] { 1 },
+            ["ui color "] = new[] { 1 },
+            ["map color "] = new[] { 1 },
+            
         };
 
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
-            if (trimmedLine.StartsWith("add production ", StringComparison.OrdinalIgnoreCase) && currentDepth == 0)
+            if (trimmedLine.StartsWith("country ", StringComparison.OrdinalIgnoreCase) && currentDepth == 0)
             {
-                int forIndex = trimmedLine.LastIndexOf(" for ", StringComparison.OrdinalIgnoreCase);
+                int forIndex = trimmedLine.LastIndexOf(" with tag ", StringComparison.OrdinalIgnoreCase);
 
                 if (forIndex != -1)
                 {
-                    string equipmentId = trimmedLine.Substring("add production ".Length, forIndex - "add production ".Length).Trim();
-                    string countryTag = trimmedLine.Substring(forIndex + " for ".Length).Trim();
+                    string countryTag = trimmedLine.Substring(forIndex + " with tag ".Length).Trim();
 
-                    bool isEquipmentValid = IsValidId(equipmentId, fileName, lineNumber, ComponentName, DotsAllowed);
                     bool isTagValid = IsValidCountryId(countryTag, fileName, lineNumber, ComponentName);
 
-                    if (!isEquipmentValid)
-                    {
-                        Errors.Add(new ValidationError(
-                            fileName,
-                            lineNumber,
-                            $"ERROR! INVALID EQUIPMENT ID: '{equipmentId}' must be a valid identifier."
-                        ));
-                    }
 
                     if (!isTagValid)
                     {
@@ -88,13 +100,12 @@ namespace Compiler
                         ));
                     }
 
-                    if (isEquipmentValid && isTagValid)
+                    if (isTagValid)
                     {
                         Metadata.Lines[lineNumber] = new HistoryLineData
                         {
                             LineNumber = lineNumber,
-                            Id = equipmentId,
-                            CountryTag = countryTag
+                            Id = countryTag,
                         };
                     }
                 }
@@ -103,289 +114,242 @@ namespace Compiler
                     Errors.Add(new ValidationError(
                         fileName,
                         lineNumber,
-                        $"ERROR! MALFORMED SYNTAX: Expected format 'add production <equipment_id> for <TAG>'."
+                        $"ERROR! MALFORMED SYNTAX: Expected format 'country \"<country name>\" with tag <Country tag>'."
                     ));
                 }
 
                 ExpectedDepth = currentDepth + 1;
                 return true;
             }
-            if (trimmedLine.StartsWith("ship ", StringComparison.OrdinalIgnoreCase) && currentDepth == 2)
+            else if (trimmedLine.StartsWith("name ", StringComparison.OrdinalIgnoreCase) && currentDepth == 1)
             {
-                int archIndex = trimmedLine.IndexOf(" using archetype ", StringComparison.OrdinalIgnoreCase);
-                int forIndex = trimmedLine.LastIndexOf(" for ", StringComparison.OrdinalIgnoreCase);
+                var withoutQuotes = RemoveQuotedContent(trimmedLine);
+                var parts = withoutQuotes.Split(" ", System.StringSplitOptions.RemoveEmptyEntries);
 
-                if (archIndex != -1 && forIndex != -1 && forIndex > archIndex)
+                if (parts.Length < 1)
                 {
-                    int archStart = archIndex + " using archetype ".Length;
-                    string archetypeId = trimmedLine.Substring(archStart, forIndex - archStart).Trim();
-                    string countryTag = trimmedLine.Substring(forIndex + " for ".Length).Trim();
-
-                    bool isArchValid = IsValidId(archetypeId, fileName, lineNumber, ComponentName, DotsAllowed);
-                    bool isTagValid = IsValidCountryId(countryTag, fileName, lineNumber, ComponentName);
-
-                    if (!isArchValid)
-                    {
-                        Errors.Add(new ValidationError(
-                            fileName,
-                            lineNumber,
-                            $"ERROR! INVALID ARCHETYPE ID: '{archetypeId}' must be a valid identifier."
-                        ));
-                    }
-
-                    if (!isTagValid)
-                    {
-                        Errors.Add(new ValidationError(
-                            fileName,
-                            lineNumber,
-                            $"ERROR! INVALID COUNTRY TAG: '{countryTag}' must be a valid 3-character country tag."
-                        ));
-                    }
-
-                    if (isArchValid && isTagValid)
-                    {
-                        Metadata.Lines[lineNumber] = new HistoryLineData
-                        {
-                            LineNumber = lineNumber,
-                            Id = archetypeId,
-                            CountryTag = countryTag
-                        };
-                    }
+                    Errors.Add(new ValidationError(fileName, lineNumber, "ERROR! Empty name statement."));
+                    return true;
                 }
-                ExpectedDepth = currentDepth + 1;
-                return true;
-            }
-            if (trimmedLine.StartsWith("place taskforce ", StringComparison.OrdinalIgnoreCase) && currentDepth == 1)
-            {
-                int atIndex = trimmedLine.LastIndexOf("\" at ", StringComparison.OrdinalIgnoreCase);
-                if (atIndex != -1)
+
+                // parts[0] is "name" - ignore
+                int index = 1;
+
+                var historyLine = new HistoryLineData { LineNumber = lineNumber };
+                bool hasDefOrAdj = false;
+                bool hasDefKeyword = false;
+                bool hasAdjKeyword = false;
+
+                // Check if we only have "name def" or "name adj"
+                if (parts.Length == 2 && (parts[1].Equals("def", StringComparison.OrdinalIgnoreCase) || parts[1].Equals("adj", StringComparison.OrdinalIgnoreCase)))
                 {
-                    string coordStr = trimmedLine.Substring(atIndex + 4).Trim();
-                    if (int.TryParse(coordStr, out _))
+                    hasDefOrAdj = true;
+                    if (parts[1].Equals("def", StringComparison.OrdinalIgnoreCase))
                     {
-                        Metadata.Lines[lineNumber] = new HistoryLineData
-                        {
-                            LineNumber = lineNumber,
-                            Coordinates = coordStr
-                        };
+                        hasDefKeyword = true;
                     }
                     else
                     {
-                        Errors.Add(new ValidationError(
-                            fileName,
-                            lineNumber,
-                            $"ERROR! INVALID COORDINATE: '{coordStr}' is not a valid integer."
-                        ));
+                        hasAdjKeyword = true;
                     }
                 }
-                ExpectedDepth = currentDepth + 1;
-                return true;
-            }
-            if (trimmedLine.StartsWith("place fleet ", StringComparison.OrdinalIgnoreCase) && currentDepth == 0)
-            {
-                int atIndex = trimmedLine.LastIndexOf("\" at ", StringComparison.OrdinalIgnoreCase);
-                if (atIndex != -1)
+                else
                 {
-                    string coordStr = trimmedLine.Substring(atIndex + 4).Trim();
-                    if (int.TryParse(coordStr, out _))
+                    // Parse conditions (potentially multiple with "and")
+                    while (index < parts.Length)
                     {
-                        Metadata.Lines[lineNumber] = new HistoryLineData
+                        // Check for "if" keyword (optional)
+                        if (index < parts.Length && parts[index].Equals("if", StringComparison.OrdinalIgnoreCase))
                         {
-                            LineNumber = lineNumber,
-                            Coordinates = coordStr
+                            index++;
+                        }
+
+                        // Optional "is" after "if"
+                        if (index < parts.Length && parts[index].Equals("is", StringComparison.OrdinalIgnoreCase))
+                        {
+                            index++;
+                        }
+
+                        // Next should be condition type
+                        if (index >= parts.Length)
+                        {
+                            var supportedTypes = string.Join(", ", "subject", "ideology", "overlord", "autonomy", "party", "sub-ideology");
+                            Errors.Add(new ValidationError(fileName, lineNumber,
+                                $"ERROR! Expected condition type after 'if'. Supported types from ConditionType enum: {supportedTypes}."));
+                            return true;
+                        }
+
+                        string conditionTypeRaw = parts[index].ToLower().Replace("_", "-");
+                        string conditionType = conditionTypeRaw;
+                        if (conditionType == "sub-ideology")
+                        {
+                            conditionType = "ideology"; // sub-ideology is alias of ideology
+                        }
+
+                        var validTypes = new[] { "subject", "ideology", "overlord", "autonomy", "party" };
+                        if (!validTypes.Contains(conditionType))
+                        {
+                            var supportedTypes = string.Join(", ", validTypes);
+                            Errors.Add(new ValidationError(fileName, lineNumber,
+                                $"ERROR! Invalid condition type: '{parts[index]}'. Received: '{parts[index]}'. Supported types from ConditionType enum: {supportedTypes}."));
+                            return true;
+                        }
+                        index++;
+
+                        // Optional "is" or "of" after condition type
+                        if (index < parts.Length && (parts[index].Equals("is", StringComparison.OrdinalIgnoreCase) || parts[index].Equals("of", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            index++;
+                        }
+
+                        // Next should be the condition value
+                        if (index >= parts.Length)
+                        {
+                            var supportedTypes = string.Join(", ", "subject, ideology, overlord, autonomy, party");
+                            Errors.Add(new ValidationError(fileName, lineNumber,
+                                $"ERROR! Expected condition value after '{conditionType}'. Supported types: {supportedTypes}."));
+                            return true;
+                        }
+
+                        string conditionValue = parts[index];
+                        if (!IsValidId(conditionValue, fileName, lineNumber, ComponentName, DotsAllowed))
+                        {
+                            Errors.Add(new ValidationError(fileName, lineNumber,
+                                $"ERROR! Invalid condition value: '{conditionValue}' must be a valid identifier (alphanumeric, underscore, and optional dots). Received: '{conditionValue}'."));
+                            return true;
+                        }
+
+                        // Parse condition type enum
+                        ConditionType typeEnum = conditionType switch
+                        {
+                            "ideology" => ConditionType.Ideology,
+                            "subject" => ConditionType.Subject,
+                            "overlord" => ConditionType.Overlord,
+                            "autonomy" => ConditionType.Autonomy,
+                            "party" => ConditionType.Party,
+                            _ => ConditionType.Ideology
                         };
-                    }
-                    else
-                    {
-                        Errors.Add(new ValidationError(
-                            fileName,
-                            lineNumber,
-                            $"ERROR! INVALID COORDINATE: '{coordStr}' is not a valid integer."
-                        ));
+
+                        var condition = new HistoryLineData.Condition
+                        {
+                            Type = typeEnum,
+                            Value = conditionValue
+                        };
+
+                        historyLine.NameConditions.Add(condition);
+                        index++;
+
+                        // Check for "def" or "adj" after condition value
+                        if (index < parts.Length)
+                        {
+                            string nextPart = parts[index].ToLower();
+                            if (nextPart == "def")
+                            {
+                                if (hasDefKeyword || hasAdjKeyword)
+                                {
+                                    Errors.Add(new ValidationError(fileName, lineNumber,
+                                        "ERROR! Only one of 'def' or 'adj' can be specified in name statement."));
+                                    return true;
+                                }
+                                hasDefKeyword = true;
+                                hasDefOrAdj = true;
+                                index++;
+                            }
+                            else if (nextPart == "adj")
+                            {
+                                if (hasDefKeyword || hasAdjKeyword)
+                                {
+                                    Errors.Add(new ValidationError(fileName, lineNumber,
+                                        "ERROR! Only one of 'def' or 'adj' can be specified in name statement."));
+                                    return true;
+                                }
+                                hasAdjKeyword = true;
+                                hasDefOrAdj = true;
+                                index++;
+                            }
+                        }
+
+                        // Check for "and" to continue with next condition
+                        if (index < parts.Length && parts[index].Equals("and", StringComparison.OrdinalIgnoreCase))
+                        {
+                            index++;
+                            // Loop continues to parse next condition
+                        }
+                        else
+                        {
+                            // No more conditions
+                            break;
+                        }
                     }
                 }
-                ExpectedDepth = currentDepth + 1;
+
+                // Apply def/adj flags to all conditions in this line
+                if (hasDefKeyword || hasAdjKeyword)
+                {
+                    foreach (var condition in historyLine.NameConditions)
+                    {
+                        condition.isdef = hasDefKeyword;
+                        condition.isAdj = hasAdjKeyword;
+                    }
+                }
+
+                // Save to metadata
+                Metadata.Lines[lineNumber] = historyLine;
+                ExpectedDepth = currentDepth;
                 return true;
             }
-            if (trimmedLine.StartsWith("place airwings at ", StringComparison.OrdinalIgnoreCase) && currentDepth == 0)
+            else if (trimmedLine.StartsWith("capital ", StringComparison.OrdinalIgnoreCase) && currentDepth == 1)
             {
-                string remainingStr = trimmedLine.Substring("place airwings at ".Length).Trim();
-
-                if (int.TryParse(remainingStr, out _))
+                string capitalValue = trimmedLine.Substring("capital ".Length).Trim();
+                if (!int.TryParse(capitalValue, out int stateId))
                 {
-                    Metadata.Lines[lineNumber] = new HistoryLineData
-                    {
+                    Errors.Add(new ValidationError(fileName, lineNumber,
+                        $"ERROR! Invalid capital value: '{capitalValue}' must be a valid state ID (integer)."));
+                }
+                else
+                {
+                    Metadata.Lines[lineNumber] = new HistoryLineData 
+                    { 
                         LineNumber = lineNumber,
-                        Coordinates = remainingStr
+                        Id = capitalValue 
                     };
                 }
-                else
-                {
-                    Errors.Add(new ValidationError(
-                        fileName,
-                        lineNumber,
-                        $"ERROR! INVALID COORDINATE: '{remainingStr}' is not a valid integer."
-                    ));
-                }
             }
-
-            if (trimmedLine.StartsWith("place division ", StringComparison.OrdinalIgnoreCase) && currentDepth == 0)
+            else if (trimmedLine.StartsWith("map color ", StringComparison.OrdinalIgnoreCase) && currentDepth == 1)
             {
-                int atIndex = trimmedLine.IndexOf("\" at ", StringComparison.OrdinalIgnoreCase);
-                int usingIndex = trimmedLine.IndexOf(" using template", StringComparison.OrdinalIgnoreCase);
-
-                if (atIndex != -1 && usingIndex != -1 && usingIndex > atIndex)
+                string colorValue = trimmedLine.Substring("map color ".Length).Trim();
+                if (!TryParseRGBColor(colorValue, out var rgb))
                 {
-                    int startPos = atIndex + "\" at ".Length;
-                    string coordStr = trimmedLine.Substring(startPos, usingIndex - startPos).Trim();
-
-                    if (int.TryParse(coordStr, out _))
-                    {
-                        Metadata.Lines[lineNumber] = new HistoryLineData
-                        {
-                            LineNumber = lineNumber,
-                            Coordinates = coordStr
-                        };
-                    }
-                    else
-                    {
-                        Errors.Add(new ValidationError(
-                            fileName,
-                            lineNumber,
-                            $"ERROR! INVALID COORDINATE: '{coordStr}' is not a valid integer."
-                        ));
-                    }
-                }
-            }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            // ==========================================
-            // HANDLE "unit types"
-            // ==========================================
-            if (ValidateBlockSection(
-                    trimmedLine, currentDepth, lineNumber, fileName,
-                    keyword: "unit types",
-                    expectedHeaderDepth: 1,
-                    parentBlockHeader: "unit",
-                    errorMessagePrefix: "UNIT TYPE",
-                    metadataLines: Metadata.Lines))
-                {
-                    ExpectedDepth = currentDepth + 1;
-                    return true;
-                }
-
-            // ==========================================
-            // HANDLE "unit categories"
-            // ==========================================
-                if (ValidateBlockSection(
-                    trimmedLine, currentDepth, lineNumber, fileName,
-                    keyword: "unit categories",
-                    expectedHeaderDepth: 1,
-                    parentBlockHeader: "unit",
-                    errorMessagePrefix: "UNIT CATEGORY",
-                    metadataLines: Metadata.Lines))
-                {
-                    ExpectedDepth = currentDepth + 1;
-                    return true;
-                }
-
-            // ==========================================
-            // HANDLE "required equipment"
-            // ==========================================
-                if (ValidateBlockSection(
-                    trimmedLine, currentDepth, lineNumber, fileName,
-                    keyword: "required equipment",
-                    expectedHeaderDepth: 1,
-                    parentBlockHeader: "unit",
-                    errorMessagePrefix: "REQUIRED EQUIPMENT",
-                    metadataLines: Metadata.Lines))
-                {
-                    ExpectedDepth = currentDepth + 1;
-                    return true;
-                }
-
-            // ==========================================
-            // HANDLE TYPE DEFINITIONS (DEPTH 0)
-            // ==========================================
-            if (trimmedLine.StartsWith("unit ", StringComparison.OrdinalIgnoreCase) &&
-               !trimmedLine.StartsWith("unit model", StringComparison.OrdinalIgnoreCase))
-            {
-                if (currentDepth != 0)
-                {
-                    Errors.Add(new ValidationError(
-                        fileName,
-                        lineNumber,
-                        $"ERROR! ROOT-LEVEL SYNTAX AT NON-ZERO DEPTH: Type definitions must be at depth 0, but found at depth {currentDepth}."
-                    ));
-                }
-
-                string unitId = trimmedLine.Substring("unit ".Length).Trim();
-                if (!IsValidId(unitId, fileName, lineNumber, ComponentName, DotsAllowed))
-                {
-                    Errors.Add(new ValidationError(
-                        fileName,
-                        lineNumber,
-                        $"ERROR! INVALID UNIT ID: '{unitId}' must be a valid identifier."
-                    ));
+                    Errors.Add(new ValidationError(fileName, lineNumber,
+                        $"ERROR! Invalid map color value: '{colorValue}' must be three RGB values between 0-255 (e.g., 255 128 64)."));
                 }
                 else
                 {
-                    Metadata.Lines[lineNumber] = new HistoryLineData
-                    {
+                    Metadata.Lines[lineNumber] = new HistoryLineData 
+                    { 
                         LineNumber = lineNumber,
-                        Id = unitId
+                        RgbValue = new RGBColor { Red = rgb.Red, Green = rgb.Green, Blue = rgb.Blue }
                     };
                 }
-
-                ExpectedDepth = currentDepth + 1;
-                return true;
             }
-
-            return false;
+            else if (trimmedLine.StartsWith("ui color ", StringComparison.OrdinalIgnoreCase) && currentDepth == 1)
+            {
+                string colorValue = trimmedLine.Substring("ui color ".Length).Trim();
+                if (!TryParseRGBColor(colorValue, out var rgb))
+                {
+                    Errors.Add(new ValidationError(fileName, lineNumber,
+                        $"ERROR! Invalid ui color value: '{colorValue}' must be three RGB values between 0-255 (e.g., 255 128 64)."));
+                }
+                else
+                {
+                    Metadata.Lines[lineNumber] = new HistoryLineData 
+                    { 
+                        LineNumber = lineNumber,
+                        RgbValue = new RGBColor { Red = rgb.Red, Green = rgb.Green, Blue = rgb.Blue }
+                    };
+                }
+            }
+        return false;
         }
     }
 }

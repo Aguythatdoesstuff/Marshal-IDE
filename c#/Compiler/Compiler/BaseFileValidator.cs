@@ -873,6 +873,37 @@ namespace Compiler
         {
             if (string.IsNullOrEmpty(s)) return false;
 
+            // Check for illegal country tags used as internal game engine keys
+            string sUpper = s.ToUpper();
+
+            // List of illegal tags that are reserved for game engine internal operations
+            var illegalTags = new[] { "NOT", "AND", "TAG", "OOB", "LOG", "NUM", "RED" };
+
+            if (illegalTags.Contains(sUpper))
+            {
+                var reasons = new Dictionary<string, string>
+                {
+                    { "NOT", "internal flow control tool (determines true when any trigger within is false)" },
+                    { "AND", "internal flow control tool (determines true when all triggers within are true)" },
+                    { "TAG", "internal trigger that checks the country being chosen" },
+                    { "OOB", "internal tag for order of battle file loading and division placement" },
+                    { "LOG", "internal logging trigger/effect that writes to game.log or console" },
+                    { "NUM", "internal array counter for element counting (breaks resistance system)" },
+                    { "RED", "internal custom map mode variable (breaks all custom map modes)" }
+                };
+
+                string reason = reasons.ContainsKey(sUpper) ? reasons[sUpper] : "internal game engine key";
+                Errors.Add(new ValidationError(fileName, lineNumber, $"ILLEGAL COUNTRY TAG: '{s}' is a reserved internal game engine key ({reason}) and cannot be used as a country tag."));
+                return false;
+            }
+
+            // Check if tag is entirely numeric (game engine confuses these for state IDs)
+            if (Regex.IsMatch(s, "^[0-9]{3}$"))
+            {
+                Errors.Add(new ValidationError(fileName, lineNumber, $"ILLEGAL COUNTRY TAG: '{s}' is entirely numeric. Country tags cannot be purely numeric as this causes confusion with state IDs."));
+                return false;
+            }
+
             // Warn on non-ASCII characters
             bool asciiOk = true;
             foreach (char c in s)
@@ -897,6 +928,31 @@ namespace Compiler
         protected static bool IsInt(string s)
         {
             return !string.IsNullOrEmpty(s) && s.All(char.IsDigit);
+        }
+
+        // Parse RGB color string (three space-separated integers 0-255)
+        protected static bool TryParseRGBColor(string colorString, out (int Red, int Green, int Blue) rgbValues)
+        {
+            rgbValues = (0, 0, 0);
+            var parts = colorString.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length != 3)
+            {
+                return false;
+            }
+
+            if (!int.TryParse(parts[0], out int red) || !int.TryParse(parts[1], out int green) || !int.TryParse(parts[2], out int blue))
+            {
+                return false;
+            }
+
+            if (red < 0 || red > 255 || green < 0 || green > 255 || blue < 0 || blue > 255)
+            {
+                return false;
+            }
+
+            rgbValues = (red, green, blue);
+            return true;
         }
 
         // Remove quoted segments (including the quotes) and return remaining text
