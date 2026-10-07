@@ -56,6 +56,16 @@ namespace Compiler
                 sw.WriteLine($"capital = {country.Capital}");
             }
 
+            if (country.MapColor != null)
+            {
+                sw.WriteLine($"color = rgb {{ {country.MapColor.Red} {country.MapColor.Green} {country.MapColor.Blue} }}");
+            }
+
+            if (country.UiColor != null)
+            {
+                sw.WriteLine($"color_ui = rgb {{ {country.UiColor.Red} {country.UiColor.Green} {country.UiColor.Blue} }}");
+            }
+
             // Write unconditional base name
             if (!string.IsNullOrEmpty(country.Name))
             {
@@ -80,18 +90,17 @@ namespace Compiler
                     sw.WriteLine("l_english:");
                 }
 
-                // Group conditional names by their condition combinations
-                var groupedNames = GroupConditions(country.ConditionalNames);
+                // Group conditional names by their formatted condition keys
+                var groupedNames = country.ConditionalNames
+                    .GroupBy(c => FormatConditionKey(country.Tag, c.Conditions))
+                    .Where(g => !string.IsNullOrEmpty(g.Key) && g.All(c => !string.IsNullOrEmpty(c.Name)));
 
                 foreach (var group in groupedNames)
                 {
-                    if (string.IsNullOrEmpty(group.Key) || group.Any(c => string.IsNullOrEmpty(c.Name)))
-                        continue;
+                    string locKey = group.Key;
+                    string nameValue = group.First().Name;
 
-                    string locKey = BuildLocalisationKey(country.Tag, group.Key);
-                    string nameValue = group.First().Name; // All names in the group should be the same
-
-                    sw.WriteLine($" {locKey}: \"{nameValue}\"");
+                    sw.WriteLine($" {locKey}:0 \"{nameValue}\"");
                 }
             });
         }
@@ -107,106 +116,72 @@ namespace Compiler
                     sw.WriteLine("l_english:");
                 }
 
-                // Group conditional party names by their condition combinations
-                var groupedPartyNames = GroupConditions(country.ConditionalPartyNames);
+                // Group conditional party names by their formatted condition keys
+                var groupedPartyNames = country.ConditionalPartyNames
+                    .GroupBy(c => FormatConditionKey(country.Tag, c.Conditions))
+                    .Where(g => !string.IsNullOrEmpty(g.Key) && g.All(c => !string.IsNullOrEmpty(c.Name)));
 
                 foreach (var group in groupedPartyNames)
                 {
-                    if (string.IsNullOrEmpty(group.Key) || group.Any(c => string.IsNullOrEmpty(c.Name)))
-                        continue;
-
                     string partyName = group.First().Name;
-                    string conditionKey = group.Key;
+                    string conditionBaseKey = group.Key;
 
-                    // Build party name keys: TAG_ideology_party and TAG_ideology_party_long
-                    string baseKey = BuildLocalisationKey(country.Tag, $"{conditionKey}_party");
+                    // Build party name keys: TAG_conditions_party and TAG_conditions_party_long
+                    string baseKey = $"{conditionBaseKey}_party";
                     string longKey = $"{baseKey}_long";
 
-                    sw.WriteLine($" {baseKey}: \"{partyName}\"");
-                    sw.WriteLine($" {longKey}: \"{partyName}\"");
+                    sw.WriteLine($" {baseKey}:0 \"{partyName}\"");
+                    sw.WriteLine($" {longKey}:0 \"{partyName}\"");
                 }
             });
         }
 
-        /// Groups conditional names/party names by their combined condition keys
-        /// Returns a list of groups where each group contains items with the same condition combination
-        private List<IGrouping<string, T>> GroupConditions<T>(List<T> items) where T : class
+        /// Formats a localisation key from a tag and multiple stacked conditions
+        /// Handles condition-specific formatting and joins them into a single key
+        /// Examples:
+        /// - Subject: TAG_target_subject
+        /// - Overlord: TAG_target_overlord
+        /// - Ideology: TAG_ideology
+        /// - Autonomy: TAG_autonomy_level
+        /// - Multiple: TAG_target_subject_communism
+        private string FormatConditionKey(string tag, IEnumerable<HistoryParser.Condition> conditions)
         {
-            if (items == null || items.Count == 0)
-                return new List<IGrouping<string, T>>();
+            if (conditions == null || !conditions.Any())
+                return tag;
 
-            var groupDict = new Dictionary<string, List<T>>();
-
-            foreach (var item in items)
-            {
-                string conditionKey = ExtractConditionKey(item);
-
-                if (!groupDict.ContainsKey(conditionKey))
+            var formattedSegments = conditions
+                .Where(c => c != null && !string.IsNullOrEmpty(c.ConditionValue))
+                .Select(c =>
                 {
-                    groupDict[conditionKey] = new List<T>();
-                }
-                groupDict[conditionKey].Add(item);
-            }
+                    string normValue = NormalizeValue(c.ConditionValue);
+                    string type = (c.Type ?? string.Empty).ToLowerInvariant();
 
-            return groupDict.Select(kvp => new ConditionGrouping<T>(kvp.Key, kvp.Value)).Cast<IGrouping<string, T>>().ToList();
-        }
+                    return type switch
+                    {
+                        "subject" => $"{normValue}_subject",
+                        "overlord" => $"{normValue}_overlord",
+                        "ideology" => normValue,
+                        "autonomy" => normValue.StartsWith("autonomy_") ? normValue : $"autonomy_{normValue}",
+                        "party" => normValue,
+                        _ => normValue
+                    };
+                })
+                .Where(s => !string.IsNullOrEmpty(s));
 
-        /// Extracts and normalizes the condition key from a ConditionalName or ConditionalPartyName
-        private string ExtractConditionKey(object item)
-        {
-            if (item == null) return string.Empty;
+            if (!formattedSegments.Any())
+                return tag;
 
-            var conditionalName = item as HistoryParser.ConditionalName;
-            var conditionalPartyName = item as HistoryParser.ConditionalPartyName;
-
-            var condition = conditionalName?.Condition ?? conditionalPartyName?.Condition;
-
-            if (condition == null || string.IsNullOrEmpty(condition.Type))
-                return string.Empty;
-
-            // Normalize the condition value to camelCase/lowercase (e.g., "integrated_puppet" for autonomy values)
-            string normalizedValue = NormalizeConditionValue(condition.ConditionValue);
-
-            return $"{condition.Type}_{normalizedValue}";
+            return $"{tag}_{string.Join("_", formattedSegments)}";
         }
 
         /// Normalizes condition values to match HOI4 localisation key conventions
-        /// e.g., "autonomy_integrated_puppet" -> "autonomy_integrated_puppet"
-        private string NormalizeConditionValue(string value)
+        /// Converts to lowercase and replaces spaces/hyphens with underscores
+        private string NormalizeValue(string value)
         {
             if (string.IsNullOrEmpty(value))
                 return string.Empty;
 
-            return value.ToLower().Replace(" ", "_").Replace("-", "_");
+            return value.ToLowerInvariant().Replace(" ", "_").Replace("-", "_");
         }
-
-        /// Builds a localisation key from tag and condition key
-        /// e.g., BuildLocalisationKey("SCO", "liberalism") -> "SCO_liberalism"
-        private string BuildLocalisationKey(string tag, string conditionKey)
-        {
-            if (string.IsNullOrEmpty(conditionKey))
-                return tag;
-
-            return $"{tag}_{conditionKey}";
-        }
-    }
-
-    /// Helper class to group conditional items by their condition key
-    internal class ConditionGrouping<T> : IGrouping<string, T> where T : class
-    {
-        private readonly string _key;
-        private readonly List<T> _items;
-
-        public ConditionGrouping(string key, List<T> items)
-        {
-            _key = key;
-            _items = items;
-        }
-
-        public string Key => _key;
-
-        public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _items.GetEnumerator();
     }
 }

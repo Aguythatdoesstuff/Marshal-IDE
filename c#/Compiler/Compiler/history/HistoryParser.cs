@@ -42,13 +42,13 @@ namespace Compiler
         public class ConditionalName
         {
             public string Name { get; set; } = string.Empty;
-            public Condition Condition { get; set; } = new Condition();
+            public List<Condition> Conditions { get; set; } = new List<Condition>();
         }
 
         public class ConditionalPartyName
         {
             public string Name { get; set; } = string.Empty;
-            public Condition Condition { get; set; } = new Condition();
+            public List<Condition> Conditions { get; set; } = new List<Condition>();
         }
 
 
@@ -139,22 +139,21 @@ namespace Compiler
                         // Get the quoted name content
                         var nameContent = GetQuotedContent(trimmedLine);
 
-                        // If there are conditions, create ConditionalName entries for each condition
+                        // If there are conditions, create a single ConditionalName with all conditions
                         if (metadataLine.NameConditions != null && metadataLine.NameConditions.Count > 0)
                         {
-                            foreach (var condition in metadataLine.NameConditions)
+                            var conditionalName = new ConditionalName
                             {
-                                var conditionalName = new ConditionalName
-                                {
-                                    Name = nameContent,
-                                    Condition = new Condition
+                                Name = nameContent,
+                                Conditions = metadataLine.NameConditions
+                                    .Select(condition => new Condition
                                     {
                                         Type = condition.Type.ToString().ToLower(),
                                         ConditionValue = condition.Value
-                                    }
-                                };
-                                currentCountry.ConditionalNames.Add(conditionalName);
-                            }
+                                    })
+                                    .ToList()
+                            };
+                            currentCountry.ConditionalNames.Add(conditionalName);
                         }
                         else
                         {
@@ -171,22 +170,21 @@ namespace Compiler
                         // Get the quoted name content
                         var nameContent = GetQuotedContent(trimmedLine);
 
-                        // If there are conditions, create ConditionalPartyName entries for each condition
+                        // If there are conditions, create a single ConditionalPartyName with all conditions
                         if (metadataLine.NameConditions != null && metadataLine.NameConditions.Count > 0)
                         {
-                            foreach (var condition in metadataLine.NameConditions)
+                            var conditionalPartyName = new ConditionalPartyName
                             {
-                                var conditionalPartyName = new ConditionalPartyName
-                                {
-                                    Name = nameContent,
-                                    Condition = new Condition
+                                Name = nameContent,
+                                Conditions = metadataLine.NameConditions
+                                    .Select(condition => new Condition
                                     {
                                         Type = condition.Type.ToString().ToLower(),
                                         ConditionValue = condition.Value
-                                    }
-                                };
-                                currentCountry.ConditionalPartyNames.Add(conditionalPartyName);
-                            }
+                                    })
+                                    .ToList()
+                            };
+                            currentCountry.ConditionalPartyNames.Add(conditionalPartyName);
                         }
                     }
                 }
