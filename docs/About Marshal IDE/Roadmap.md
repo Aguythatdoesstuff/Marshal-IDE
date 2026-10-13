@@ -5,20 +5,26 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ## 🛠 v1.4.0 – Compiler Update
 ### Compiler changes
     - **Country Support**: Dedicated DSL for country modding.(https://hoi4.paradoxwikis.com/Country_creation)
+### Misc
+- **Syntax Highlighting**:
+    - Add syntax highlighting for History DSL (Country support).
+    - Add syntax highlighting for Unit DSL.
+    - Add syntax highlighting for Equipment DSL.
+    - Add syntax highlighting for OOB (Order of Battle) DSL.
+- **Documentation**:
+    - Add Getting Start documentation for Country, Unit, Equipment, and OOB modding DSLs.
+
+## 🛠 v1.5.0 – DX Update
+### DX changes
+    - **Asset Suite**: 
+        - Built-in `.dds` image previewer.
+        - Integrated JPEG/PNG to `.dds` converter.
 
 
 ---
 ## 🔭 Long-term Research & Development
-- **Asset Suite**: 
-    - Built-in `.dds` image previewer.
-    - Integrated JPEG/PNG to `.dds` converter.
 - **Workflow Tools**:
     - Integrated Git GUI for version control.
-- ### DSL Expansions
-    - **Country Definitions**: Streamlined syntax for defining new nations and tags.
-### Compiler changes
-    - **Parser**: Shared coordinate saving method for parser, pass over what the syntax is eg: "position" OR "max size" and the raw line itself, and it will return X coordinates and Y coordinates!(this will make all parser work similarly)
-    - **Validator**: Make the validators Save the data they check, they check if the ID is correct? also save the ID so that the parser doesn't have to do that exact same thing!(and maybe have a minor difference that leads to a hard to find bug)
 
 - **Visual Workspace Personalization:** Add a dedicated Themes & Appearance tab in Global Application Settings. Users can now customize the IDE environment with selectable accent colors and define custom token colors for syntax highlighting.
 
