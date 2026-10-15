@@ -1,6 +1,7 @@
 define type anti_air_equipment available from 1934
     sprite "archetype_anti_air_equipment"
-    for units # internally its: type = <type>	   	# Internal type: what kind of unit can use this equipment
+    # internally its: type = <type>	   	# Internal type: what kind of unit can use this equipment
+    for units 
         anti_air
         infantry #adding infantry type
     

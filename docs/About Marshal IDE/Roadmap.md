@@ -7,20 +7,18 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
     - **Country Support**: Dedicated DSL for country modding.(https://hoi4.paradoxwikis.com/Country_creation)
 ### Misc
 - **Syntax Highlighting**:
-    - Add syntax highlighting for History DSL (Country support).
     - Add syntax highlighting for Unit DSL.
-    - Add syntax highlighting for Equipment DSL.
-    - Add syntax highlighting for OOB (Order of Battle) DSL.
 - **Documentation**:
     - Add Getting Start documentation for Country, Unit, Equipment, and OOB modding DSLs.
+- **What's New Modal**: Manually update the hardcoded release notes content for the current version.
 
 ## 🛠 v1.5.0 – DX Update
 ### DX changes
     - **Asset Suite**: 
         - Built-in `.dds` image previewer.
         - Integrated JPEG/PNG to `.dds` converter.
-
-
+### Misc
+- **What's New Modal**: Manually update the hardcoded release notes content for the current version.
 ---
 ## 🔭 Long-term Research & Development
 - **Workflow Tools**:

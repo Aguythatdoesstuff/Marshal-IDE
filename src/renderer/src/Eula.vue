@@ -9,7 +9,7 @@
       <p class="mt-1 text-xs uppercase tracking-widest transition-colors" :style="{ color: statusColor }">{{ statusDisplayName }}</p>
     </div>
     
-    <div ref="contentDiv" id="eula-content" class="mx-20 mb-6 w-[calc(100%-10rem)] flex-1 overflow-y-auto rounded border border-gray-700 bg-marshal-editor p-8 font-mono text-[0.85rem] text-gray-300">{{ eulaContent }}</div>
+    <div ref="contentDiv" id="eula-content" class="mx-20 mb-6 w-[calc(100%-10rem)] flex-1 overflow-y-auto rounded border border-gray-700 bg-marshal-editor p-8 font-mono text-[0.85rem] text-gray-300 whitespace-pre-wrap">{{ eulaContent }}</div>
 
     <div class="mb-4 flex justify-center gap-6">
       <button @click="declineEula" class="inline-flex items-center justify-center rounded bg-gray-700 px-10 py-2 text-sm font-semibold text-white transition hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50">
