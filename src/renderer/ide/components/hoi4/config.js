@@ -386,8 +386,7 @@ export const defineDslLanguages = (monacoInstance) => {
   // 10. UNIT LANGUAGE CONFIGURATION
   const unitLangDef = {
     primaryKeywords: [
-      'unit', 'model', 'types', 'categories', 'required', 'equipment',
-      'abbreviation', 'name', 'desc', 'map_icon_category', 'priority', 'ai_priority'
+      'unit', 'categories', 'required', 'equipment',
     ],
     controlKeywords: sharedControlKeywords, 
     scopes: sharedScopes, 
@@ -395,24 +394,24 @@ export const defineDslLanguages = (monacoInstance) => {
     specialIDs: specialIDsRegex,
     tokenizer: {
       root: [
-        // 1. Multi-word string commands
-        [/^(\s*)(abbreviation|name|desc)(\s*)(")/, ['white', 'primary.keyword', 'white', { token: 'string.quote', bracket: '@open', next: '@string' }]],
-        [/^(\s*)(unit\s+model)(\s*)(")/, ['white', 'primary.keyword', 'white', { token: 'string.quote', bracket: '@open', next: '@string' }]],
+        // 1. Multi-word string commands (removed ^ anchor)
+        [/(\s*)(abbreviation|name|desc)(\s*)(")/, ['white', 'primary.keyword', 'white', { token: 'string.quote', bracket: '@open', next: '@string' }]],
+        [/(\s*)(unit\s+model)(\s*)(")/, ['white', 'primary.keyword', 'white', { token: 'string.quote', bracket: '@open', next: '@string' }]],
 
-        // 2. Multi-word ID/Block commands (Placed BEFORE generic unit rule)
-        [/^(\s*)(unit\s+model)(\s+)([a-zA-Z_$][\w$]*)/, ['white', 'primary.keyword', 'white', 'id.declaration']],
+        // 2. Multi-word ID/Block commands (removed ^ anchor)
+        [/(\s*)(unit\s+model)(\s+)([a-zA-Z_$][\w$]*)/, ['white', 'primary.keyword', 'white', 'id.declaration']],
         
-        [/^(\s*)(unit\s+types)(\s+)([a-zA-Z_$][\w$]*)/, ['white', 'primary.keyword', 'white', { token: 'id.declaration', next: '@unitIdBlock' }]],
-        [/^(\s*)(unit\s+types)\b/, ['white', { token: 'primary.keyword', next: '@unitIdBlock' }]],
+        [/(\s*)(unit\s+categories)(\s+)([a-zA-Z_$][\w$]*)/, ['white', 'primary.keyword', 'white', { token: 'id.declaration', next: '@unitIdBlock' }]],
+        [/(\s*)(unit\s+categories)\b/, ['white', { token: 'primary.keyword', next: '@unitIdBlock' }]],
 
-        [/^(\s*)(unit\s+categories)(\s+)([a-zA-Z_$][\w$]*)/, ['white', 'primary.keyword', 'white', { token: 'id.declaration', next: '@unitIdBlock' }]],
-        [/^(\s*)(unit\s+categories)\b/, ['white', { token: 'primary.keyword', next: '@unitIdBlock' }]],
+        [/(\s*)(unit\s+types)(\s+)([a-zA-Z_$][\w$]*)/, ['white', 'primary.keyword', 'white', { token: 'id.declaration', next: '@unitIdBlock' }]],
+        [/(\s*)(unit\s+types)\b/, ['white', { token: 'primary.keyword', next: '@unitIdBlock' }]],
 
-        // 3. Required equipment keyword (parsed normally, NO ID block so contents stay general)
-        [/^(\s*)(required\s+equipment)\b/, ['white', 'primary.keyword']],
+        // 3. Required equipment keyword
+        [/(\s*)(required\s+equipment)\b/, ['white', 'primary.keyword']],
 
         // 4. Generic single-word unit command
-        [/^(\s*)(unit)(\s+)([a-zA-Z_$][\w$]*)/, ['white', 'primary.keyword', 'white', 'id.declaration']],
+        [/(\s*)(unit)(\s+)([a-zA-Z_$][\w$]*)/, ['white', 'primary.keyword', 'white', 'id.declaration']],
 
         [/[a-zA-Z_$][\w$]*/, { 
           cases: { 
@@ -427,19 +426,19 @@ export const defineDslLanguages = (monacoInstance) => {
         [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }]
       ],
 
-      // Contextual engine tracking unit lists (pops cleanly when hitting keywords, operators, or comments)
+      // Contextual engine tracking unit lists
       unitIdBlock: [
+        [/\s+/, 'white'],
         [/[a-zA-Z_$][\w$]*/, {
           cases: {
             '@primaryKeywords': { token: '@rematch', next: '@pop' },
             '@controlKeywords': { token: '@rematch', next: '@pop' },
             '@scopes':         { token: '@rematch', next: '@pop' },
             '@booleans':       { token: '@rematch', next: '@pop' },
-            '@default':        'id.declaration' // Inline item listings highlight orange safely[cite: 4]
+            '@default':        'id.declaration'
           }
         }],
-        [/[{}()\[\]=><]/, { token: '@rematch', next: '@pop' }], // Structural operators/assignments break context tracking[cite: 4]
-        [/\s+/, 'white'],
+        [/[{}()\[\]=><]/, { token: '@rematch', next: '@pop' }],
         [/#.*$/, { token: 'comment', next: '@pop' }]
       ],
 

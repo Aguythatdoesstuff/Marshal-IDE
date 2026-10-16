@@ -11,6 +11,7 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
         - Add syntax highlighting for History DSL (Country support).
         - Add syntax highlighting for Equipment DSL.
         - Add syntax highlighting for OOB (Order of Battle) DSL.
+        - Add syntax highlighting for Unit DSL.
     - **Documentation**:
         - Add Getting Start documentation for Country, Unit, Equipment, and OOB modding DSLs.
 ### Fixed
