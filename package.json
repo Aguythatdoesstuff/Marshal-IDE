@@ -23,7 +23,7 @@
     "chokidar": "^3.6.0",
     "electron-updater": "^6.6.2",
     "fs-extra": "^11.3.3",
-    "monaco-editor": "^0.52.0",
+    "monaco-editor": "^0.57.0",
     "open": "^10.2.0",
     "rete": "^2.0.6",
     "rete-area-plugin": "^2.3.2",
