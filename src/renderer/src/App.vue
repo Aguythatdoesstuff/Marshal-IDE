@@ -19,38 +19,79 @@
     <Ide v-else-if="currentScreen === 'IDE'" />
     <Importing v-else-if="currentScreen === 'IMPORTING'" />
 
+    <!-- What's New Modal -->
     <div v-if="showWhatsNewModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4 backdrop-blur [app-region:no-drag]">
       <div class="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border border-gray-700 bg-marshal-editor p-6 text-gray-200 shadow-2xl animate-modal-slide-up">
         <div class="flex items-center justify-between gap-4">
           <h2 class="text-lg font-semibold text-white">What's New in v{{ appVersion }}</h2>
-          <span class="rounded-full bg-marshal-primary/20 px-2 py-1 text-xs font-semibold text-marshal-primary">Latest Update</span>
+          <span class="rounded-full bg-marshal-primary/20 px-2.5 py-1 text-xs font-semibold text-marshal-primary">Latest Update</span>
         </div>
-        <div class="flex min-h-0 flex-1 flex-col">
-          <p class="text-sm text-gray-300">Here's a quick look at the main features and technical enhancements in this update:</p>
-          <div class="min-h-0 flex-1 overflow-y-auto pr-3">
-                        <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs uppercase tracking-widest text-marshal-primary">Added</h3>
-            <ul class="mb-6 list-disc space-y-3 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
-              <li><strong class="font-semibold text-white">In-Line "Jump to Error" Navigation:</strong> Clicking a console error now instantly targets the specific file and line in the editor.</li>
-              <li><strong class="font-semibold text-white">Persistent Tab States:</strong> Reopening a project now restores your exact open tabs, their order, and filetree expansion state.</li>
-              <li><strong class="font-semibold text-white">Console Warning Tab:</strong> Added a dedicated view for non-critical compiler recommendations and warnings.</li>
-              <li><strong class="font-semibold text-white">Sidebar Asset Importing:</strong> Drag and drop <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">.dds</code> files directly onto the sidebar to import them instantly.</li>
-              <li><strong class="font-semibold text-white">Expanded Focus Blocks:</strong> Added support for <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">available</code>, <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">visible</code>, and <code class="rounded bg-gray-800 px-1 py-0.5 font-mono text-xs text-rose-400">allowed</code> blocks in focuses.</li>
-            </ul>
 
-            <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs uppercase tracking-widest text-marshal-primary">Changed</h3>
-            <ul class="mb-6 list-disc space-y-3 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
-              <li><strong class="font-semibold text-white">Tailwind CSS Migration:</strong> Fully refactored frontend architecture for better performance and easier UI customization.</li>
-              <li><strong class="font-semibold text-white">Monaco Editor Stability:</strong> Optimized tab switching and loading to prevent race conditions and "Canceled" rejections.</li>
-              <li><strong class="font-semibold text-white">Documentation Audit:</strong> Comprehensive update of all IDE guides for maximum clarity and accuracy.</li>
-            </ul>
+        <div class="mt-2 flex min-h-0 flex-1 flex-col">
+          <p class="mb-4 text-sm text-gray-300">Here's a quick look at the main features and technical enhancements in this update:</p>
+          
+          <div class="min-h-0 flex-1 overflow-y-auto pr-3 space-y-6">
+            <!-- Added Section -->
+            <div>
+              <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs font-bold uppercase tracking-widest text-marshal-primary">Added</h3>
+              <ul class="list-disc space-y-2.5 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
+                <li>
+                  <strong class="font-semibold text-white">Country Support:</strong> Dedicated DSL for country creation and modding 
+                  <a href="https://hoi4.paradoxwikis.com/Country_creation" target="_blank" rel="noopener noreferrer" class="ml-1 inline-flex items-center text-xs text-sky-400 hover:underline">(Wiki Reference)</a>
+                </li>
+                <li>
+                  <strong class="font-semibold text-white">Unit Support:</strong> Dedicated DSL for Unit modding 
+                  <a href="https://hoi4.paradoxwikis.com/Unit_modding" target="_blank" rel="noopener noreferrer" class="ml-1 inline-flex items-center text-xs text-sky-400 hover:underline">(Wiki Reference)</a>
+                </li>
+                <li>
+                  <strong class="font-semibold text-white">Equipment Support:</strong> Dedicated DSL for Equipment modding 
+                  <a href="https://hoi4.paradoxwikis.com/Equipment_modding" target="_blank" rel="noopener noreferrer" class="ml-1 inline-flex items-center text-xs text-sky-400 hover:underline">(Wiki Reference)</a>
+                </li>
+                <li>
+                  <strong class="font-semibold text-white">OOB Support:</strong> Dedicated DSL for Order of Battle modding 
+                  <a href="https://hoi4.paradoxwikis.com/Division_modding" target="_blank" rel="noopener noreferrer" class="ml-1 inline-flex items-center text-xs text-sky-400 hover:underline">(Wiki Reference)</a>
+                </li>
+                <li>
+                  <strong class="font-semibold text-white">Syntax Highlighting:</strong>
+                  <ul class="mt-1.5 list-circle space-y-1 pl-5 text-gray-300">
+                    <li>Added syntax highlighting for History DSL (Country support)</li>
+                    <li>Added syntax highlighting for Equipment DSL</li>
+                    <li>Added syntax highlighting for OOB (Order of Battle) DSL</li>
+                    <li>Added syntax highlighting for Unit DSL</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong class="font-semibold text-white">Documentation:</strong>
+                  <p class="mt-0.5 text-gray-300">Added Getting Started documentation for Country, Unit, Equipment, and OOB modding DSLs.</p>
+                </li>
+              </ul>
+            </div>
 
-            <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs uppercase tracking-widest text-orange-300">Fixed</h3>
-            <ul class="list-disc space-y-3 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
-              <li><strong class="font-semibold text-white">File Operations:</strong> Fixed issues with renaming and accidental file movement during path updates.</li>
-              <li><strong class="font-semibold text-white">Importer:</strong> Corrected missing block outputs for prevents, requires, and follow positions in focus trees.</li>
-              <li><strong class="font-semibold text-white">Validation:</strong> Fixed the focus tree validator's line expectation logic for follow positions.</li>
-            </ul>
+            <!-- Changed Section -->
+            <div>
+              <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs font-bold uppercase tracking-widest text-indigo-400">Changed</h3>
+              <ul class="list-disc space-y-2.5 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
+                <li>
+                  <strong class="font-semibold text-white">What's New Modal:</strong> Updated release notes content for the current version.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Fixed Section -->
+            <div>
+              <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs font-bold uppercase tracking-widest text-orange-400">Fixed</h3>
+              <ul class="list-disc space-y-2.5 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
+                <li>
+                  <strong class="font-semibold text-white">Event Compiler:</strong> Resolved an off-by-one state leak bug where event options were shifting into subsequent events or duplicating. Added explicit state flushing on event boundaries to ensure open option blocks are committed to their parent event before transitioning to new events or namespaces.
+                </li>
+                <li>
+                  <strong class="font-semibold text-white">Validator:</strong> Prevented incorrect depth errors after single-line pass-through syntax for the DSL syntax in specific cases.
+                </li>
+              </ul>
+            </div>
           </div>
+
+          <!-- Update Prompt -->
           <div v-if="updateIsReadyToInstall" class="mt-4 rounded-md border border-marshal-primary bg-sky-950/50 p-4 text-center">
             <p class="mb-3 text-sm"><strong>An update is ready!</strong> Would you like to install and restart now?</p>
             <div class="flex justify-center gap-3">
@@ -59,8 +100,9 @@
             </div>
           </div>
         </div>
-        <div class="mt-7 flex justify-center">
-          <button @click="closeWhatsNew" class="rounded bg-marshal-primary px-7 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">Got it, let's explore!</button>
+
+        <div class="mt-6 flex justify-center">
+          <button @click="closeWhatsNew" class="rounded bg-marshal-primary px-7 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">Got it, let's explore!</button>
         </div>
       </div>
     </div>

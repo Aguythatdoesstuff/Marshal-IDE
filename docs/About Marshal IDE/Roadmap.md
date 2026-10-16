@@ -5,8 +5,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ## 🛠 v1.4.0 – Compiler Update
 ### Compiler changes
     - **Country Support**: Dedicated DSL for country modding.(https://hoi4.paradoxwikis.com/Country_creation)
-### Misc
-- **What's New Modal**: Manually update the hardcoded release notes content for the current version.
 
 ## 🛠 v1.5.0 – DX Update
 ### DX changes
