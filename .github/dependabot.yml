@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Ignore all major version bumps to prevent breaking electron-vite, 
+      # breaking changes in core tools, and mismatched dependency trees.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
