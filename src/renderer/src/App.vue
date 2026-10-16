@@ -117,10 +117,12 @@ import Wiki from './wiki.vue'
 import Settings from './settings.vue'
 import Ide from './ide.vue'
 import Importing from './Importing.vue'
+import DragDropEditor from '../ide/components/DragDropEditor.vue';
+import SimplifiedEditor from '../ide/components/SimplifiedEditor.vue';
 
 export default {
   name: 'App',
-  components: { Eula, WorkspaceSelection, Wiki, Settings, Ide, Importing },
+  components: { Eula, WorkspaceSelection, Wiki, Settings, Ide, Importing, DragDropEditor, SimplifiedEditor },
   data() {
     return { currentScreen: 'SPLASH', statusText: 'Starting Marshal IDE', logoUrl: logoIcon, showWhatsNewModal: false, pendingWhatsNew: false, appVersion: '', updateIsReadyToInstall: false }
   },

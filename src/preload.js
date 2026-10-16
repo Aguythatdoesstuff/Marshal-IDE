@@ -46,6 +46,9 @@ contextBridge.exposeInMainWorld('api', {
     switchPage: (page) => ipcRenderer.send('switch-page', page),
     openPath: (p) => ipcRenderer.invoke('open-path', { path: p }),
     getLogDirectory: () => ipcRenderer.invoke('get-log-directory'), 
+    isDev: () => ipcRenderer.invoke('is-dev'),
+    getSimplifiedEditorCache: (filePath) => ipcRenderer.invoke('get-simplified-editor-cache', { filePath }),
+    saveSimplifiedEditorCache: (filePath, cacheData) => ipcRenderer.invoke('save-simplified-editor-cache', { filePath, cacheData }),
 
     // --- Renderer Logger Bridge ---
     log: {

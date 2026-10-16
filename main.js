@@ -268,6 +268,29 @@ function setupAutoUpdater() {
 	    }
 	});
 
+	ipcMain.handle('is-dev', () => !app.isPackaged);
+
+	ipcMain.handle('get-simplified-editor-cache', async (event, { filePath }) => {
+		try {
+			// Implement your file/storage-based cache retrieval logic here based on filePath
+			// e.g., reading a companion JSON cache file or project state storage
+			return { success: true, cache: null };
+		} catch (err) {
+			console.error('Failed to get simplified editor cache:', err);
+			return { success: false, message: err.message };
+		}
+	});
+
+	ipcMain.handle('save-simplified-editor-cache', async (event, { filePath, cacheData }) => {
+		try {
+			// Implement your cache saving logic here based on filePath
+			return { success: true };
+		} catch (err) {
+			console.error('Failed to save simplified editor cache:', err);
+			return { success: false, message: err.message };
+		}
+	});
+
 	ipcMain.handle('run-importer', async (event, { input, workspaceName }) => {
 		try {
 			// 1. Calculate and fetch target directory paths matching Electron's workspace structure

@@ -25,6 +25,9 @@
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5C3.89 3 3 3.89 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
           Save
         </button>
+        <button v-if="isDevMode && activeTabPath" class="inline-flex items-center justify-center gap-1.5 rounded border border-yellow-500/50 bg-yellow-500/10 px-3.5 py-1.5 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/20" @click="toggleActiveEditorView">
+          {{ activeTabEditorMode === 'dragdrop' ? 'Switch to Code Editor' : 'Open Simplified Editor' }}
+        </button>
         <button class="inline-flex items-center justify-center rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text transition hover:bg-white/10 hover:opacity-90" @click="handleExitWorkspace">Exit Workspace</button>
       </div>
     </header>
@@ -59,7 +62,10 @@
             </div>
           </div>
 
-          <div id="editor-container" class="monaco-mount-target" :class="{ 'pointer-events-none': isResizing }"></div>
+          <div v-if="activeTabEditorMode === 'dragdrop'" class="absolute inset-0 flex flex-col overflow-hidden bg-marshal-editor">
+            <SimplifiedEditor :file-path="activeTabPath" :content="activeTabContent" @update:content="handleSimplifiedContentUpdate" @switch-to-code="handleSwitchToCode" />
+          </div>
+          <div v-show="activeTabEditorMode !== 'dragdrop'" id="editor-container" class="monaco-mount-target" :class="{ 'pointer-events-none': isResizing }"></div>
           
           <div v-if="openTabs.length === 0" class="absolute inset-0 flex items-center justify-center p-6 text-center text-[13px] text-marshal-muted">
             <p>Select a structural project file asset from the tree browser configuration map to begin code composition.</p>
@@ -154,15 +160,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick, onBeforeUnmount, markRaw, toRaw } from 'vue';
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount, markRaw, toRaw } from 'vue';
 import ConsolePanel from '../ide/Console.vue';
 import FileTreePanel from '../ide/FileTree.vue';
+import DragDropEditor from '../ide/components/DragDropEditor.vue';
+import SimplifiedEditor from '../ide/components/SimplifiedEditor.vue';
 import { FILE_EXTENSION_MAP, getMonacoLanguage, defineDslLanguages } from '../ide/components/hoi4/config.js';
 
 const modalDimmerRef = ref(null);
 let editorInstance = null;
 let editorStateDisposables = [];
 
+const isDevMode = ref(false);
 const activeProjectName = ref('Loading...');
 
 const getWorkspaceTabsStorageKey = () => {
@@ -170,8 +179,14 @@ const getWorkspaceTabsStorageKey = () => {
   return `workspace_tabs_${workspaceName}`;
 };
 
-onMounted(() => {
+onMounted(async () => {
   activeProjectName.value = localStorage.getItem('marshal_project_to_load') || 'No Active Project';
+  try {
+    isDevMode.value = await window.api.isDev();
+  } catch (err) {
+    isDevMode.value = false;
+    console.error("Failed to fetch if is Dev mode, falling back to prod mode", err);
+  }
 });
 
 const handleExitWorkspace = async () => {
@@ -366,6 +381,7 @@ const handleFileSelection = async (node) => {
           isDirty: false,
           lineNumber: 1,
           scrollTop: 0,
+          editorMode: 'monaco',
           monacoModel: tabModel ? markRaw(tabModel) : null 
         };
 
@@ -614,15 +630,55 @@ const restoreTabState = async () => {
   }
 };
 
+const activeTabEditorMode = computed(() => {
+  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
+  return tab ? (tab.editorMode || 'monaco') : 'monaco';
+});
+
+const activeTabContent = computed(() => {
+  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
+  return tab ? tab.content : '';
+});
+
+const toggleActiveEditorView = () => {
+  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
+  if (!tab) return;
+  tab.editorMode = tab.editorMode === 'dragdrop' ? 'monaco' : 'dragdrop';
+  if (tab.editorMode === 'monaco') {
+    nextTick(() => setActiveTab(tab.path));
+  }
+};
+
+const handleSimplifiedContentUpdate = (newContent) => {
+  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
+  if (!tab) return;
+  tab.content = newContent;
+  tab.isDirty = true;
+  if (tab.monacoModel && !tab.monacoModel.isDisposed()) {
+    tab.monacoModel.setValue(newContent);
+  }
+};
+
+const handleSwitchToCode = () => {
+  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
+  if (tab) {
+    setTimeout(() => {
+      tab.editorMode = 'monaco';
+      nextTick(() => setActiveTab(tab.path));
+    }, 1500);
+  }
+};
 const saveActiveFile = async () => {
-  if (!activeTabPath.value || !editorInstance) return;
+  if (!activeTabPath.value) return;
   const currentTab = openTabs.value.find(t => t.path === activeTabPath.value);
   if (!currentTab) return;
 
-  const modelToSave = currentTab.monacoModel || editorInstance.getModel();
-  if (!modelToSave) return;
+  let codePayload = currentTab.content;
+  if (currentTab.editorMode !== 'dragdrop' && editorInstance) {
+    const modelToSave = currentTab.monacoModel || editorInstance.getModel();
+    if (modelToSave) codePayload = modelToSave.getValue();
+  }
 
-  const codePayload = modelToSave.getValue();
   const response = await window.api.invoke('save-file', { filePath: currentTab.path, content: codePayload });
   if (response && response.success) {
     currentTab.content = codePayload;
