@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.1",
     "archiver": "^7.0.1",
     "chokidar": "^3.6.0",
     "electron-updater": "^6.6.2",
@@ -34,11 +34,11 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.7",
-    "electron": "^39.0.0",
-    "electron-builder": "^24.0.0",
-    "electron-vite": "^2.0.0",
+    "electron": "^41.10.6",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^6.0.0",
     "generate-license-file": "^4.1.1",
-    "vite": "^5.4.21",
+    "vite": "^8.3.4",
     "vite-plugin-static-copy": "^3.4.0"
   },
   "build": {
