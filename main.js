@@ -484,51 +484,67 @@ function setupAutoUpdater() {
 	});
 
 	ipcMain.handle('load-project', async (event, projectName) => {
-	    try {
-		const safeName = projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-		const configPath = path.join(USER_PROJECTS_DIR, `${safeName}_project.json`);
-
-		const data = await fs.readFile(configPath, 'utf8');
-		currentProjectConfig = JSON.parse(data);
-		
-		const metaDirPath = path.join(currentProjectConfig.project_root, 'metadata');
-		const metaFilePath = path.join(metaDirPath, 'project_info.json');
-
 		try {
-		    await fs.mkdir(metaDirPath, { recursive: true });
-		    let metaData = {};
-		    try {
-		        const existingMeta = await fs.readFile(metaFilePath, 'utf8');
-		        metaData = JSON.parse(existingMeta);
-		    } catch (e) {
-		        metaData.created_at = new Date().toISOString();
-		        metaData.version_created_with = "Unknown (Legacy)";
-		    }
+			const safeName = projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+			const configPath = path.join(USER_PROJECTS_DIR, `${safeName}_project.json`);
 
-		    // Sync/Update Project Name and Timestamps
-		    metaData.project_name = projectName; 
-		    metaData.last_opened = new Date().toISOString();
-		    metaData.last_version_used = app.getVersion();
+			const data = await fs.readFile(configPath, 'utf8');
+			currentProjectConfig = JSON.parse(data);
+			
+			const metaDirPath = path.join(currentProjectConfig.project_root, 'metadata');
+			const metaFilePath = path.join(metaDirPath, 'project_info.json');
 
-		    await fs.writeFile(metaFilePath, JSON.stringify(metaData, null, 4), 'utf8');
-		} catch (metaErr) {
-		    appLogger?.warn(`Could not update metadata for ${projectName}: ${metaErr.message}`, { source: 'Main-Config' });
+			try {
+				await fs.mkdir(metaDirPath, { recursive: true });
+				let metaData = {};
+				try {
+					const existingMeta = await fs.readFile(metaFilePath, 'utf8');
+					metaData = JSON.parse(existingMeta);
+				} catch (e) {
+					metaData.created_at = new Date().toISOString();
+					metaData.version_created_with = "Unknown (Legacy)";
+				}
+
+				// Sync/Update Project Name and Timestamps
+				metaData.project_name = projectName; 
+				metaData.last_opened = new Date().toISOString();
+				metaData.last_version_used = app.getVersion();
+
+				await fs.writeFile(metaFilePath, JSON.stringify(metaData, null, 4), 'utf8');
+			} catch (metaErr) {
+				appLogger?.warn(`Could not update metadata for ${projectName}: ${metaErr.message}`, { source: 'Main-Config' });
+			}
+
+			globalCompilers = getGlobalCompilers();
+			INPUT_DIR = currentProjectConfig.input_dir;
+			OUTPUT_DIR = currentProjectConfig.output_dir;
+
+			await fs.mkdir(INPUT_DIR, { recursive: true });
+
+			// Compare template folder with the workspace root folder
+			const templateFiles = await fs.readdir(TEMPLATE_DIR, { withFileTypes: true });
+			for (const templateEntry of templateFiles) {
+				const targetPath = path.join(INPUT_DIR, templateEntry.name);
+				if (!await fs.pathExists(targetPath)) {
+					if (templateEntry.isDirectory()) {
+						await fs.mkdir(targetPath, { recursive: true });
+						appLogger?.info(`Created directory ${templateEntry.name} in workspace root.`, { source: 'Main-Config' });
+					} else if (templateEntry.isFile()) {
+						await fs.copyFile(path.join(TEMPLATE_DIR, templateEntry.name), targetPath);
+						appLogger?.info(`Created file ${templateEntry.name} in workspace root.`, { source: 'Main-Config' });
+					}
+				}
+			}
+
+			appLogger?.info(`Project loaded: ${projectName}`, { source: 'Main-Config' });
+			
+			startWatcher(projectName); 
+			return { success: true, projectName, config: currentProjectConfig, globalCompilers };
+
+		} catch (error) {
+			appLogger?.error(`Failed to load project ${projectName}: ${error.message}`, { source: 'Main-Config' });
+			return { success: false, message: error.message };
 		}
-
-		globalCompilers = getGlobalCompilers();
-		INPUT_DIR = currentProjectConfig.input_dir;
-		OUTPUT_DIR = currentProjectConfig.output_dir;
-
-		await fs.mkdir(INPUT_DIR, { recursive: true });
-		appLogger?.info(`Project loaded: ${projectName}`, { source: 'Main-Config' });
-		
-		startWatcher(projectName); 
-		return { success: true, projectName, config: currentProjectConfig, globalCompilers };
-
-	    } catch (error) {
-		appLogger?.error(`Failed to load project ${projectName}: ${error.message}`, { source: 'Main-Config' });
-		return { success: false, message: error.message };
-	    }
 	});
 
 	ipcMain.handle('create-project', async (event, data) => {
