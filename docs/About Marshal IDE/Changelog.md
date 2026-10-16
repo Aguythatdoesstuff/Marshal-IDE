@@ -11,7 +11,8 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
         - Add syntax highlighting for History DSL (Country support).
         - Add syntax highlighting for Equipment DSL.
         - Add syntax highlighting for OOB (Order of Battle) DSL.
-
+    - **Documentation**:
+        - Add Getting Start documentation for Country, Unit, Equipment, and OOB modding DSLs.
 ### Fixed
 
 - **Event compiler:** Resolved an off-by-one state leak bug where event options were shifting into subsequent events or duplicating. Added explicit state flushing on event boundaries to ensure open option blocks are committed to their parent event before transitioning to new events or namespaces.

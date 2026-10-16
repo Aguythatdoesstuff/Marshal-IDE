@@ -8,8 +8,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ### Misc
 - **Syntax Highlighting**:
     - Add syntax highlighting for Unit DSL.
-- **Documentation**:
-    - Add Getting Start documentation for Country, Unit, Equipment, and OOB modding DSLs.
 - **What's New Modal**: Manually update the hardcoded release notes content for the current version.
 
 ## 🛠 v1.5.0 – DX Update
