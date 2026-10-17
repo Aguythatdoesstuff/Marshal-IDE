@@ -3,6 +3,18 @@ version: 1.0.0
 schema: v1
 
 models:
+  - name: DeepSeek R1 14B (Agent)
+    provider: ollama
+    model: deepseek-r1:14b
+    apiBase: http://localhost:11434
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      contextLength: 32768
+    roles:
+      - chat
+      - edit
+      - apply
   - name: Qwen 2.5 Coder 32B (Agent)
     provider: ollama
     model: qwen2.5-coder:32b-instruct-q3_K_M

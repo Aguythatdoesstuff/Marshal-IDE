@@ -41,7 +41,7 @@ onMounted(async () => {
   const connection = new ConnectionPlugin()
   const render = new VuePlugin()
 
-  // 3. Setup standard classic presets for UI rendering
+  // 3. Setup standard classic presets
   render.addPreset(VuePresets.classic.setup())
   connection.addPreset(ConnectionPresets.classic.setup())
 
@@ -50,66 +50,91 @@ onMounted(async () => {
   area.use(connection)
   area.use(render)
 
+  // 4. Add Custom Rete Grid Background (matching the Rete.js expected pattern)
+  const background = document.createElement('div')
+  background.classList.add('rete-grid-background', 'rete-fill-area')
+  area.area.content.add(background)
+
   editorReady.value = true
 })
 </script>
 
 <template>
-  <div class="flex flex-col h-screen w-full bg-slate-900 text-slate-100 select-none">
-    <!-- Top Toolbar with Tailwind Styling -->
-    <header class="flex items-center justify-between px-6 py-4 bg-slate-800 border-b border-slate-700 shadow-md">
+  <div class="flex flex-col h-screen w-full select-none" style="background-color: var(--vscode-editor-background, #1e1e1e); color: var(--vscode-editor-foreground, #bbbbbb);">
+    <!-- Top Toolbar with VSCode Variables -->
+    <header class="flex items-center justify-between px-6 py-4 border-b shadow-md z-10" style="background-color: var(--vscode-editorGroupHeader-tabsBackground, #252526); border-color: var(--border-color);">
       <div>
-        <h1 class="text-lg font-bold tracking-wide text-indigo-400">Marshal Script Visual Builder</h1>
-        <p class="text-xs text-slate-400">Editing: {{ filePath }}</p>
+        <h1 class="text-lg font-bold tracking-wide" style="color: var(--vscode-editor-foreground, #ffffff);">Marshal Script Visual Builder</h1>
+        <p class="text-xs" style="color: var(--vscode-descriptionForeground, #858585);">Editing: {{ filePath }}</p>
       </div>
     </header>
 
     <!-- Rete Canvas Container -->
-    <div class="relative flex-1 w-full h-full overflow-hidden bg-slate-950">
+    <div class="relative flex-1 w-full h-full overflow-hidden">
       <!-- Loading indicator until canvas mounts -->
-      <div v-if="!editorReady" class="absolute inset-0 flex items-center justify-center text-slate-500">
+      <div v-if="!editorReady" class="absolute inset-0 flex items-center justify-center z-20" style="color: var(--vscode-descriptionForeground, #858585);">
         Loading Node Canvas...
       </div>
       
       <!-- Actual DOM element Rete mounts onto -->
-      <div ref="container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+      <div ref="container" class="w-full h-full cursor-grab active:cursor-grabbing rete-theme-vscode"></div>
     </div>
   </div>
 </template>
 
-<style>
-/* Essential Rete CSS overrides to blend cleanly with Tailwind dark mode surfaces */
-.rete-container {
-  width: 100%;
-  height: 100%;
+<style scoped>
+/* Rete.js Native Grid Background Styles using VSCode variables */
+.rete-fill-area {
+  display: table;
+  z-index: -1;
+  position: absolute;
+  top: -320000px;
+  left: -320000px;
+  width: 640000px;
+  height: 640000px;
+  pointer-events: none;
 }
-[data-testid="node"] {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
-  color: #f8fafc !important;
-  border-radius: 0.5rem !important;
-  padding: 8px !important;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  min-width: 180px;
+
+.rete-grid-background {
+  background-color: var(--vscode-editor-background, #1e1e1e);
+  background-image: 
+    linear-gradient(90deg, var(--border-color) 1px, transparent 1px),
+    linear-gradient(0deg, var(--border-color) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
-[data-testid="node"].selected {
-  border-color: #6366f1 !important;
+
+/* Rete VSCode Theme Customizations */
+.rete-theme-vscode {
+  --background: var(--vscode-editor-background, #1e1e1e);
+  --node-color: var(--vscode-editorWidget-background, #252526);
+  --node-border: var(--border-color);
+  --connection-color: var(--border-color);
 }
-[data-testid="input-control"] input {
-  background: #0f172a !important;
-  border: 1px solid #475569 !important;
-  color: #f8fafc !important;
-  padding: 4px 8px;
+
+.rete-theme-vscode :deep(.node) {
+  background: var(--node-color);
+  border: 1px solid var(--node-border);
+  color: var(--vscode-editor-foreground, #bbbbbb);
   border-radius: 4px;
-  width: 100%;
-  font-size: 0.85rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
-.connection path {
-  stroke: #6366f1 !important;
-  stroke-width: 3px !important;
+
+.rete-theme-vscode :deep(.node.selected) {
+  border-color: var(--primary-blue);
 }
-.socket {
-  background: #38bdf8 !important;
-  border: 2px solid #bae6fd !important;
+
+.rete-theme-vscode :deep(.connection) path {
+  stroke: var(--primary-blue);
+  stroke-width: 2px;
+}
+
+.rete-theme-vscode :deep(.socket) {
+  background: var(--vscode-editorWidget-background, #252526);
+  border: 2px solid var(--border-color);
+}
+
+.rete-theme-vscode :deep(.socket:hover) {
+  border-color: var(--primary-blue);
+  background: var(--primary-blue);
 }
 </style>

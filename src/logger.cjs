@@ -168,8 +168,7 @@ function attemptArchiveOldSession(sessionDir, sessionTimestamp) {
         archive.on('error', (err) => reject(err));
         archive.pipe(output);
         try {
-            const files = await fs.readdir(sessionDir);
-            files.forEach(file => archive.file(path.join(sessionDir, file), { name: file }));
+            archive.directory(sessionDir, false);
             archive.finalize();
         } catch (e) { reject(e); }
     });
@@ -277,8 +276,7 @@ function archiveCurrentSession() {
         archive.on('error', (err) => reject(err));
         archive.pipe(output);
         try {
-            const files = await fs.readdir(SESSION_DIR);
-            files.forEach(f => archive.file(path.join(SESSION_DIR, f), { name: f }));
+            archive.directory(SESSION_DIR, false);
             archive.finalize();
         } catch (e) { reject(e); }
     });

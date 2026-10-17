@@ -20,6 +20,7 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 
 - **Event compiler:** Resolved an off-by-one state leak bug where event options were shifting into subsequent events or duplicating. Added explicit state flushing on event boundaries to ensure open option blocks are committed to their parent event before transitioning to new events or namespaces.
 - **Validator:** prevented incorrect depth errors after single-line pass through syntax for the DSL syntax in some specific cases.
+- **Logger Archiving:** Fixed log archiving logic to recursively include all subfolders and nested directory structures within session folders instead of only capturing root-level log files.
 
 ## [1.3.0] - 2026-09-12 - UX Update
 
