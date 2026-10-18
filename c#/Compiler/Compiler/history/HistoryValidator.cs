@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 
-namespace Compiler
+namespace Compiler.history
 {
     // Known condition types for history conditions
     public enum ConditionType
@@ -51,6 +51,11 @@ namespace Compiler
 
     public class HistoryValidator : BaseValidator
     {
+        public HistoryValidator()
+        {
+            ComponentName = "History";
+        }
+
         private HistoryParser _parser;
 
         protected override BaseParser Parser
@@ -75,7 +80,7 @@ namespace Compiler
             ["capital "] = new[] { 1 },
             ["ui color "] = new[] { 1 },
             ["map color "] = new[] { 1 },
-            
+
         };
 
         protected override bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
@@ -202,21 +207,17 @@ namespace Compiler
                             index++;
                         }
 
-                        // Next should be the condition value
-                        if (index >= parts.Length)
+                        // Next should be the condition value (but it's optional if we reached the end - the quoted name is what matters)
+                        string conditionValue = string.Empty;
+                        if (index < parts.Length)
                         {
-                            var supportedTypes = string.Join(", ", "subject, ideology, overlord, autonomy, party");
-                            Errors.Add(new ValidationError(fileName, lineNumber,
-                                $"ERROR! Expected condition value after '{conditionType}'. Supported types: {supportedTypes}."));
-                            return true;
-                        }
-
-                        string conditionValue = parts[index];
-                        if (!IsValidId(conditionValue, fileName, lineNumber, ComponentName, DotsAllowed))
-                        {
-                            Errors.Add(new ValidationError(fileName, lineNumber,
-                                $"ERROR! Invalid condition value: '{conditionValue}' must be a valid identifier (alphanumeric, underscore, and optional dots). Received: '{conditionValue}'."));
-                            return true;
+                            conditionValue = parts[index];
+                            if (!IsValidId(conditionValue, fileName, lineNumber, ComponentName, DotsAllowed))
+                            {
+                                Errors.Add(new ValidationError(fileName, lineNumber,
+                                    $"ERROR! Invalid condition value: '{conditionValue}' must be a valid identifier (alphanumeric, underscore, and optional dots). Received: '{conditionValue}'."));
+                                return true;
+                            }
                         }
 
                         // Parse condition type enum

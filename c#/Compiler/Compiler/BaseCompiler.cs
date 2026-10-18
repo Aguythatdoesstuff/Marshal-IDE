@@ -224,6 +224,10 @@ namespace Compiler
             // Normalize whitespace for comparisons
             static string Normalize(string s) => System.Text.RegularExpressions.Regex.Replace(s.Trim(), "\\s+", " ").ToLowerInvariant();
 
+            // Track open blocks: stack of (depth, blockOpenedAtIndex)
+            // When we see "= {" we push the depth, when we see same or lower depth, we pop and close
+            var openBlocks = new Stack<int>();
+
             // Recursive processor: process items from index 'start' until 'end' or until a line with depth <= parentDepth
             int ProcessRange(int start, int end, int parentDepth)
             {
@@ -235,10 +239,18 @@ namespace Compiler
 
                     var lower = Normalize(text);
 
+                    // Close any open blocks that are at the same or deeper depth
+                    while (openBlocks.Count > 0 && openBlocks.Peek() >= depth)
+                    {
+                        int blockDepth = openBlocks.Pop();
+                        sw.WriteLine(Ident(blockDepth) + "}");
+                    }
+
                     // If the line already has an opening brace, just write as-is
                     if (text.Contains("= {"))
                     {
                         sw.WriteLine(Ident(depth) + text);
+                        openBlocks.Push(depth);
                         i++; continue;
                     }
 
@@ -273,6 +285,7 @@ namespace Compiler
                     {
                         string name = lower == "if" ? "if" : (lower == "else" ? "else" : "else_if");
                         sw.WriteLine(Ident(depth) + name + " = {");
+                        openBlocks.Push(depth);
 
                         // Collect condition lines for 'if' and 'else if' (everything after this with depth > current depth until a 'then' or a line with depth <= current)
                         // Do NOT collect condition lines for a plain 'else' - else never has a limit block.
@@ -349,9 +362,15 @@ namespace Compiler
                         }
                         else
                         {
+                            // For plain 'else', process the body similar to if/else_if
+                            // but without depth adjustment since else body items are already
+                            // at the correct relative depth (they follow depth > current)
                             j = ProcessRange(j, end, depth);
                         }
 
+                        // Closing brace will be handled by the openBlocks stack
+                        // when we encounter the next item at same or lower depth
+                        openBlocks.Pop(); // Remove this block from tracking
                         sw.WriteLine(Ident(depth) + "}");
                         i = j;
                         continue;
@@ -360,6 +379,13 @@ namespace Compiler
                     // Default: write the original line
                     sw.WriteLine(Ident(depth) + text);
                     i++;
+                }
+
+                // Close any remaining open blocks at this level
+                while (openBlocks.Count > 0 && openBlocks.Peek() > parentDepth)
+                {
+                    int blockDepth = openBlocks.Pop();
+                    sw.WriteLine(Ident(blockDepth) + "}");
                 }
 
                 return i;

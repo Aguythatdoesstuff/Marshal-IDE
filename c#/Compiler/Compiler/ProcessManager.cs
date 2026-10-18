@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Compiler.history;
 
 namespace Compiler
 {
@@ -22,6 +23,7 @@ namespace Compiler
             ".scriptedgui",
             ".script",
             ".oob",
+            ".history",
             ".dds"
         };
 
@@ -36,8 +38,15 @@ namespace Compiler
             AllErrors.Clear();
             AllWarnings.Clear();
 
+            var pathList = filePaths.ToList();
+            Compiler.Logging.Logger.LogMain($"[ProcessFiles] Received {pathList.Count} files to process");
+            foreach (var p in pathList)
+            {
+                Compiler.Logging.Logger.LogMain($"[ProcessFiles] File: {p}");
+            }
+
             var tasks = new List<System.Threading.Tasks.Task>();
-            foreach (var path in filePaths)
+            foreach (var path in pathList)
             {
                 var p = path;
                 // Wrap each file processing in a task that will capture exceptions and escalate fatal ones
@@ -117,48 +126,76 @@ namespace Compiler
 
         private void DispatchValidator(string absolutePath, string extension)
         {
+            string fileName = Path.GetFileName(absolutePath);
             Compiler.Logging.Logger.LogMain($"Processing: {absolutePath}");
+            Compiler.Logging.Logger.LogComponentReceived(extension, absolutePath);
 
             BaseValidator validator = null;
+            string selectedValidator = "NONE";
 
             switch (extension)
             {
                 case ".decision":
                     validator = new DecisionValidator();
+                    selectedValidator = "DecisionValidator";
                     break;
                 case ".equipment":
                     validator = new EquipmentValidator();
+                    selectedValidator = "EquipmentValidator";
                     break;
                 case ".unit":
                     validator = new UnitValidator();
+                    selectedValidator = "UnitValidator";
                     break;
                 case ".event":
                     validator = new EventValidator();
+                    selectedValidator = "EventValidator";
                     break;
                 case ".focus":
                     validator = new FocusValidator();
+                    selectedValidator = "FocusValidator";
                     break;
                 case ".oob":
                     validator = new OobValidator();
+                    selectedValidator = "OobValidator";
                     break;
                 case ".idea":
                     validator = new IdeaValidator();
+                    selectedValidator = "IdeaValidator";
+                    break;
+                case ".history":
+                    validator = new HistoryValidator();
+                    selectedValidator = "HistoryValidator";
                     break;
                 case ".scriptedgui":
                     validator = new ScriptedGUIValidator();
+                    selectedValidator = "ScriptedGUIValidator";
                     break;
                 case ".script":
                     validator = new ScriptValidator();
+                    selectedValidator = "ScriptValidator";
                     break;
-                    default:
+                default:
                     Compiler.Logging.Logger.LogMain("Unsupported file type: " + extension);
+                    Compiler.Logging.Logger.LogWarning("DISPATCHER", $"Extension {extension} is not supported");
                     break;
             }
 
-            // If there is no validator, allow certain raw file types (like .dds) to proceed
             if (validator != null)
             {
-                validator.ValidateFile(absolutePath, Path.GetFileName(absolutePath));
+                Compiler.Logging.Logger.LogComponentSelected("VALIDATION", selectedValidator, absolutePath);
+                Compiler.Logging.Logger.LogComponentProcessing("VALIDATION", selectedValidator, absolutePath);
+
+                validator.ValidateFile(absolutePath, fileName);
+
+                int errorCount = validator.Errors?.Count ?? 0;
+                int warningCount = validator.Warnings?.Count ?? 0;
+                int parserErrorCount = validator.GetParserErrors()?.Count() ?? 0;
+
+                Compiler.Logging.Logger.LogComponentCompleted("VALIDATION", selectedValidator, absolutePath, 
+                    errorCount == 0 && parserErrorCount == 0,
+                    $"Errors={errorCount} Warnings={warningCount} ParserErrors={parserErrorCount}");
+
                 lock (AllErrors)
                 {
                     AllErrors.AddRange(validator.Errors);
@@ -176,7 +213,7 @@ namespace Compiler
             bool hadErrors;
             lock (AllErrors)
             {
-                hadErrors = AllErrors.Any(e => string.Equals(e.FileName, Path.GetFileName(absolutePath), StringComparison.OrdinalIgnoreCase));
+                hadErrors = AllErrors.Any(e => string.Equals(e.FileName, fileName, StringComparison.OrdinalIgnoreCase));
             }
 
             if (!hadErrors)
@@ -206,6 +243,8 @@ namespace Compiler
 
         private void ProcessSingleFileAsync(string absolutePath)
         {
+            Compiler.Logging.Logger.LogMain($"[ProcessSingleFileAsync] Received file: {absolutePath}");
+
             if (!File.Exists(absolutePath))
             {
                 Compiler.Logging.Logger.LogMain($"[ERROR] File does not exist: {absolutePath}");
@@ -213,61 +252,85 @@ namespace Compiler
             }
 
             string ext = Path.GetExtension(absolutePath).ToLowerInvariant();
+            Compiler.Logging.Logger.LogMain($"[ProcessSingleFileAsync] File extension: {ext}");
+
             if (!SupportedExtensions.Contains(ext))
             {
-                Compiler.Logging.Logger.LogMain($"[SKIP] Ignored unsupported file: {absolutePath}");
+                Compiler.Logging.Logger.LogMain($"[SKIP] Ignored unsupported file: {absolutePath}. Extension '{ext}' not in SupportedExtensions");
                 return;
             }
 
+            Compiler.Logging.Logger.LogMain($"[ProcessSingleFileAsync] Extension is supported, dispatching validator...");
             DispatchValidator(absolutePath, ext);
         }
 
         private void CompileFileForExtension(string extension, string absolutePath, BaseValidator validator)
         {
             BaseCompiler compiler = null;
+            string selectedCompiler = "NONE";
+
             switch (extension)
             {
                 case ".decision":
                     compiler = new Compiler.decision.DecisionCompiler();
+                    selectedCompiler = "DecisionCompiler";
                     break;
                 case ".equipment":
                     compiler = new EquipmentCompiler();
+                    selectedCompiler = "EquipmentCompiler";
                     break;
                 case ".unit":
                     compiler = new UnitCompiler();
+                    selectedCompiler = "UnitCompiler";
                     break;
                 case ".oob":
                     compiler = new OobCompiler();
+                    selectedCompiler = "OobCompiler";
                     break;
                 case ".event":
                     compiler = new Compiler.@event.EventCompiler();
+                    selectedCompiler = "EventCompiler";
                     break;
                 case ".idea":
                     compiler = new Compiler.idea.IdeaCompiler();
+                    selectedCompiler = "IdeaCompiler";
                     break;
                 case ".focus":
                     compiler = new Compiler.focus.FocusCompiler();
+                    selectedCompiler = "FocusCompiler";
+                    break;
+                case ".history":
+                    compiler = new Compiler.history.HistoryCompiler();
+                    selectedCompiler = "HistoryCompiler";
                     break;
                 case ".scriptedgui":
                     compiler = new Compiler.scriptedGui.ScriptedGUICompiler();
+                    selectedCompiler = "ScriptedGUICompiler";
                     break;
                 case ".script":
                     compiler = new Compiler.script.ScriptCompiler();
+                    selectedCompiler = "ScriptCompiler";
                     break;
                 case ".dds":
                     compiler = new DdsCompiler();
+                    selectedCompiler = "DdsCompiler";
                     break;
                 default:
                     // No compiler implemented for this extension yet
+                    Compiler.Logging.Logger.LogWarning("COMPILER", $"No compiler implemented for extension {extension}");
                     return;
             }
 
             if (compiler != null)
             {
+                string fileName = Path.GetFileName(absolutePath);
+                Compiler.Logging.Logger.LogComponentSelected("COMPILATION", selectedCompiler, absolutePath);
+                Compiler.Logging.Logger.LogComponentProcessing("COMPILATION", selectedCompiler, absolutePath);
+
                 // Provide the compiler with the source file name directly from the absolute path
                 try
                 {
-                    compiler.SourceFileName = Path.GetFileName(absolutePath);
+                    compiler.SourceFileName = fileName;
                     compiler.SourceAbsolutePath = absolutePath;
                 }
                 catch
@@ -328,6 +391,11 @@ namespace Compiler
                         {
                             sgCompiler.PassedData = sgParser.LastParsedFile;
                         }
+
+                        if (parserInstance is HistoryParser hParser && compiler is Compiler.history.HistoryCompiler hCompiler)
+                        {
+                            hCompiler.PassedData = hParser.LastParsedFile;
+                        }
                     }
                 }
                 catch
@@ -339,13 +407,16 @@ namespace Compiler
                 // Collect non-fatal compiler errors produced during compilation
                 try
                 {
+                    int compilerErrorCount = 0;
                     lock (AllErrors)
                     {
                         if (compiler is BaseCompiler bc && bc.CompilerErrors != null && bc.CompilerErrors.Count > 0)
                         {
                             AllErrors.AddRange(bc.CompilerErrors);
+                            compilerErrorCount = bc.CompilerErrors.Count;
                         }
                     }
+                    Compiler.Logging.Logger.LogComponentCompleted("COMPILATION", selectedCompiler, absolutePath, true, $"CompilerErrors={compilerErrorCount}");
                 }
                 catch { }
                 Compiler.Logging.Logger.LogComponent("Compiler", $"[COMPILER] Wrote output for {absolutePath} to {BaseCompiler.OutputPath}");

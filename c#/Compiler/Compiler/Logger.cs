@@ -101,6 +101,37 @@ namespace Compiler.Logging
             WriteToActiveChunk($"WARN-{component.ToUpperInvariant()}", message);
         }
 
+        // Pipeline logging helpers for standardized component flow tracking
+        public static void LogComponentReceived(string componentType, string filePath)
+        {
+            EnsureInit();
+            WriteToActiveChunk("PIPELINE", $"[RECEIVED] ComponentType: {componentType} | File: {Path.GetFileName(filePath)}");
+        }
+
+        public static void LogComponentSelected(string stage, string componentName, string filePath)
+        {
+            EnsureInit();
+            WriteToActiveChunk("PIPELINE", $"[{stage.ToUpper()}] Selected: {componentName} | File: {Path.GetFileName(filePath)}");
+        }
+
+        public static void LogComponentProcessing(string stage, string componentName, string filePath)
+        {
+            EnsureInit();
+            WriteToActiveChunk("PIPELINE", $"[{stage.ToUpper()}_START] Component: {componentName} | File: {Path.GetFileName(filePath)}");
+        }
+
+        public static void LogComponentCompleted(string stage, string componentName, string filePath, bool success, string details = null)
+        {
+            EnsureInit();
+            string result = success ? "SUCCESS" : "FAILED";
+            string msg = $"[{stage.ToUpper()}_END] Component: {componentName} | File: {Path.GetFileName(filePath)} | Result: {result}";
+            if (!string.IsNullOrWhiteSpace(details))
+            {
+                msg += $" | Details: {details}";
+            }
+            WriteToActiveChunk("PIPELINE", msg);
+        }
+
         private static void WriteToActiveChunk(string prefix, string message)
         {
             var ts = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff");

@@ -109,6 +109,7 @@ namespace Compiler
 
             var manager = new ProcessManager();
             IPC.Log("Info", $"Compiler initialized and ready to compile. Received Output path:{resolvedOutputPath}     Logs path:{resolvedLogPath}");
+            Compiler.Logging.Logger.LogMain($"[PROGRAM] Compiler started with Output={resolvedOutputPath} Logs={resolvedLogPath}");
             // Enter continuous loop to receive absolute file paths from parent process via stdin
             while (true)
             {
@@ -137,6 +138,7 @@ namespace Compiler
                     continue;
                 }
 
+                Compiler.Logging.Logger.LogMain($"[PROGRAM] Raw input received: {input}");
                 IEnumerable<string> filePaths = ParseInputPaths(input);
 
 #if DEBUG
@@ -169,7 +171,11 @@ namespace Compiler
                             continue;
                         }
                         var full = Path.GetFullPath(trimmed);
-                        if (File.Exists(full)) toProcess.Add(full);
+                        if (File.Exists(full))
+                        {
+                            toProcess.Add(full);
+                            Compiler.Logging.Logger.LogMain($"[PROGRAM] Parsed valid file path: {full}");
+                        }
                         else Compiler.Logging.Logger.LogMain("[WARN] File not found: " + full);
                     }
                     catch (Exception ex)
@@ -185,6 +191,7 @@ namespace Compiler
                     continue;
                 }
 
+                Compiler.Logging.Logger.LogMain($"[PROGRAM] Total files to process: {toProcess.Count}");
                 try
                 {
                     manager.ProcessFiles(toProcess);
@@ -208,7 +215,7 @@ namespace Compiler
                 return Array.Empty<string>();
             }
 
-            var allowedExtensions = new[] { ".decision", ".event", ".focus", ".idea", ".scriptedgui", ".script", ".equipment", ".unit" };
+            var allowedExtensions = new[] { ".decision", ".event", ".focus", ".idea", ".scriptedgui", ".script", ".equipment", ".unit", ".history" };
             var files = new List<string>();
 
             foreach (var ext in allowedExtensions)

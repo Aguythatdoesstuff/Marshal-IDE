@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Compiler
+namespace Compiler.history
 {
     public class HistoryParser : BaseParser
     {
@@ -43,6 +43,7 @@ namespace Compiler
         {
             public string Name { get; set; } = string.Empty;
             public List<Condition> Conditions { get; set; } = new List<Condition>();
+            public string NameType { get; set; } = string.Empty; // "def", "adj", or empty for default
         }
 
         public class ConditionalPartyName
@@ -139,27 +140,46 @@ namespace Compiler
                         // Get the quoted name content
                         var nameContent = GetQuotedContent(trimmedLine);
 
-                        // If there are conditions, create a single ConditionalName with all conditions
+                        // Determine the name type from the def/adj flags
+                        string nameType = string.Empty;
+
+                        // Check if this is a standalone "name def" or "name adj" (no conditions, just def/adj)
                         if (metadataLine.NameConditions != null && metadataLine.NameConditions.Count > 0)
                         {
-                            var conditionalName = new ConditionalName
-                            {
-                                Name = nameContent,
-                                Conditions = metadataLine.NameConditions
+                            var firstCondition = metadataLine.NameConditions[0];
+                            if (firstCondition.isdef)
+                                nameType = "def";
+                            else if (firstCondition.isAdj)
+                                nameType = "adj";
+                        }
+                        else
+                        {
+                            // Even with no conditions, check if there's a def/adj marker
+                            // This handles cases like "name def" or "name adj" without conditions
+                            // The validator stores these as empty NameConditions but we need to check the metadata line somehow
+                            // Let's check the trimmed line itself for def/adj keywords
+                            if (trimmedLine.Contains(" def ", StringComparison.OrdinalIgnoreCase) || trimmedLine.EndsWith(" def", StringComparison.OrdinalIgnoreCase))
+                                nameType = "def";
+                            else if (trimmedLine.Contains(" adj ", StringComparison.OrdinalIgnoreCase) || trimmedLine.EndsWith(" adj", StringComparison.OrdinalIgnoreCase))
+                                nameType = "adj";
+                        }
+
+                        // Create a ConditionalName with or without conditions
+                        var conditionalName = new ConditionalName
+                        {
+                            Name = nameContent,
+                            NameType = nameType,
+                            Conditions = (metadataLine.NameConditions != null && metadataLine.NameConditions.Count > 0)
+                                ? metadataLine.NameConditions
                                     .Select(condition => new Condition
                                     {
                                         Type = condition.Type.ToString().ToLower(),
                                         ConditionValue = condition.Value
                                     })
                                     .ToList()
-                            };
-                            currentCountry.ConditionalNames.Add(conditionalName);
-                        }
-                        else
-                        {
-                            // No conditions, just set the default name
-                            currentCountry.Name = nameContent;
-                        }
+                                : new List<Condition>()
+                        };
+                        currentCountry.ConditionalNames.Add(conditionalName);
                     }
                 }
                 // Handle party name line with conditions

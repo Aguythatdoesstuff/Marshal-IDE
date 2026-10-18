@@ -43,5 +43,9 @@
     ".unit": {
         "definition": "common/units",
         "localisation": "localisation/english/units"
+    },
+    ".history": {
+        "definition": "history/countries",
+        "localisation": "localisation/english/countries"
     }
 }

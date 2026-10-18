@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using static Compiler.HistoryParser;
 
-namespace Compiler
+namespace Compiler.history
 {
     public class HistoryCompiler : BaseCompiler
     {
@@ -44,6 +43,12 @@ namespace Compiler
                     {
                         WriteConditionalPartyNamesLocalisation(country);
                     }
+
+                    // Write country tag definition
+                    WriteCountryTagDefinition(country);
+
+                    // Write country file with graphical culture and color
+                    WriteCountryFile(country);
                 }
             }
         }
@@ -66,16 +71,10 @@ namespace Compiler
                 sw.WriteLine($"color_ui = rgb {{ {country.UiColor.Red} {country.UiColor.Green} {country.UiColor.Blue} }}");
             }
 
-            // Write unconditional base name
-            if (!string.IsNullOrEmpty(country.Name))
-            {
-                sw.WriteLine($"name = \"{country.Name}\"");
-            }
-
             // Write raw lines (already at the correct indentation depth for country level)
             if (country.RawLines != null && country.RawLines.Count > 0)
             {
-                WriteAllowedWithConversions(sw, country.RawLines, r => r.depth, r => r.trimmedLine);
+                WriteAllowedWithConversions(sw, country.RawLines, r => r.depth - 1, r => r.trimmedLine);
             }
         }
 
@@ -83,24 +82,32 @@ namespace Compiler
         {
             string fileName = country.Tag;
 
-            WriteFile("localisation/english/", fileName, ".yml", (sw, created) =>
+            WriteFile("localisation/english/countries/", fileName, ".yml", (sw, created) =>
             {
                 if (created)
                 {
                     sw.WriteLine("l_english:");
                 }
 
-                // Group conditional names by their formatted condition keys
+                // Always write the base country name first
+                if (!string.IsNullOrEmpty(country.Name))
+                {
+                    sw.WriteLine($" {country.Tag}:0 \"{country.Name}\"");
+                }
+
+                // Output all conditional names without filtering
                 var groupedNames = country.ConditionalNames
-                    .GroupBy(c => FormatConditionKey(country.Tag, c.Conditions))
-                    .Where(g => !string.IsNullOrEmpty(g.Key) && g.All(c => !string.IsNullOrEmpty(c.Name)));
+                    .GroupBy(c => FormatConditionKey(country.Tag, c.Conditions, c.NameType));
 
                 foreach (var group in groupedNames)
                 {
                     string locKey = group.Key;
                     string nameValue = group.First().Name;
 
-                    sw.WriteLine($" {locKey}:0 \"{nameValue}\"");
+                    if (!string.IsNullOrEmpty(locKey) && !string.IsNullOrEmpty(nameValue))
+                    {
+                        sw.WriteLine($" {locKey}:0 \"{nameValue}\"");
+                    }
                 }
             });
         }
@@ -109,7 +116,7 @@ namespace Compiler
         {
             string fileName = country.Tag;
 
-            WriteFile("localisation/english/", fileName, ".yml", (sw, created) =>
+            WriteFile("localisation/english/countries/", fileName, ".yml", (sw, created) =>
             {
                 if (created)
                 {
@@ -144,8 +151,16 @@ namespace Compiler
         /// - Ideology: TAG_ideology
         /// - Autonomy: TAG_autonomy_level
         /// - Multiple: TAG_target_subject_communism
-        private string FormatConditionKey(string tag, IEnumerable<HistoryParser.Condition> conditions)
+        /// - With def: TAG_def
+        /// - With adj: TAG_adj
+        private string FormatConditionKey(string tag, IEnumerable<HistoryParser.Condition> conditions, string nameType = "")
         {
+            // If there's a name type (def or adj) and no conditions, just append it to the tag
+            if (!string.IsNullOrEmpty(nameType) && (conditions == null || !conditions.Any()))
+            {
+                return $"{tag}_{nameType}";
+            }
+
             if (conditions == null || !conditions.Any())
                 return tag;
 
@@ -169,9 +184,20 @@ namespace Compiler
                 .Where(s => !string.IsNullOrEmpty(s));
 
             if (!formattedSegments.Any())
+            {
+                // If we have a nameType but no valid segments, use just the nameType with tag
+                if (!string.IsNullOrEmpty(nameType))
+                    return $"{tag}_{nameType}";
                 return tag;
+            }
 
-            return $"{tag}_{string.Join("_", formattedSegments)}";
+            var result = $"{tag}_{string.Join("_", formattedSegments)}";
+
+            // Append nameType if present
+            if (!string.IsNullOrEmpty(nameType))
+                result = $"{result}_{nameType}";
+
+            return result;
         }
 
         /// Normalizes condition values to match HOI4 localisation key conventions
@@ -182,6 +208,35 @@ namespace Compiler
                 return string.Empty;
 
             return value.ToLowerInvariant().Replace(" ", "_").Replace("-", "_");
+        }
+
+        private void WriteCountryTagDefinition(HistoryParser.Country country)
+        {
+
+            WriteFile("common/country_tags/", country.Name, ".txt", (sw, created) =>
+            {
+                sw.WriteLine($"{country.Tag} = \"countries/{country.Name}.txt\"");
+            });
+        }
+
+        private void WriteCountryFile(HistoryParser.Country country)
+        {
+            WriteFile("common/countries/", country.Name, ".txt", (sw, created) =>
+            {
+                // Write graphical culture (required for game to display country)
+                sw.WriteLine("graphical_culture = western_european_gfx");
+                sw.WriteLine("graphical_culture_2d = western_european_2d");
+
+                // Write color if available, otherwise use default
+                if (country.MapColor != null)
+                {
+                    sw.WriteLine($"color = {{ {country.MapColor.Red} {country.MapColor.Green} {country.MapColor.Blue} }}");
+                }
+                if (country.UiColor != null)
+                {
+                    sw.WriteLine($"color = {{ {country.UiColor.Red} {country.UiColor.Green} {country.UiColor.Blue} }}");
+                }
+            });
         }
     }
 }

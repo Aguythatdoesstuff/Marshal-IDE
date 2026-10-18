@@ -15,9 +15,12 @@ namespace Compiler
 
     public abstract class BaseParser
     {
-
-
         public List<ParsingError> Errors { get; protected set; } = new List<ParsingError>();
+
+        // Special block content: maps from block name to line numbers and their content (IDs)
+        // For example: add_ideas -> { 50: ["henschel", "GER_autarky_idea", "war_economy"] }
+        public Dictionary<string, Dictionary<int, List<string>>> SpecialBlockContent { get; protected set; } = new Dictionary<string, Dictionary<int, List<string>>>(StringComparer.OrdinalIgnoreCase);
+
         // Parser receives a preprocessed representation of the file produced by
         // the validator: trimmed line text, calculated depth, line number, and file name.
         // Specialized parsers MUST implement this method.

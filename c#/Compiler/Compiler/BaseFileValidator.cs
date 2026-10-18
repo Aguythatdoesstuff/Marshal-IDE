@@ -86,9 +86,13 @@ namespace Compiler
                 Compiler.Logging.Logger.LogMain($"[ERROR] File does not exist: {filePath}");
                 return;
             }
+
+            Compiler.Logging.Logger.LogComponent(ComponentName, $"[{ComponentName}] Starting validation of {fileName}");
+
             try
             {
                 var lines = File.ReadAllLines(filePath);
+                Compiler.Logging.Logger.LogComponent(ComponentName, $"[{ComponentName}] Read {lines.Length} lines from {fileName}");
 
                 var sanitizedLines = lines.Select(SanitizeLine).ToList();
 
@@ -98,6 +102,7 @@ namespace Compiler
 
                 if (Errors == null || Errors.Count == 0)
                 {
+                    Compiler.Logging.Logger.LogComponent(ComponentName, $"[{ComponentName}] No validation errors found, proceeding to parse {fileName}");
                     try
                     {
                         var preprocessed = new List<PreprocessedLine>();
@@ -198,7 +203,26 @@ namespace Compiler
                         {
                             var parser = Parser;
                             _lastParserUsed = parser;
+
+                            // Pass special block content to parser if any were collected
+                            foreach (var blockEntry in _specialBlockContent)
+                            {
+                                if (!parser.SpecialBlockContent.ContainsKey(blockEntry.Key))
+                                {
+                                    parser.SpecialBlockContent[blockEntry.Key] = new Dictionary<int, List<string>>();
+                                }
+
+                                foreach (var contentEntry in blockEntry.Value)
+                                {
+                                    parser.SpecialBlockContent[blockEntry.Key][contentEntry.Key] = contentEntry.Value;
+                                }
+                            }
+
+                            Compiler.Logging.Logger.LogComponent(ComponentName, $"[{ComponentName}] Starting parse phase for {fileName}");
                             parser.ParseFile(filePath, fileName, preprocessed);
+
+                            var parserErrors = GetParserErrors();
+                            Compiler.Logging.Logger.LogComponent(ComponentName, $"[{ComponentName}] Parse complete for {fileName}. ParserErrors={parserErrors.Count()}");
 
                             FileLines = new List<string>();
                             CurrentLineIndex = 0;
@@ -215,11 +239,18 @@ namespace Compiler
                             Compiler.Logging.Logger.LogComponent("Parser", $"[ERROR] Parser failed for file: {filePath}. Exception: {ex.Message}");
                         }
                 }
+                else
+                {
+                    int errorCount = Errors?.Count ?? 0;
+                    Compiler.Logging.Logger.LogComponent(ComponentName, $"[{ComponentName}] Validation failed for {fileName} with {errorCount} errors");
+                }
             }
             catch (Exception ex)
             {
                 Compiler.Logging.Logger.LogMain($"[ERROR] Failed to read file: {filePath}. Exception: {ex.Message}");
             }
+
+            Compiler.Logging.Logger.LogComponent(ComponentName, $"[{ComponentName}] Validation completed for {fileName}");
         }
         // Helper method to count spaces at the start of the line
         private int GetLeadingSpaceCount(string line)
@@ -373,6 +404,11 @@ namespace Compiler
             FileLines = lines;
             string fileName = Path.GetFileName(filePath);
 
+            // Reset special block tracking for this file
+            _currentSpecialBlock = null;
+            _specialBlockDepth = -1;
+            _specialBlockContent.Clear();
+
             // Require specialized validators to provide allowed block depth configuration.
             // By default this mapping is empty which forces child validators to override
             // AllowedBlockDepths; if it remains empty we refuse to continue validation.
@@ -436,6 +472,29 @@ namespace Compiler
         // a configuration error so child validators are forced to supply a mapping.
         protected virtual Dictionary<string, int[]> AllowedBlockDepths => new Dictionary<string, int[]>(StringComparer.OrdinalIgnoreCase);
 
+        // Special blocks are containers that hold only IDs without the normal "key = value" pattern.
+        // For example, "add_ideas = { henschel GER_autarky_idea war_economy }" is a special block
+        // where the contents are just IDs, one per line.
+        // Special blocks can appear at any depth in the file and are recognized compiler-wide.
+        // Child validators can override this to declare additional special blocks.
+        protected virtual HashSet<string> GetSpecialBlocks() => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "add_ideas"  // add_ideas block can appear at any depth
+        };
+
+        // Track the current special block state (if any)
+        private string _currentSpecialBlock = null;
+        private int _specialBlockDepth = -1;
+
+        // Track special block content as we validate: blockName -> lineNumber -> list of IDs
+        private Dictionary<string, Dictionary<int, List<string>>> _specialBlockContent = new Dictionary<string, Dictionary<int, List<string>>>(StringComparer.OrdinalIgnoreCase);
+
+        // Helper to check if we're currently inside a special block
+        protected bool IsInsideSpecialBlock => !string.IsNullOrEmpty(_currentSpecialBlock);
+
+        // Helper to get the name of the current special block (null if not inside one)
+        protected string CurrentSpecialBlockName => _currentSpecialBlock;
+
         protected virtual bool ValidateCustomContent(string trimmedLine, int currentDepth, int lineNumber, string fileName)
         {
             return false;
@@ -492,10 +551,22 @@ namespace Compiler
                 {
                     lineRecognized = true;
 
+                    // Check if this is a special block
+                    var specialBlocks = GetSpecialBlocks();
+                    if (specialBlocks != null && specialBlocks.Contains(lhs))
+                    {
+                        // This is a special block opener (can appear at any depth)
+                        _currentSpecialBlock = lhs;
+                        _specialBlockDepth = currentDepth;
+                    }
+
                     // If the line opens AND closes on the same line (e.g. { x = 4 y = 3 }), depth stays the same
                     if (rhs.EndsWith("}"))
                     {
                         ExpectedDepth = currentDepth;
+                        // If this was a special block, we're now exiting it
+                        _currentSpecialBlock = null;
+                        _specialBlockDepth = -1;
                     }
                     else
                     {
@@ -766,6 +837,50 @@ namespace Compiler
                 if (lineRecognized)
                 {
                     ExpectedDepth = currentDepth;
+                }
+            }
+
+            // Handle special block content and closing braces
+            if (!lineRecognized)
+            {
+                // Check if this line closes the special block (single closing brace)
+                if (IsInsideSpecialBlock && trimmedLine == "}")
+                {
+                    lineRecognized = true;
+                    // Exit the special block
+                    if (currentDepth == _specialBlockDepth)
+                    {
+                        // Closing brace at the same depth as the opener is valid
+                        _currentSpecialBlock = null;
+                        _specialBlockDepth = -1;
+                    }
+                    // Update expected depth back to the depth of the block opener
+                    ExpectedDepth = _specialBlockDepth;
+                }
+                // If we're inside a special block, treat bare IDs as valid content
+                else if (IsInsideSpecialBlock && currentDepth == _specialBlockDepth + 1)
+                {
+                    // Inside a special block - validate the line as an ID
+                    if (IsValidId(trimmedLine, fileName, lineNumber, ComponentName, DotsAllowed))
+                    {
+                        lineRecognized = true;
+                        ExpectedDepth = currentDepth;
+
+                        // Track this ID in the special block content
+                        if (!_specialBlockContent.ContainsKey(_currentSpecialBlock))
+                        {
+                            _specialBlockContent[_currentSpecialBlock] = new Dictionary<int, List<string>>();
+                        }
+
+                        // The line number where the special block opened
+                        int blockOpenerLine = lineNumber; // We'll use the current line as the key for simplicity
+                        if (!_specialBlockContent[_currentSpecialBlock].ContainsKey(blockOpenerLine))
+                        {
+                            _specialBlockContent[_currentSpecialBlock][blockOpenerLine] = new List<string>();
+                        }
+
+                        _specialBlockContent[_currentSpecialBlock][blockOpenerLine].Add(trimmedLine);
+                    }
                 }
             }
 

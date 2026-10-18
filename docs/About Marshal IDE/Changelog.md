@@ -7,6 +7,7 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
     - **Unit Support**: Dedicated DSL for Unit modding.(https://hoi4.paradoxwikis.com/Unit_modding)
     - **Equipment Support**: Dedicated DSL for Equipment modding.(https://hoi4.paradoxwikis.com/Equipment_modding)
     - **Oob Support**: Dedicated DSL for OOB(Order of battle) modding.(https://hoi4.paradoxwikis.com/Division_modding)
+    - **Country Support**: Dedicated DSL for country modding.(https://hoi4.paradoxwikis.com/Country_creation)
     - **Syntax Highlighting**:
         - Add syntax highlighting for History DSL (Country support).
         - Add syntax highlighting for Equipment DSL.
