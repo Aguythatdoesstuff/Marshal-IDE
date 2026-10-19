@@ -16,38 +16,38 @@ Numbers | Numbers meaning an entirely numeric country tag such as 123, although 
 
 
 
-country "Scotland" with tag POL
+country "Testlandia" with tag TST
     # Base names
-    name def "Scotland"
-    name adj "Scottish"
+    name def "Testlandia"
+    name adj "Testlandish"
 
     # advanced localisation works like this: [Key Prefix] + [Joined Condition Tokens] + [Tail Suffix]
     # examples:
 
     # Ideology group variants (outputs: TAG_ideology, TAG_ideology_DEF, TAG_ideology_ADJ)
-    name if ideology democratic "Republic of Scotland"
-    name if ideology democratic def "the Republic of Scotland"
-    name if ideology democratic adj "Scottish"
+    name if ideology democratic "Republic of Testlandia"
+    name if ideology democratic def "the Republic of Testlandia"
+    name if ideology democratic adj "Testlandish"
 
     # Sub-ideology and ideology get handlet the same
-    name if sub-ideology liberalism "Federal Republic of Scotland"
+    name if sub-ideology liberalism "Federal Republic of Testlandia"
     #IMPORTANT!! ideology or sub-ideology get handled the same, sub-ideology is a allias of ideology as the game engine handles localisation for both the same
 
 
     # Subject & Autonomy variants
-    name if is subject "$OVERLORDADJ$ Scotland"
+    name if is subject "$OVERLORDADJ$ Testlandia"
     name if is subject of IRE "Alba"
-    name if autonomy is dominion "Dominion of Scotland"
+    name if autonomy is dominion "Dominion of Testlandia"
     
     # Fully dynamic chain: name combined [overlord] [ideology] [autonomy]
     name if subject of IRE and ideology democratic and autonomy integrated_puppet "Most Northern Ireland"
 
     # Generic country prefix rule (outputs: COUNTRY_TAG_autonomy_...)
-    name if overlord of generic and autonomy dominion "Comhairle nan $NONIDEOLOGY$" # subjects of scotland if theire autonomy is dominion get called "Comhairle nan $NONIDEOLOGY$"
+    name if overlord of generic and autonomy dominion "Comhairle nan $NONIDEOLOGY$" # subjects of Testlandia if theire autonomy is dominion get called "Comhairle nan $NONIDEOLOGY$"
 
     # Political party names
-    party name communism short "SCP"
-    party name communism long "Scottish Communist Party"
+    party name communism short "TCP"
+    party name communism long "Testlandish Communist Party"
     party name neutrality "True Scotsman"
 
 
@@ -55,28 +55,8 @@ country "Scotland" with tag POL
     map color 2 10 222 # RGB definition about the country's default colour on the political map mode
     ui color 255 255 155 # coloring for common/countries/colors.txt is currently likley unsupported and needs manual action, specifically this: color_ui = rgb { 255 255 155 }
 
-    # everything from here on is just pass through hoi4 DSL that goes into the countries history file!
-    if = {
-        limit = { has_dlc = "Man the Guns" }
-        set_naval_oob = "SCO_1936_naval_mtg"
-    }
-    if = {
-        limit = { NOT = { has_dlc = "Man the Guns" } }
-        set_naval_oob = "SCO_1936_naval_legacy"
-    }
-    if = {
-        limit = { has_dlc = "By Blood Alone" }
-        set_air_oob = "SCO_1936_air_bba"
-    }
-    if = {
-        limit = { NOT = { has_dlc = "By Blood Alone" } }
-        set_air_oob = "SCO_1936_air_legacy"
-    }
 
     add_ideas = {
-        henschel
-        GER_autarky_idea
-        #laws #Remember that the sharp sign is used to mark comments.
         war_economy
         extensive_conscription
     }
@@ -87,4 +67,18 @@ country "Scotland" with tag POL
         interwar_antiair = 1
         fuel_silos = 1
         basic_train = 1
+    }
+
+
+    set_politics = {
+        ruling_party = democratic
+        last_election = "1936.1.1"
+        election_frequency = 48
+        elections_allowed = no
+    }
+    set_popularities = {
+        democratic = 70
+        fascism = 10
+        communism = 10
+        neutrality = 10
     }

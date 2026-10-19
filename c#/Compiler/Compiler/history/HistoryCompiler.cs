@@ -61,16 +61,6 @@ namespace Compiler.history
                 sw.WriteLine($"capital = {country.Capital}");
             }
 
-            if (country.MapColor != null)
-            {
-                sw.WriteLine($"color = rgb {{ {country.MapColor.Red} {country.MapColor.Green} {country.MapColor.Blue} }}");
-            }
-
-            if (country.UiColor != null)
-            {
-                sw.WriteLine($"color_ui = rgb {{ {country.UiColor.Red} {country.UiColor.Green} {country.UiColor.Blue} }}");
-            }
-
             // Write raw lines (already at the correct indentation depth for country level)
             if (country.RawLines != null && country.RawLines.Count > 0)
             {
@@ -89,10 +79,10 @@ namespace Compiler.history
                     sw.WriteLine("l_english:");
                 }
 
-                // Always write the base country name first
+                // Always write the base country name first with safe uppercase tag
                 if (!string.IsNullOrEmpty(country.Name))
                 {
-                    sw.WriteLine($" {country.Tag}:0 \"{country.Name}\"");
+                    sw.WriteLine($" {country.Tag.ToUpperInvariant()}:0 \"{country.Name}\"");
                 }
 
                 // Output all conditional names without filtering
@@ -145,53 +135,83 @@ namespace Compiler.history
 
         /// Formats a localisation key from a tag and multiple stacked conditions
         /// Handles condition-specific formatting and joins them into a single key
+        /// Special case: overlord="generic" triggers COUNTRY_TAG format and is skipped from output
         /// Examples:
         /// - Subject: TAG_target_subject
         /// - Overlord: TAG_target_overlord
+        /// - Overlord generic: COUNTRY_TAG_autonomy_dominion (overlord=generic is skipped)
         /// - Ideology: TAG_ideology
         /// - Autonomy: TAG_autonomy_level
-        /// - Multiple: TAG_target_subject_communism
-        /// - With def: TAG_def
-        /// - With adj: TAG_adj
         private string FormatConditionKey(string tag, IEnumerable<HistoryParser.Condition> conditions, string nameType = "")
         {
+            // Ensure tag is always uppercase using safe method
+            string safeTag = tag.ToUpperInvariant();
+
+            // If tag is not exactly 3 characters, it's generic - replace with COUNTRY
+            string displayTag = safeTag.Length == 3 ? safeTag : "COUNTRY";
+
             // If there's a name type (def or adj) and no conditions, just append it to the tag
             if (!string.IsNullOrEmpty(nameType) && (conditions == null || !conditions.Any()))
             {
-                return $"{tag}_{nameType}";
+                return $"{displayTag}_{nameType}";
             }
 
             if (conditions == null || !conditions.Any())
-                return tag;
+                return displayTag;
 
-            var formattedSegments = conditions
-                .Where(c => c != null && !string.IsNullOrEmpty(c.ConditionValue))
-                .Select(c =>
+            // Check if any condition is overlord="generic" (case-insensitive)
+            bool hasGenericOverlord = conditions.Any(c => 
+                c != null && 
+                (c.Type ?? "").ToLowerInvariant() == "overlord" && 
+                c.ConditionValue.ToUpperInvariant() == "GENERIC");
+
+            var formattedSegments = new List<string>();
+
+            foreach (var c in conditions)
+            {
+                if (c == null || string.IsNullOrEmpty(c.ConditionValue))
+                    continue;
+
+                string type = (c.Type ?? string.Empty).ToLowerInvariant();
+                string normValue = NormalizeValue(c.ConditionValue);
+
+                // Skip overlord="generic" condition - don't format it
+                if (type == "overlord" && c.ConditionValue.ToUpperInvariant() == "GENERIC")
                 {
-                    string normValue = NormalizeValue(c.ConditionValue);
-                    string type = (c.Type ?? string.Empty).ToLowerInvariant();
+                    continue;
+                }
 
-                    return type switch
-                    {
-                        "subject" => $"{normValue}_subject",
-                        "overlord" => $"{normValue}_overlord",
-                        "ideology" => normValue,
-                        "autonomy" => normValue.StartsWith("autonomy_") ? normValue : $"autonomy_{normValue}",
-                        "party" => normValue,
-                        _ => normValue
-                    };
-                })
-                .Where(s => !string.IsNullOrEmpty(s));
+                // Format the condition based on its type
+                string formatted = type switch
+                {
+                    "subject" => $"{normValue.ToUpperInvariant()}_subject",
+                    "overlord" => $"{normValue.ToUpperInvariant()}_overlord",
+                    "ideology" => normValue,
+                    "autonomy" => normValue.StartsWith("autonomy_") ? normValue : $"autonomy_{normValue}",
+                    "party" => normValue,
+                    _ => normValue
+                };
 
-            if (!formattedSegments.Any())
+                if (!string.IsNullOrEmpty(formatted))
+                    formattedSegments.Add(formatted);
+            }
+
+            if (formattedSegments.Count == 0)
             {
                 // If we have a nameType but no valid segments, use just the nameType with tag
                 if (!string.IsNullOrEmpty(nameType))
-                    return $"{tag}_{nameType}";
-                return tag;
+                    return $"{displayTag}_{nameType}";
+                return displayTag;
             }
 
-            var result = $"{tag}_{string.Join("_", formattedSegments)}";
+            // Build the key tag: if overlord="generic", use COUNTRY_original_tag, otherwise use displayTag
+            string keyTag = displayTag;
+            if (hasGenericOverlord)
+            {
+                keyTag = $"COUNTRY_{safeTag}";
+            }
+
+            var result = $"{keyTag}_{string.Join("_", formattedSegments)}";
 
             // Append nameType if present
             if (!string.IsNullOrEmpty(nameType))
@@ -234,7 +254,7 @@ namespace Compiler.history
                 }
                 if (country.UiColor != null)
                 {
-                    sw.WriteLine($"color = {{ {country.UiColor.Red} {country.UiColor.Green} {country.UiColor.Blue} }}");
+                    sw.WriteLine($"color_ui = {{ {country.UiColor.Red} {country.UiColor.Green} {country.UiColor.Blue} }}");
                 }
             });
         }
