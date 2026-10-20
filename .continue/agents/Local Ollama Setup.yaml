@@ -1,6 +1,28 @@
 name: Local Ollama Setup
-version: 1.0.0
+version: 1.1.0
 schema: v1
+
+# note: for this Continue prompt preset larger LLMs like Qwen 2.5 Coder 32B in chat mode are ALOT better in this task then smaller models like DeepSeek R1 14B, but they are also slower and more expensive to run. however the speed of smaller models are NOT worth it due to them creating innacurate broken commit messages that dont make sense. so if you are using this agent for commit message generation, it is recommended to use a larger model like Qwen 2.5 Coder 32B in chat mode.
+prompts:
+  - name: create-commit-msg
+    description: Generate a structured Conventional Commit message from git changes
+    context:
+      - provider: diff
+    prompt: |
+      SYSTEM: Output ONLY the raw commit message text. No markdown blocks, no intro text, no explanations.
+
+      TASK: Write a Conventional Commit message for the provided git diff.
+
+      RULES:
+      1. If the diff is empty, output: EMPTY_DIFF
+      2. IGNORE comment lines starting with '#' and unchanged context lines starting with ' '. Analyze ONLY lines starting with '+' or '-'.
+      3. Format:
+         <type>(<scope>): <short imperative summary>
+
+         - <bullet point of actual change>
+      4. Scope must be a short domain (e.g., config, prompt, agent), never a filename.
+
+      Commit message:
 
 models:
   - name: DeepSeek R1 14B (Agent)
@@ -23,11 +45,11 @@ models:
       - tool_use
     defaultCompletionOptions:
       contextLength: 32768
-
     roles:
       - chat
       - edit
       - apply
+
   - name: Qwen Autocomplete
     provider: ollama
     model: qwen2.5-coder:1.5b
