@@ -4,6 +4,35 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 
+/// <summary>
+/// COMPILER INPUT FORMAT & OPTIONS
+/// ================================
+/// 
+/// The compiler receives configuration via stdin. All paths must be absolute.
+/// Spaces around delimiters are ignored.
+/// 
+/// MINIMUM REQUIRED (Default compilation, no AST output):
+///   C:\absolute\path\to\file.event
+/// 
+/// WITH AST OUTPUT (Compile normally, then export AST as JSON):
+///   C:\absolute\path\to\file.event && out_ast = true && o = C:\absolute\output\path\file.json
+/// 
+/// AST ONLY (Skip compilation, only export AST as JSON):
+///   C:\absolute\path\to\file.event && only_out_ast = true && o = C:\absolute\output\path\file.json
+/// 
+/// PARAMETERS:
+///   - File path (required): Absolute path to the file to compile
+///   - out_ast: If "true", output AST after standard compilation runs
+///   - only_out_ast: If "true", skip compilation entirely and only output AST
+///   - o: Output path for AST JSON (required if AST output is enabled)
+///        Must include filename and extension (e.g., file.json)
+/// 
+/// Notes:
+///   - At most ONE of out_ast or only_out_ast should be set
+///   - If AST output fails, an AstOutputFailure IPC message is sent immediately
+///   - Results always included in final ValidationReport with ast_output_success field
+/// </summary>
+
 namespace Compiler
 {
     internal class Program
@@ -139,17 +168,20 @@ namespace Compiler
                 }
 
                 Compiler.Logging.Logger.LogMain($"[PROGRAM] Raw input received: {input}");
-                IEnumerable<string> filePaths = ParseInputPaths(input);
+
+                // Parse input into file paths and compilation options
+                var parsedRequests = ParseCompilationRequests(input);
 
 #if DEBUG
-                if (!filePaths.Any())
+                if (!parsedRequests.Any())
                 {
                     Compiler.Logging.Logger.LogMain("[DEBUG] No paths from parent process; running test file discovery fallback.");
-                    filePaths = DiscoverTestFiles();
+                    var testFiles = DiscoverTestFiles();
+                    parsedRequests = testFiles.Select(f => CompilationOptions.Default(f)).ToList();
                 }
 #else
                 // In non-DEBUG builds, never perform fallback scanning.
-                if (!filePaths.Any())
+                if (!parsedRequests.Any())
                 {
                     Compiler.Logging.Logger.LogMain("No valid files provided by parent process. Waiting for input.");
                     System.Threading.Thread.Sleep(50);
@@ -158,11 +190,11 @@ namespace Compiler
 #endif
 
                 // Normalize and filter to only existing absolute files
-                var toProcess = new List<string>();
-                foreach (var p in filePaths)
+                var toProcess = new List<CompilationOptions>();
+                foreach (var request in parsedRequests)
                 {
-                    if (string.IsNullOrWhiteSpace(p)) continue;
-                    string trimmed = p.Trim();
+                    if (string.IsNullOrWhiteSpace(request.FilePath)) continue;
+                    string trimmed = request.FilePath.Trim();
                     try
                     {
                         if (!Path.IsPathRooted(trimmed))
@@ -170,13 +202,17 @@ namespace Compiler
                             Compiler.Logging.Logger.LogMain("[WARN] Skipping non-absolute path: " + trimmed);
                             continue;
                         }
-                        var full = Path.GetFullPath(trimmed);
-                        if (File.Exists(full))
+
+                        string normalized = Path.GetFullPath(trimmed);
+                        if (!File.Exists(normalized))
                         {
-                            toProcess.Add(full);
-                            Compiler.Logging.Logger.LogMain($"[PROGRAM] Parsed valid file path: {full}");
+                            Compiler.Logging.Logger.LogMain("[WARN] Skipping non-existent file: " + normalized);
+                            continue;
                         }
-                        else Compiler.Logging.Logger.LogMain("[WARN] File not found: " + full);
+
+                        // Update the FilePath to the normalized path
+                        request.FilePath = normalized;
+                        toProcess.Add(request);
                     }
                     catch (Exception ex)
                     {
@@ -226,71 +262,94 @@ namespace Compiler
             return files.Select(Path.GetFullPath).ToArray();
         }
 
-        private static IEnumerable<string> ParseInputPaths(string input)
+        /// <summary>
+        /// Parses compilation requests from input string.
+        /// Format: "file_path" or "file_path && out_ast = true && o = output_path" or "file_path && only_out_ast = true && o = output_path"
+        /// </summary>
+        private static List<CompilationOptions> ParseCompilationRequests(string input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return Array.Empty<string>();
-            var trimmed = input.Trim();
+            if (string.IsNullOrWhiteSpace(input))
+                return new List<CompilationOptions>();
 
-            // If it's a JSON array, prefer parsing it as such
-            if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
+            var results = new List<CompilationOptions>();
+
+            // Split by && to separate file path from options
+            string[] parts = input.Split(new[] { "&&" }, StringSplitOptions.None);
+
+            if (parts.Length == 0)
+                return results;
+
+            // First part is the file path
+            string filePath = parts[0].Trim().Trim('"', '\'');
+
+            if (string.IsNullOrWhiteSpace(filePath))
+                return results;
+
+            // Parse remaining parts for options
+            bool outputAst = false;
+            bool onlyOutputAst = false;
+            string astOutputPath = null;
+
+            for (int i = 1; i < parts.Length; i++)
             {
-                try
+                string part = parts[i].Trim();
+
+                // Check for out_ast = true
+                if (part.IndexOf("out_ast", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    using var doc = JsonDocument.Parse(trimmed);
-                    var root = doc.RootElement;
-                    if (root.ValueKind == JsonValueKind.Array)
+                    if (part.IndexOf("=", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        var list = new List<string>();
-                        foreach (var el in root.EnumerateArray())
+                        string[] keyVal = part.Split(new[] { "=" }, StringSplitOptions.None);
+                        if (keyVal.Length == 2)
                         {
-                            list.Add(el.ValueKind == JsonValueKind.String ? el.GetString() : el.ToString());
+                            string value = keyVal[1].Trim().ToLowerInvariant();
+                            if (value == "true")
+                                outputAst = true;
                         }
-                        return list.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
                     }
                 }
-                catch { /* Fall through to literal handling below */ }
-            }
 
-            // If it looks like a quoted string, try JSON parse for a valid JSON string first (only double-quote JSON is valid);
-            // otherwise just strip surrounding quotes and treat as a single path. This preserves commas inside the path.
-            if ((trimmed.StartsWith("\"") && trimmed.EndsWith("\"")) || (trimmed.StartsWith("'") && trimmed.EndsWith("'")))
-            {
-                if (trimmed.StartsWith("\""))
+                // Check for only_out_ast = true
+                if (part.IndexOf("only_out_ast", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    try
+                    if (part.IndexOf("=", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        using var doc = JsonDocument.Parse(trimmed);
-                        var root = doc.RootElement;
-                        if (root.ValueKind == JsonValueKind.String)
+                        string[] keyVal = part.Split(new[] { "=" }, StringSplitOptions.None);
+                        if (keyVal.Length >= 2)
                         {
-                            return new[] { root.GetString() };
+                            string value = keyVal[1].Trim().ToLowerInvariant();
+                            if (value == "true")
+                                onlyOutputAst = true;
                         }
                     }
-                    catch { /* ignore and fall back to raw substring */ }
                 }
 
-                return new[] { trimmed.Substring(1, trimmed.Length - 2) };
-            }
-
-            // If there are commas, we only want to split when the comma-separated parts look like absolute paths.
-            // This avoids splitting a single absolute path that contains commas in folder names.
-            if (trimmed.Contains(","))
-            {
-                var parts = trimmed.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                   .Select(s => s.Trim().Trim('"', '\''))
-                                   .Where(s => !string.IsNullOrWhiteSpace(s))
-                                   .ToArray();
-
-                if (parts.Length > 1 && parts.All(p => Path.IsPathRooted(p)))
+                // Check for o = output_path (capture everything after = as the path)
+                if (part.IndexOf(" o ", StringComparison.OrdinalIgnoreCase) >= 0 || 
+                    part.StartsWith("o ", StringComparison.OrdinalIgnoreCase))
                 {
-                    return parts;
+                    // Find the position of '='
+                    int eqPos = part.IndexOf("=", StringComparison.OrdinalIgnoreCase);
+                    if (eqPos >= 0)
+                    {
+                        astOutputPath = part.Substring(eqPos + 1).Trim().Trim('"', '\'');
+                    }
                 }
-
-                // Not a list of rooted paths — treat the entire input as a single path (commas are part of the path)
-                return new[] { trimmed };
             }
 
-            return new[] { trimmed };
+            // Create the compilation options
+            CompilationOptions options;
+            if (outputAst || onlyOutputAst)
+            {
+                options = CompilationOptions.WithAstOutput(filePath, astOutputPath, onlyOutputAst);
+            }
+            else
+            {
+                options = CompilationOptions.Default(filePath);
+            }
+
+            results.Add(options);
+            return results;
         }
     }
 }

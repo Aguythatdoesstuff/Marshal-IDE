@@ -10,7 +10,8 @@ import open from 'open';
 import logger from './src/logger.cjs';
 import { Transform } from 'stream'; 
 import AdmZip from 'adm-zip';
-import { runImporter } from './src/IpcHandler.js';
+import { runImporter } from './src/ipcHandlers/importer.js';
+import { spawnCompiler, compileFile, stopCompiler } from './src/ipcHandlers/compiler.js';
 const { handleIpcLog, initializeLogger } = logger;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,8 +46,7 @@ if (!gotTheLock) {
 	const LOGGER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, 'logger_settings.json');
 
 	// --- Global State ---
-	let currentProjectConfig = null;
-	let globalCompilers = null; 
+	let currentProjectConfig = null; 
 	let INPUT_DIR = null;
 	let OUTPUT_DIR = null;
 	let watcherProcess = null; 
@@ -61,6 +61,8 @@ if (!gotTheLock) {
 	 * Enhanced log wrapper that buffers messages until the logger is ready
 	 */
 	 
+	// todo: move LogBroadcaster code to the logger.cjs file so it broadcasts the logs, 
+	// and make all files to not use logToSystem but a internal logger.cjs helper function
 	function logToSystem(logData) {
 	    if (!isLoggerReady) {
 		logBuffer.push(logData);
@@ -68,6 +70,10 @@ if (!gotTheLock) {
 	    }
 	    logger.handleIpcLog(logData);
 	    if (LogBroadcaster) {
+		// ensure we dont pass undefined or null messages to the LogBroadcaster, as the normal logger can handle it but the log broadcaster cannot currently cant (once we move this to logger.cjs itll be cleaner)
+	    if (!logData || typeof logData !== 'object') {
+	        logData = { type: 'info', message: String(logData), source: 'System' };
+	    }
 		LogBroadcaster.emit('log', {
 		    level: logData.type.toLowerCase(),
 		    message: logData.message,
@@ -76,42 +82,6 @@ if (!gotTheLock) {
 		});
 	    }
 	}
-
-	// ========================================================
-	// --- CONSOLE INTERCEPTOR (RECURSION SAFE) ---
-	// ========================================================
-	// Moved to Logger module should be not needed now but leaving original here for now!
-	// const originalConsole = { 
-	//     log: console.log, 
-	//     info: console.info, 
-	//     warn: console.warn, 
-	//     error: console.error 
-	// };
-
-	// ['log', 'info', 'warn', 'error'].forEach((level) => {
-	//     console[level] = (...args) => {
-	// 	// Terminal output (Immediate)
-	// 	originalConsole[level](...args);
-
-	// 	const message = args.map(arg => 
-	// 	    arg instanceof Error ? arg.stack : (typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg))
-	// 	).join(' ');
-
-	// 	// SMART FILTER:
-	// 	// Only skip if the message starts with a Year (like 2026-...) 
-	// 	// This prevents re-logging things Winston already wrote, 
-	// 	// but ALLOWS "raw" logs like [Archive-Cleanup] to be captured!
-	// 	const isAlreadyFormatted = /^\d{4}-\d{2}-\d{2}/.test(message);
-		
-	// 	if (isAlreadyFormatted) return;
-
-	// 	logToSystem({
-	// 	    type: level === 'log' ? 'info' : level,
-	// 	    message: message,
-	// 	    source: 'Console-Intercept' 
-	// 	});
-	//     };
-	// });
 
 	// ========================================================
 	// --- INITIALIZATION & HELPERS ---
@@ -150,43 +120,6 @@ if (!gotTheLock) {
 		throw error;
 	    }
 	}
-
-	/**
-	 * provides the global compilers from the app root (static JSON).
-	 */
-	function getGlobalCompilers() {
-		return {
-			"event": {
-				"ext": ".event",
-				"processor": "../compilers/event_compiler.js"
-			},
-			"decision": {
-				"ext": ".decision",
-				"processor": "../compilers/decision_compiler.js"
-			},
-			"scripted gui": {
-				"ext": ".scriptedgui",
-				"processor": "../compilers/scripted_gui_compiler.js"
-			},
-			"script": {
-				"ext": ".script",
-				"processor": "../compilers/scripts_compiler.js"
-			},
-			"idea": {
-				"ext": ".idea",
-				"processor": "../compilers/idea_compiler.js"
-			},
-			"focus": {
-				"ext": ".focus",
-				"processor": "../compilers/focus_compiler.js"
-			},
-			"image": {
-				"ext": ".dds",
-				"processor": "../compilers/gfx_compiler.js"
-			}
-		};
-	}
-
 
 function setupAutoUpdater() {
     if (typeof appLogger !== 'undefined') {
@@ -515,7 +448,6 @@ function setupAutoUpdater() {
 				appLogger?.warn(`Could not update metadata for ${projectName}: ${metaErr.message}`, { source: 'Main-Config' });
 			}
 
-			globalCompilers = getGlobalCompilers();
 			INPUT_DIR = currentProjectConfig.input_dir;
 			OUTPUT_DIR = currentProjectConfig.output_dir;
 
@@ -539,7 +471,7 @@ function setupAutoUpdater() {
 			appLogger?.info(`Project loaded: ${projectName}`, { source: 'Main-Config' });
 			
 			startWatcher(projectName); 
-			return { success: true, projectName, config: currentProjectConfig, globalCompilers };
+			return { success: true, projectName, config: currentProjectConfig };
 
 		} catch (error) {
 			appLogger?.error(`Failed to load project ${projectName}: ${error.message}`, { source: 'Main-Config' });
@@ -651,6 +583,42 @@ function setupAutoUpdater() {
 	    }
 	}
 
+	// Add this new IPC handler function
+	async function handleAstRequest(event, { filePath, outputOptions }) {
+		try {
+			const absoluteFilePath = path.resolve(filePath);
+			const { outputAst, outputCode, astOutputPath, codeOutputPath } = outputOptions;
+
+			if (!outputAst && !outputCode) {
+				throw new Error("At least one output option (outputAst or outputCode) must be specified");
+			}
+
+			if ((outputAst && !astOutputPath) || (outputCode && !codeOutputPath)) {
+				throw new Error("Output path required for specified output type");
+			}
+
+			const request = {
+				action: 'process-file',
+				filePath: absoluteFilePath,
+				outputOptions: outputOptions
+			};
+
+			if (!watcherProcess || !watcherProcess.connected) {
+				const targetName = currentProjectConfig ? path.basename(currentProjectConfig.project_root) : null;
+				if (!targetName) {
+					throw new Error("No active workspace found. Please load a project first.");
+				}
+				await startWatcher(targetName);
+			}
+
+			watcherProcess.send(request);
+			return { success: true };
+		} catch (error) {
+			appLogger?.error(`AST request failed: ${error.message}`, { source: 'Main-IPC-Compiler' });
+			return { success: false, message: error.message };
+		}
+	}
+
 	/**
 	 * Starts the watcher process and sends a message to compile all files after startup.
 	 * @param {string} projectName 
@@ -673,7 +641,6 @@ function setupAutoUpdater() {
 			input_dir: path.resolve(INPUT_DIR), 
 			output_dir: path.resolve(OUTPUT_DIR), 
 			project_root: currentProjectConfig.project_root,
-			compilers: globalCompilers,
 			mod_name: projectName,
     		log_dir: logger.getLogsSessionDir()
 	    });
@@ -683,7 +650,23 @@ function setupAutoUpdater() {
 		execArgv: ['--enable-source-maps'] 
 	    });
 	    watcherProcess.on('message', (logData) => {
-			if (logData && logData.action === 'show-warning-dialog') {
+            if (!logData || typeof logData !== 'object') return;
+
+            // Handle compiler control actions sent from watcher
+            if (logData.action === 'spawn-compiler') {
+                spawnCompiler(logData.config, logToSystem);
+                return;
+            }
+            if (logData.action === 'compile-file') {
+                compileFile(logData.filePath, logData.outputOptions, logToSystem);
+                return;
+            }
+            if (logData.action === 'stop-compiler') {
+                stopCompiler(logData.source, logToSystem);
+                return;
+            }
+
+			if (logData.action === 'show-warning-dialog') {
 				dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
 					type: 'warning',
 					title: logData.title,
@@ -774,7 +757,7 @@ function setupAutoUpdater() {
 	    }
 	}
 
-
+	ipcMain.handle('request-ast', handleAstRequest);
 	ipcMain.handle('get-file-content', async (e, { filePath }) => getFileContent(filePath));
 	ipcMain.handle('save-file', async (e, { filePath, content }) => saveAndTriggerCompilation(filePath, content));
 	ipcMain.handle('open-directory-dialog', async () => {

@@ -12,6 +12,12 @@ namespace Compiler
         public List<ValidationError> AllErrors { get; private set; } = new List<ValidationError>();
         public List<ValidationWarning> AllWarnings { get; private set; } = new List<ValidationWarning>();
 
+        // Store compilation options for the current processing run
+        private Dictionary<string, CompilationOptions> _compilationOptionsMap = new Dictionary<string, CompilationOptions>(StringComparer.OrdinalIgnoreCase);
+
+        // Track AST output results: file path -> (success, error message if failed)
+        private Dictionary<string, (bool success, string errorMessage)> _astOutputResults = new Dictionary<string, (bool, string)>(StringComparer.OrdinalIgnoreCase);
+
         private static readonly string[] SupportedExtensions = new[]
         {
             ".decision",
@@ -25,9 +31,13 @@ namespace Compiler
             ".oob",
             ".history",
             ".dds"
+
         };
 
-        public void ProcessFiles(IEnumerable<string> filePaths)
+        /// <summary>
+        /// Processes files with compilation options (new interface supporting AST output).
+        /// </summary>
+        public void ProcessFiles(IEnumerable<CompilationOptions> options)
         {
             // Reset per-run state so output files are treated as not-yet-created
             // at the start of each processing pass. This ensures the first write
@@ -37,24 +47,33 @@ namespace Compiler
 
             AllErrors.Clear();
             AllWarnings.Clear();
+            _compilationOptionsMap.Clear();
+            _astOutputResults.Clear();
 
-            var pathList = filePaths.ToList();
-            Compiler.Logging.Logger.LogMain($"[ProcessFiles] Received {pathList.Count} files to process");
-            foreach (var p in pathList)
+            var optionsList = options.ToList();
+            Compiler.Logging.Logger.LogMain($"[ProcessFiles] Received {optionsList.Count} files to process");
+            foreach (var opt in optionsList)
             {
-                Compiler.Logging.Logger.LogMain($"[ProcessFiles] File: {p}");
+                Compiler.Logging.Logger.LogMain($"[ProcessFiles] File: {opt.FilePath}");
+                if (opt.ShouldOutputAst)
+                {
+                    Compiler.Logging.Logger.LogMain($"[ProcessFiles]   AST Output: {(opt.OnlyOutputAst ? "ONLY_AST" : "WITH_COMPILATION")} -> {opt.AstOutputPath}");
+                }
+
+                // Map file paths to their options for quick lookup during processing
+                _compilationOptionsMap[opt.FilePath] = opt;
             }
 
             var tasks = new List<System.Threading.Tasks.Task>();
-            foreach (var path in pathList)
+            foreach (var opt in optionsList)
             {
-                var p = path;
+                var options_copy = opt; // Capture for closure
                 // Wrap each file processing in a task that will capture exceptions and escalate fatal ones
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
                     try
                     {
-                        ProcessSingleFileAsync(p);
+                        ProcessSingleFileAsync(options_copy);
                     }
                     catch (Exception ex)
                     {
@@ -73,14 +92,30 @@ namespace Compiler
             System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
             PrintTemporaryErrors();
         }
+
         private void PrintTemporaryErrors()
         {
+            // Build AST output results info
+            var astOutputInfo = new List<object>();
+            lock (_astOutputResults)
+            {
+                foreach (var kvp in _astOutputResults)
+                {
+                    astOutputInfo.Add(new
+                    {
+                        file = kvp.Key,
+                        ast_output_success = kvp.Value.success,
+                        ast_output_error = kvp.Value.errorMessage
+                    });
+                }
+            }
+
             // Produce only a raw JSON report so external tools (JS) can parse it directly.
-            if (!AllErrors.Any() && !AllWarnings.Any())
+            if (!AllErrors.Any() && !AllWarnings.Any() && !astOutputInfo.Any())
             {
                 try
                 {
-                    var emptyReport = new { TotalErrors = 0, TotalWarnings = 0, Files = new object[0] };
+                    var emptyReport = new { TotalErrors = 0, TotalWarnings = 0, Files = new object[0], AstOutputResults = new object[0] };
                     var emptyOptions = new JsonSerializerOptions { WriteIndented = true };
                     var emptyJson = JsonSerializer.Serialize(emptyReport, emptyOptions);
                     Compiler.Logging.Logger.LogMain(emptyJson);
@@ -105,7 +140,7 @@ namespace Compiler
                 })
                 .ToList();
 
-            var reportWrapper = new { TotalErrors = AllErrors.Count, TotalWarnings = AllWarnings.Count, Files = report };
+            var reportWrapper = new { TotalErrors = AllErrors.Count, TotalWarnings = AllWarnings.Count, Files = report, AstOutputResults = astOutputInfo };
 
             var options = new JsonSerializerOptions
             {
@@ -124,7 +159,7 @@ namespace Compiler
             catch { }
         }
 
-        private void DispatchValidator(string absolutePath, string extension)
+        private void DispatchValidator(string absolutePath, string extension, CompilationOptions options = null)
         {
             string fileName = Path.GetFileName(absolutePath);
             Compiler.Logging.Logger.LogMain($"Processing: {absolutePath}");
@@ -216,11 +251,40 @@ namespace Compiler
                 hadErrors = AllErrors.Any(e => string.Equals(e.FileName, fileName, StringComparison.OrdinalIgnoreCase));
             }
 
+            // Handle AST output if requested
+            if (options?.ShouldOutputAst == true)
+            {
+                if (hadErrors)
+                {
+                    string message = $"[AST Output] Skipping AST output for {absolutePath} due to validation errors.";
+                    Compiler.Logging.Logger.LogMain(message);
+                    RecordAstOutputFailure(absolutePath, "Validation errors prevent AST output");
+                    // Send immediate IPC notification that AST output failed
+                    IPC.Send("AstOutputFailure", new
+                    {
+                        file = absolutePath,
+                        reason = "Validation errors detected",
+                        errorCount = AllErrors.Count(e => string.Equals(e.FileName, fileName, StringComparison.OrdinalIgnoreCase))
+                    });
+                }
+                else
+                {
+                    HandleAstOutput(absolutePath, validator, options);
+                }
+            }
+
+            // Skip compilation if only AST output is requested
+            if (options?.OnlyOutputAst == true)
+            {
+                Compiler.Logging.Logger.LogMain($"[AST Output] Compilation skipped (only_out_ast mode) for {absolutePath}");
+                return;
+            }
+
             if (!hadErrors)
             {
                 try
                 {
-                    CompileFileForExtension(extension, absolutePath, validator);
+                    CompileFileForExtension(extension, absolutePath, validator, options);
                 }
                 catch (Exception ex)
                 {
@@ -241,8 +305,98 @@ namespace Compiler
             }
         }
 
+        /// <summary>
+        /// Handles AST output for a validated file.
+        /// </summary>
+        private void HandleAstOutput(string absolutePath, BaseValidator validator, CompilationOptions options)
+        {
+            try
+            {
+                if (validator == null)
+                {
+                    string message = $"[AST Output] Validator is null; cannot output AST for {absolutePath}";
+                    Compiler.Logging.Logger.LogMain(message);
+                    RecordAstOutputFailure(absolutePath, message);
+                    return;
+                }
+
+                // Extract AST from the parser
+                var ast = AstOutputHelper.GetAstFromValidator(validator);
+                if (ast == null)
+                {
+                    string message = $"[AST Output] No AST data available for {absolutePath}";
+                    Compiler.Logging.Logger.LogMain(message);
+                    RecordAstOutputFailure(absolutePath, message);
+                    return;
+                }
+
+                // Get parser errors for inclusion in the output
+                var parserErrors = validator.GetParserErrors();
+
+                // Wrap the AST with metadata
+                var wrappedAst = AstOutputHelper.WrapAstOutput(ast, absolutePath, parserErrors);
+
+                // Write to JSON file
+                bool success = AstOutputHelper.WriteAstToJson(wrappedAst, options.AstOutputPath);
+
+                if (success)
+                {
+                    Compiler.Logging.Logger.LogMain($"[AST Output] Successfully wrote AST to {options.AstOutputPath}");
+                    RecordAstOutputSuccess(absolutePath);
+
+                    // Send immediate IPC notification that AST was successfully output
+                    IPC.Send("AstOutputSuccess", new
+                    {
+                        file = absolutePath,
+                        astPath = options.AstOutputPath
+                    });
+                }
+                else
+                {
+                    string message = $"[AST Output] Failed to write AST to {options.AstOutputPath}";
+                    Compiler.Logging.Logger.LogMain(message);
+                    RecordAstOutputFailure(absolutePath, message);
+                }
+            }
+            catch (Exception ex)
+            {
+                string message = $"[AST Output] Error handling AST output: {ex.Message}";
+                Compiler.Logging.Logger.LogMain(message);
+                RecordAstOutputFailure(absolutePath, message);
+            }
+        }
+
+        /// <summary>
+        /// Records a successful AST output operation.
+        /// </summary>
+        private void RecordAstOutputSuccess(string filePath)
+        {
+            lock (_astOutputResults)
+            {
+                _astOutputResults[filePath] = (true, null);
+            }
+        }
+
+        /// <summary>
+        /// Records a failed AST output operation with the error message.
+        /// </summary>
+        private void RecordAstOutputFailure(string filePath, string errorMessage)
+        {
+            lock (_astOutputResults)
+            {
+                _astOutputResults[filePath] = (false, errorMessage);
+            }
+        }
+
         private void ProcessSingleFileAsync(string absolutePath)
         {
+            var options = CompilationOptions.Default(absolutePath);
+            ProcessSingleFileAsync(options);
+        }
+
+        private void ProcessSingleFileAsync(CompilationOptions options)
+        {
+            string absolutePath = options.FilePath;
             Compiler.Logging.Logger.LogMain($"[ProcessSingleFileAsync] Received file: {absolutePath}");
 
             if (!File.Exists(absolutePath))
@@ -261,10 +415,10 @@ namespace Compiler
             }
 
             Compiler.Logging.Logger.LogMain($"[ProcessSingleFileAsync] Extension is supported, dispatching validator...");
-            DispatchValidator(absolutePath, ext);
+            DispatchValidator(absolutePath, ext, options);
         }
 
-        private void CompileFileForExtension(string extension, string absolutePath, BaseValidator validator)
+        private void CompileFileForExtension(string extension, string absolutePath, BaseValidator validator, CompilationOptions options = null)
         {
             BaseCompiler compiler = null;
             string selectedCompiler = "NONE";

@@ -2,15 +2,13 @@
 import fs from 'fs-extra';
 import * as path from 'path';
 import chokidar from 'chokidar';
-import { fileURLToPath, pathToFileURL } from 'url';
-import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
 import { handleDeletion, handleRename } from './deletion_handler.js'; 
 import { SyncEngine } from './sync_engine.js'; 
 
 const __filename = fileURLToPath(import.meta.url);
 
 let config; 
-let compilerProcess = null; 
 let outputBaseDir; 
 
 const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds', '.equipment', '.unit', '.oob', '.history']);
@@ -35,54 +33,15 @@ async function setupWorkspace() {
         config = JSON.parse(payloadString);
         outputBaseDir = config.output_dir;
 
-        const platform = process.platform;
-        const isDev = !process.resourcesPath || !fs.existsSync(path.join(process.resourcesPath, 'published-components'));
-
-        // Use process.cwd() in dev to anchor directly to the project root, bypassing the Vite build folder maze entirely
-        const baseDir = isDev
-            ? path.join(process.cwd(), 'c#', 'published-components', 'compiler')
-            : path.join(process.resourcesPath, 'published-components', 'compiler');
-
-        let binaryPath;
-        if (platform === 'win32') {
-            binaryPath = path.join(baseDir, 'windows', 'Compiler.exe'); 
-        } else if (platform === 'linux') {
-            binaryPath = path.join(baseDir, 'linux', 'Compiler');
-        } else {
-            throw new Error(`Unsupported OS platform: ${platform}`);
-        }
-
-        if (platform === 'linux') {
-            try {
-                fs.chmodSync(binaryPath, 0o755);
-                logToMain('info', `Successfully assigned execution rights (0755) to Linux binary.`, SOURCE);
-            } catch (permissionError) {
-                logToMain('warn', `Failed to run chmodSync on binary file: ${permissionError.message}`, SOURCE);
+        logToMain('info', `Requesting main process to spawn persistent compiler process...`, SOURCE);
+        
+        // Request main.js to spawn the compiler via compiler.js
+        process.send({
+            action: 'spawn-compiler',
+            config: {
+                output_dir: config.output_dir,
+                log_dir: config.log_dir
             }
-        }
-
-        const args = [
-            `--output=${config.output_dir}`,
-            `--debug=${config.log_dir}`
-        ];
-
-        logToMain('info', `Spawning persistent compiler process: ${binaryPath}`, SOURCE);
-        compilerProcess = spawn(binaryPath, args);
-
-        compilerProcess.stdout.on('data', (data) => {
-            logToMain('info', `[Compiler Output]: ${data.toString().trim()}`, 'Compiler-Stdout');
-        });
-
-        compilerProcess.stderr.on('data', (data) => {
-            logToMain('error', `[Compiler Error]: ${data.toString().trim()}`, 'Compiler-Stderr');
-        });
-
-        compilerProcess.on('close', (code) => {
-            logToMain('error', `Compiler process exited with code ${code}`, SOURCE);
-        });
-
-        compilerProcess.on('error', (err) => {
-            logToMain('error', `Compiler process error: ${err.message}`, SOURCE);
         });
 
         // Safe auto-cleanup when the parent script exits
@@ -97,24 +56,20 @@ async function setupWorkspace() {
 }
 
 function triggerCompilation(filePath) {
-    const SOURCE = 'Watcher-Compile';
     const ext = path.extname(filePath).toLowerCase();
 
     // Whitelist check
     if (!ALLOWED_EXTENSIONS.has(ext)) return;
 
     try {
-                if (compilerProcess && compilerProcess.stdin && compilerProcess.stdin.writable) {
-            const absolutePath = path.resolve(filePath);
-            const safeJsonPath = JSON.stringify(absolutePath);
-            
-            compilerProcess.stdin.write(`${safeJsonPath}\n`); 
-            logToMain('info', `Sent absolute path to persistent compiler: ${absolutePath}`, SOURCE);
-        } else {
-            logToMain('error', `Compiler process is not running or stdin is unavailable.`, SOURCE);
-        }
+        const absolutePath = path.resolve(filePath);
+        // Request main.js to compile the file via compiler.js
+        process.send({
+            action: 'compile-file',
+            filePath: absolutePath
+        });
     } catch (error) {
-        logToMain('error', `Compile Error: ${error.message}`, SOURCE);
+        logToMain('error', `Compile Error: ${error.message}`, 'Watcher-Compile');
     }
 }
 
@@ -183,26 +138,20 @@ function walkAndCompile(dirPath) {
     for (const file of files) {
         const fullPath = path.join(dirPath, file.name);
         if (file.isDirectory()) {
-            walkAndCompile(fullPath); // Go deeper into subfolders
+            walkAndCompile(fullPath); 
         } else {
-            triggerCompilation(fullPath); // Send the actual file!
+            triggerCompilation(fullPath); 
         }
     }
 }
-function stopCompilerProcess(source = 'Watcher-Lifecycle') {
-    if (!compilerProcess) return;
 
-    try {
-        compilerProcess.kill('SIGTERM');
-    } catch (e) {
-        logToMain('error', `Watcher process failed to SIGTERM compiler process (${e.message}), sending SIGKILL command.`, source);
-        try { 
-            compilerProcess.kill('SIGKILL'); 
-        } catch (err) {
-            logToMain('error', `Failed to SIGKILL compiler process (exiting anyway): ${err.message}`, source);
-        }
-    }
+function stopCompilerProcess(source = 'Watcher-Lifecycle') {
+    process.send({
+        action: 'stop-compiler',
+        source
+    });
 }
+
 // --- IPC Directive Router for Main Process Directives ---
 process.on('message', (packet) => {
     if (!packet || typeof packet !== 'object') return;
@@ -212,7 +161,6 @@ process.on('message', (packet) => {
             logToMain('info', 'Received master workspace-wide rebuild instruction. Initiating complete compiler pass...', 'Watcher-IPC');
             
             if (config && config.input_dir) {
-                // Walk the directory and push every single valid file into the C# stdin stream!
                 walkAndCompile(config.input_dir); 
             }
             break;

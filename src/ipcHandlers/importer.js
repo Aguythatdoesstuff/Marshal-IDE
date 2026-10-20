@@ -48,44 +48,6 @@ setInterval(() => {
 }, 1000);
 
 /**
- * Spawns the native C# 'compiler' binary in a persistent state.
- * This is called by the background watcher process to maintain an always-on compilation server.
- * @param {Object} params
- * @param {string} params.output - Path to the output directory.
- * @param {string} params.debug - Path to the active session debug directory.
- * @returns {ChildProcess} The active process instance so stdin/stdout can be controlled by the caller.
- */
-function runCompiler({ output, debug }) {
-  const platform = process.platform;
-
-  // 1. Resolve safe absolute path using the unified helper
-  const binaryPath = resolveBinaryPath('compiler');
-
-  // 2. Format argument parameters matching C# expected structure
-  const args = [
-    `--output=${output}`,
-    `--debug=${debug}`
-  ];
-
-  // 3. Dynamic Linux execution permission assignment
-  if (platform === 'linux') {
-    try {
-      if (fs.existsSync(binaryPath)) {
-        fs.chmodSync(binaryPath, 0o755);
-        console.log(`[Compiler] Granted execution permissions (0755) to Linux binary.`);
-      }
-    } catch (err) {
-      console.warn(`[Compiler] Failed to assign permissions on binary:`, err.message);
-    }
-  }
-
-  console.log(`[Compiler] Spawning PERSISTENT process: ${binaryPath} with args:`, args);
-
-  // 4. Spawn and return process directly so standard I/O pipes can be attached
-  return spawn(binaryPath, args);
-}
-
-/**
  * Spawns the native C# 'importer' binary and listens to its Console output.
  * * * Directory Structure:
  * c#/published-components/importer/
@@ -97,7 +59,6 @@ function runCompiler({ output, debug }) {
  * @param {string} paths.debug - Path to the debug directory.
  */
 function runImporter({ input, output, debug }) {
-  const isDev = !app.isPackaged;
   const platform = process.platform;
 
   // 1. Resolve base directory based on environment
@@ -129,91 +90,63 @@ function runImporter({ input, output, debug }) {
   return new Promise((resolve, reject) => {
     const importerProcess = spawn(binaryPath, args);
 
-    // 5. Attach listeners and pass resolve/reject controllers
-    handleProcessOutput(importerProcess, resolve, reject);
-  });
-}
+    let stdoutBuffer = '';
+    let stderrBuffer = '';
 
-/**
- * Helper function to listen to data streams (Console.WriteLine) from the spawned process.
- * @param {ChildProcess} processInstance - The spawned child process instance.
- * @param {Function} resolve - Promise resolution handler.
- * @param {Function} reject - Promise rejection handler.
- */
-function handleProcessOutput(processInstance, resolve, reject) {
-  processInstance.stdout.setEncoding('utf8');
-  processInstance.stderr.setEncoding('utf8');
+    // Helper to get active window for streaming logs
+    const getActiveWindow = () => {
+      const wins = BrowserWindow.getAllWindows();
+      return wins.length > 0 ? wins[0] : null;
+    };
 
-  const getFocusedWindow = () => {
-    const wins = BrowserWindow.getAllWindows();
-    return wins.length > 0 ? wins[0] : null;
-  };
+    importerProcess.stdout.on('data', (data) => {
+      stdoutBuffer += data.toString();
+      const lines = stdoutBuffer.split('\n');
+      stdoutBuffer = lines.pop(); // Retain incomplete trailing line
 
-  // Listen to standard Console.WriteLine() outputs
-  processInstance.stdout.on('data', (data) => {
-    const message = data.trim();
-    if (message) {
-      console.log(`[Importer STDOUT]: ${message}`);
-      const win = getFocusedWindow();
-      if (win) {
-        win.webContents.send('importer-stdout-line', message);
+      const activeWin = getActiveWindow();
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed) {
+          console.log(`[Importer] ${trimmed}`);
+          if (activeWin && !activeWin.isDestroyed()) {
+            activeWin.webContents.send('importer-stdout-line', trimmed);
+          }
+        }
+      }
+    });
+
+  importerProcess.stderr.on('data', (data) => {
+    stderrBuffer += data.toString();
+    const lines = stderrBuffer.split('\n');
+    stderrBuffer = lines.pop();
+
+    const activeWin = getActiveWindow();
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        console.error(`[Importer Error] ${trimmed}`);
+        if (activeWin && !activeWin.isDestroyed()) {
+          activeWin.webContents.send('importer-stderr-line', trimmed);
+        }
       }
     }
-  });
+    });
 
-  // Listen to standard Error streams or unhandled exceptions safely
-  processInstance.stderr.on('data', (data) => {
-    const errorMsg = data.trim();
-    if (errorMsg) {
-      console.error(`[Importer STDERR]: ${errorMsg}`);
-      const win = getFocusedWindow();
-      if (win) {
-        win.webContents.send('importer-stderr-line', errorMsg);
+    importerProcess.on('error', (error) => {
+      console.error(`[Importer] Failed to start process:`, error);
+      reject(error);
+    });
+
+    importerProcess.on('close', (code) => {
+      console.log(`[Importer] Process exited with code ${code}`);
+      if (code === 0) {
+        resolve({ success: true });
+      } else {
+        reject(new Error(`Importer exited with code ${code}`));
       }
-    }
+    });
   });
-
-  let isFinished = false;
-
-  // Fired when the C# app terminates or exits
-  processInstance.on('close', (code) => {
-    if (isFinished) return;
-    isFinished = true;
-    console.log(`[Importer] Process exited with code ${code}`);
-    if (code === 0) {
-      resolve({ success: true });
-    } else {
-      reject(new Error(`Importer process exited with non-zero code: ${code}`));
-    }
-  });
-
-  // Fired if the binary fails to spawn entirely (e.g., missing execution permissions on Linux)
-  processInstance.on('error', (err) => {
-    if (isFinished) return;
-    isFinished = true;
-    console.error(`[Importer Spawn Error]: ${err.message}`);
-    reject(err);
-  });
-
-  // Periodically check if the PID is still alive in the OS (guards against silent antivirus kills)
-  const pidCheckInterval = setInterval(() => {
-    if (isFinished) {
-      clearInterval(pidCheckInterval);
-      return;
-    }
-    try {
-      // signal 0 tests if the process exists without actually killing it
-      process.kill(processInstance.pid, 0);
-    } catch (e) {
-      // Process is dead/unreachable
-      clearInterval(pidCheckInterval);
-      if (!isFinished) {
-        isFinished = true;
-        try { processInstance.kill('SIGKILL'); } catch(err){}
-        reject(new Error("Process closed or killed unexpectedly (Antivirus / OS Termination)"));
-      }
-    }
-  }, 1000);
 }
 
 /**
@@ -224,7 +157,7 @@ function handleProcessOutput(processInstance, resolve, reject) {
  */
 function resolveBinaryPath(componentName) {
   const platform = process.platform;
-  const isDev = !app || !app.isPackaged || process.env.NODE_ENV === 'development';
+  const isDev = !app.isPackaged;
 
   // 1. Array of potential lookups matching exactly where the files live across architectures
   let baseChoices = [];
@@ -279,11 +212,4 @@ function resolveBinaryPath(componentName) {
   return path.join(defaultFallbackBase, binaryName);
 }
 
-// --- Example Usage ---
-// runImporter({
-//   input: '/path/to/input',
-//   output: '/path/to/output',
-//   debug: '/path/to/debug'
-// });
-
-export { runImporter, handleProcessOutput, runCompiler };
+export { runImporter };
