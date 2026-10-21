@@ -12,6 +12,9 @@ import { Transform } from 'stream';
 import AdmZip from 'adm-zip';
 import { runImporter } from './src/ipcHandlers/importer.js';
 import { spawnCompiler, compileFile, stopCompiler } from './src/ipcHandlers/compiler.js';
+import { getEditorCache, saveEditorCache } from './src/cacheHandler.js';
+
+
 const { handleIpcLog, initializeLogger } = logger;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,7 +41,6 @@ if (!gotTheLock) {
 	const USER_WORKSPACES_DIR = path.join(USER_DATA_PATH, 'workspaces', 'hoi4');
 
 	// APP PATHS (Static/Code - Read-only, updated via app installer)
-	const APP_JSONS_DIR = path.join(__dirname, 'jsons');
 	const TEMPLATE_DIR = path.join(__dirname, 'templates', 'workspace template'); 
 	const WATCHER_SCRIPT_PATH = path.join(__dirname, 'src/watcher_workspace.js'); 
 
@@ -203,25 +205,47 @@ function setupAutoUpdater() {
 
 	ipcMain.handle('is-dev', () => !app.isPackaged);
 
+
 	ipcMain.handle('get-simplified-editor-cache', async (event, { filePath }) => {
-		try {
-			// Implement your file/storage-based cache retrieval logic here based on filePath
-			// e.g., reading a companion JSON cache file or project state storage
-			return { success: true, cache: null };
-		} catch (err) {
-			console.error('Failed to get simplified editor cache:', err);
-			return { success: false, message: err.message };
-		}
+		const projectRoot = currentProjectConfig?.project_root || null;
+		appLogger?.info(`[Main-Cache] Fetching cache for file: ${filePath}`, { source: 'Main-Cache' });
+		
+		return await getEditorCache(filePath, projectRoot, async ({ filePath: targetPath, workspaceCachePath }) => {
+			try {
+				appLogger?.info(`[Main-Cache] Cache miss for ${targetPath}. Requesting Rete.js-formatted AST directly from compiler...`, { source: 'Main-Cache' });
+				
+				const absoluteFilePath = INPUT_DIR ? path.join(INPUT_DIR, targetPath) : targetPath;
+				
+				const outputOptions = {
+					outputAst: true,
+					outputCode: false,
+					astOutputPath: workspaceCachePath, // Compiler outputs directly in Rete format here
+					codeOutputPath: null
+				};
+
+				const result = await handleAstRequest(null, { filePath: absoluteFilePath, outputOptions });
+				if (!result.success) return false;
+
+				// Poll for completion of the compiler output in the workspace cache path
+				for (let i = 0; i < 30; i++) {
+					if (await fs.pathExists(workspaceCachePath)) {
+						return true;
+					}
+					await new Promise(resolve => setTimeout(resolve, 100));
+				}
+
+				return await fs.pathExists(workspaceCachePath);
+			} catch (e) {
+				appLogger?.error(`AST fallback execution error: ${e.message}`, { source: 'Main-Cache' });
+				return false;
+			}
+		});
 	});
 
 	ipcMain.handle('save-simplified-editor-cache', async (event, { filePath, cacheData }) => {
-		try {
-			// Implement your cache saving logic here based on filePath
-			return { success: true };
-		} catch (err) {
-			console.error('Failed to save simplified editor cache:', err);
-			return { success: false, message: err.message };
-		}
+		const projectRoot = currentProjectConfig?.project_root || null;
+		appLogger?.info(`[Main-Cache] Saving cache for file: ${filePath}`, { source: 'Main-Cache' });
+		return await saveEditorCache(filePath, cacheData, projectRoot);
 	});
 
 	ipcMain.handle('run-importer', async (event, { input, workspaceName }) => {

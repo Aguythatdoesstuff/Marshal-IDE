@@ -32,7 +32,7 @@ models:
     capabilities:
       - tool_use
     defaultCompletionOptions:
-      contextLength: 32768
+      contextLength: 62768
     roles:
       - chat
       - edit
@@ -44,7 +44,7 @@ models:
     capabilities:
       - tool_use
     defaultCompletionOptions:
-      contextLength: 32768
+      contextLength: 62768
     roles:
       - chat
       - edit

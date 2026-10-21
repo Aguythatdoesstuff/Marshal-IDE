@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { NodeEditor, ClassicPreset } from 'rete'
 import { AreaPlugin } from 'rete-area-plugin'
 import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-plugin'
@@ -21,27 +21,64 @@ const emit = defineEmits(['update:content'])
 const container = ref(null)
 const editorReady = ref(false)
 
-onMounted(async () => {
-  const el = container.value
-  
-  // 1. Fetch UI Cache for the specific file
+let editor = null
+let area = null
+
+// Helper to load and hydrate nodes/connections from cache data
+async function loadCache() {
   try {
     const res = await window.api.getSimplifiedEditorCache(props.filePath)
     if (res && res.success && res.cache) {
       console.log('Loaded drag-drop editor cache for:', props.filePath, res.cache)
-      // TODO: Hydrate nodes/connections from cache data if available
+      
+      // If your cache contains nodes and connections structures, hydrate them here:
+      if (editor && res.cache.nodes && Array.isArray(res.cache.nodes)) {
+        for (const node of res.cache.nodes) {
+          await editor.addNode(node)
+        }
+      }
+      if (editor && res.cache.connections && Array.isArray(res.cache.connections)) {
+        for (const conn of res.cache.connections) {
+          await editor.addConnection(conn)
+        }
+      }
     }
   } catch (err) {
     console.error('Failed to fetch drag-drop editor cache:', err)
   }
+}
 
-  // 2. Initialize Rete Node Editor and Plugins
-  const editor = new NodeEditor()
-  const area = new AreaPlugin(el)
+// Function to save current editor state to cache
+async function saveCache() {
+  if (!editor) return
+  try {
+    const nodes = editor.getNodes()
+    const connections = editor.getConnections()
+    const cacheData = { nodes, connections }
+
+    const res = await window.api.saveSimplifiedEditorCache({
+      filePath: props.filePath,
+      cacheData
+    })
+
+    if (!res || !res.success) {
+      console.error('Failed to save drag-drop editor cache:', res?.message)
+    }
+  } catch (err) {
+    console.error('Error saving drag-drop editor cache:', err)
+  }
+}
+
+onMounted(async () => {
+  const el = container.value
+  
+  // 1. Initialize Rete Node Editor and Plugins
+  editor = new NodeEditor()
+  area = new AreaPlugin(el)
   const connection = new ConnectionPlugin()
   const render = new VuePlugin()
 
-  // 3. Setup standard classic presets
+  // 2. Setup standard classic presets
   render.addPreset(VuePresets.classic.setup())
   connection.addPreset(ConnectionPresets.classic.setup())
 
@@ -50,24 +87,28 @@ onMounted(async () => {
   area.use(connection)
   area.use(render)
 
-  // 4. Add Custom Rete Grid Background (matching the Rete.js expected pattern)
+  // 3. Add Custom Rete Grid Background
   const background = document.createElement('div')
   background.classList.add('rete-grid-background', 'rete-fill-area')
   area.area.content.add(background)
 
+  // 4. Fetch and apply UI Cache
+  console.log('Fetching drag-drop editor cache for:', props.filePath)
+  await loadCache()
+
   editorReady.value = true
+})
+
+// Watcher to save cache when component unmounts or filePath changes
+watch(() => props.filePath, async (newPath, oldPath) => {
+  if (oldPath && editorReady.value) {
+    await saveCache()
+  }
 })
 </script>
 
 <template>
-  <div class="flex flex-col h-screen w-full select-none" style="background-color: var(--vscode-editor-background, #1e1e1e); color: var(--vscode-editor-foreground, #bbbbbb);">
-    <!-- Top Toolbar with VSCode Variables -->
-    <header class="flex items-center justify-between px-6 py-4 border-b shadow-md z-10" style="background-color: var(--vscode-editorGroupHeader-tabsBackground, #252526); border-color: var(--border-color);">
-      <div>
-        <h1 class="text-lg font-bold tracking-wide" style="color: var(--vscode-editor-foreground, #ffffff);">Marshal Script Visual Builder</h1>
-        <p class="text-xs" style="color: var(--vscode-descriptionForeground, #858585);">Editing: {{ filePath }}</p>
-      </div>
-    </header>
+  <div class="flex flex-col h-full w-full select-none" style="background-color: var(--vscode-editor-background, #1e1e1e); color: var(--vscode-editor-foreground, #bbbbbb);">
 
     <!-- Rete Canvas Container -->
     <div class="relative flex-1 w-full h-full overflow-hidden">
@@ -83,7 +124,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* Rete.js Native Grid Background Styles using VSCode variables */
 .rete-fill-area {
   display: table;
   z-index: -1;
@@ -103,7 +143,6 @@ onMounted(async () => {
   background-size: 32px 32px;
 }
 
-/* Rete VSCode Theme Customizations */
 .rete-theme-vscode {
   --background: var(--vscode-editor-background, #1e1e1e);
   --node-color: var(--vscode-editorWidget-background, #252526);

@@ -21,12 +21,12 @@
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 5H5l3.5-4.5z"/></svg>
           Import Img
         </button>
-        <button class="inline-flex items-center justify-center gap-1.5 rounded bg-marshal-primary px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50" @click="saveActiveFile" :disabled="!activeTabPath">
+        <button class="inline-flex items-center justify-center gap-1.5 rounded bg-marshal-primary px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50" @click="saveActiveFile" :disabled="!tabsRef?.activeTabPath">
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5C3.89 3 3 3.89 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
           Save
         </button>
-        <button v-if="isDevMode && activeTabPath" class="inline-flex items-center justify-center gap-1.5 rounded border border-yellow-500/50 bg-yellow-500/10 px-3.5 py-1.5 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/20" @click="toggleActiveEditorView">
-          {{ activeTabEditorMode === 'dragdrop' ? 'Switch to Code Editor' : 'Open Simplified Editor' }}
+        <button v-if="isDevMode && tabsRef?.activeTabPath" class="inline-flex items-center justify-center gap-1.5 rounded border border-yellow-500/50 bg-yellow-500/10 px-3.5 py-1.5 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/20" @click="tabsRef?.toggleActiveEditorView()">
+          {{ tabsRef?.activeTabEditorMode === 'dragdrop' ? 'Switch to Code Editor' : 'Open Simplified Editor' }}
         </button>
         <button class="inline-flex items-center justify-center rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text transition hover:bg-white/10 hover:opacity-90" @click="handleExitWorkspace">Exit Workspace</button>
       </div>
@@ -37,8 +37,8 @@
       <FileTreePanel 
         ref="fileTreeRef"
         :sidebar-width="sidebarWidth"
-        :active-path="activeTabPath"
-        @file-selected="handleFileSelection"
+        :active-path="tabsRef?.activeTabPath"
+        @file-selected="(node) => tabsRef?.openTab(node)"
         @node-contextmenu="openContextMenu"
         @trigger-create="triggerCreateModal"
         @request-delete="triggerDeleteAction"
@@ -48,26 +48,24 @@
 
       <section class="flex min-w-0 flex-1 flex-col overflow-hidden bg-marshal-editor">
         
-        <div class="relative min-h-0 flex-1 overflow-hidden">
-          <div v-if="openTabs.length > 0" class="flex h-[35px] shrink-0 overflow-x-auto overflow-y-hidden border-b border-marshal-border bg-black/15">
-            <div 
-              v-for="tab in openTabs" 
-              :key="tab.path" 
-              :class="['inline-flex h-full shrink-0 cursor-pointer select-none items-center border-r border-marshal-border bg-black/10 px-3.5 text-xs text-marshal-muted transition hover:bg-white/[0.02] hover:text-marshal-text', { 'border-t-2 border-t-marshal-primary bg-marshal-editor font-medium text-white': activeTabPath === tab.path }]"
-              @click="setActiveTab(tab.path)"
-            >
-              <span class="max-w-[120px] truncate">{{ tab.name }}</span>
-              <span v-if="tab.isDirty" class="ml-1.5 text-[10px] text-rose-600">●</span>
-              <span class="ml-2 flex h-3.5 w-3.5 items-center justify-center rounded text-sm hover:bg-white/10 hover:text-white" @click.stop="closeTab(tab.path)">×</span>
-            </div>
-          </div>
+        <Tabs 
+          ref="tabsRef"
+          :active-project-name="activeProjectName"
+          :editor-instance="editorInstance"
+        />
 
-          <div v-if="activeTabEditorMode === 'dragdrop'" class="absolute inset-0 flex flex-col overflow-hidden bg-marshal-editor">
-            <SimplifiedEditor :file-path="activeTabPath" :content="activeTabContent" @update:content="handleSimplifiedContentUpdate" @switch-to-code="handleSwitchToCode" />
+        <div class="relative min-h-0 flex-1 overflow-hidden flex flex-col">
+          <div v-if="tabsRef?.activeTabEditorMode === 'dragdrop'" class="flex-1 flex flex-col overflow-hidden bg-marshal-editor w-full h-full">
+            <SimplifiedEditor 
+              :file-path="tabsRef?.activeTabPath" 
+              :content="tabsRef?.activeTabContent" 
+              @update:content="(val) => tabsRef?.updateActiveTabContent(val)" 
+              @switch-to-code="tabsRef?.switchToCodeView()" 
+            />
           </div>
-          <div v-show="activeTabEditorMode !== 'dragdrop'" id="editor-container" class="monaco-mount-target" :class="{ 'pointer-events-none': isResizing }"></div>
+          <div v-show="tabsRef?.activeTabEditorMode !== 'dragdrop'" id="editor-container" class="monaco-mount-target" :class="{ 'pointer-events-none': isResizing }"></div>
           
-          <div v-if="openTabs.length === 0" class="absolute inset-0 flex items-center justify-center p-6 text-center text-[13px] text-marshal-muted">
+          <div v-if="tabsRef?.openTabs.length === 0" class="absolute inset-0 flex items-center justify-center p-6 text-center text-[13px] text-marshal-muted">
             <p>Select a structural project file asset from the tree browser configuration map to begin code composition.</p>
           </div>
         </div>
@@ -103,20 +101,6 @@
         @click="triggerDeleteAction()"
       >
         Delete {{ contextMenu.selectedPaths.length > 1 ? `(${contextMenu.selectedPaths.length} items)` : '' }}
-      </div>
-    </div>
-
-    <div class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" v-if="closeConfirmVisible" @keydown.esc="handleConfirmCloseCancel" tabindex="-1">
-      <div class="w-full max-w-sm rounded-md border border-marshal-border bg-marshal-card p-6 shadow-2xl">
-        <h3 class="mb-2 text-[15px] font-semibold text-white">Unsaved Document Changes</h3>
-        <p class="mb-4 text-[13px] leading-relaxed text-marshal-muted">
-          This file contains unsaved changes. Would you like to synchronize changes to disk storage before closing it?
-        </p>
-        <div class="mt-4 flex justify-end gap-2">
-          <button class="rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text hover:bg-white/10" @click="handleConfirmCloseCancel">Cancel</button>
-          <button class="rounded border border-red-500 bg-red-500/15 px-3.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500 hover:text-white" @click="handleConfirmCloseDiscard">Discard Changes</button>
-          <button class="rounded bg-marshal-primary px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-600" @click="handleConfirmCloseSave">Save & Close</button>
-        </div>
       </div>
     </div>
 
@@ -160,24 +144,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount, markRaw, toRaw } from 'vue';
+import { ref, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
 import ConsolePanel from '../ide/Console.vue';
 import FileTreePanel from '../ide/FileTree.vue';
-import DragDropEditor from '../ide/components/DragDropEditor.vue';
+import Tabs from '../ide/Tabs.vue';
 import SimplifiedEditor from '../ide/components/SimplifiedEditor.vue';
 import { FILE_EXTENSION_MAP, getMonacoLanguage, defineDslLanguages } from '../ide/components/hoi4/config.js';
 
 const modalDimmerRef = ref(null);
+const tabsRef = ref(null);
 let editorInstance = null;
 let editorStateDisposables = [];
 
 const isDevMode = ref(false);
 const activeProjectName = ref('Loading...');
-
-const getWorkspaceTabsStorageKey = () => {
-  const workspaceName = localStorage.getItem('marshal_project_to_load') || activeProjectName.value;
-  return `workspace_tabs_${workspaceName}`;
-};
 
 onMounted(async () => {
   activeProjectName.value = localStorage.getItem('marshal_project_to_load') || 'No Active Project';
@@ -203,13 +183,7 @@ const isConsoleMinimized = ref(false);
 const isResizing = ref(false);
 
 const fileTreeRef = ref(null);
-const openTabs = ref([]);
-const activeTabPath = ref(null);
-let isSwitchingTab = false;
 const expandedFoldersRegistry = ref(new Set());
-
-const closeConfirmVisible = ref(false);
-const pendingClosePath = ref(null);
 
 const contextMenu = ref({ visible: false, x: 0, y: 0, targetNode: null, selectedPaths: [] });
 const modal = ref({ 
@@ -269,137 +243,6 @@ const vClickOutside = {
   }
 };
 
-const setActiveTab = async (path) => {
-  if (isSwitchingTab && activeTabPath.value === path) return;
-
-  const previousPath = activeTabPath.value;
-  if (previousPath) saveTabState(previousPath);
-
-  isSwitchingTab = true;
-  activeTabPath.value = path;
-  
-  const targetTab = openTabs.value.find(t => t.path === path);
-  if (!targetTab) {
-    isSwitchingTab = false;
-    return;
-  }
-
-  await nextTick();
-
-  const activeEditor = editorInstance || window.editorInstance;
-  const monacoGlobal = window.monaco;
-
-  if (activeEditor && monacoGlobal) {
-    try {
-      if (!targetTab.monacoModel) {
-        const languageId = getMonacoLanguage(path);
-        const modelUri = monacoGlobal.Uri.file(path);
-        
-        let modelInstance = monacoGlobal.editor.getModel(modelUri);
-        
-        if (!modelInstance) {
-          modelInstance = monacoGlobal.editor.createModel(targetTab.content, languageId, modelUri);
-          modelInstance.onDidChangeContent(() => {
-            const currentVal = modelInstance.getValue();
-            if (targetTab.content !== currentVal) {
-              targetTab.isDirty = true;
-            }
-          });
-        }
-        
-        targetTab.monacoModel = modelInstance ? markRaw(modelInstance) : null;
-      }
-
-      const cleanNativeModel = toRaw(targetTab.monacoModel);
-      if (activeEditor.getModel() !== cleanNativeModel) {
-        activeEditor.setModel(cleanNativeModel);
-      }
-      
-      const currentLanguageId = getMonacoLanguage(path);
-      if (cleanNativeModel && !cleanNativeModel.isDisposed()) {
-        const existingLang = cleanNativeModel.getLanguageId();
-        if (existingLang !== currentLanguageId) {
-          monacoGlobal.editor.setModelLanguage(cleanNativeModel, currentLanguageId);
-        }
-      }
-
-      if (targetTab.lineNumber) {
-        activeEditor.setPosition({ lineNumber: targetTab.lineNumber, column: 1 });
-      }
-      if (typeof targetTab.scrollTop === 'number') {
-        activeEditor.setScrollTop(targetTab.scrollTop);
-      }
-
-    } catch (runtimeErr) {
-      console.error('Error during tab activation:', runtimeErr);
-    } finally {
-      isSwitchingTab = false;
-      saveTabState(path);
-    }
-  } else {
-    isSwitchingTab = false;
-  }
-};
-
-const handleFileSelection = async (node) => {
-  if (!node || node.isDir) return;
-
-  try {
-    let existingTab = openTabs.value.find(t => t.path === node.path);
-    
-    if (!existingTab) {
-      const res = await window.api.invoke('get-file-content', { filePath: node.path });
-      
-      if (res && (res.success !== false)) {
-        const rawContent = typeof res === 'string' ? res : (res.content || '');
-        const monacoGlobal = window.monaco;
-        let tabModel = null;
-        
-        if (monacoGlobal) {
-          const languageId = getMonacoLanguage(node.path);
-          const modelUri = monacoGlobal.Uri.file(node.path);
-          
-          tabModel = monacoGlobal.editor.getModel(modelUri);
-          
-          if (!tabModel) {
-            tabModel = monacoGlobal.editor.createModel(rawContent, languageId, modelUri);
-            
-            tabModel.onDidChangeContent(() => {
-              const currentVal = tabModel.getValue();
-              const tabItem = openTabs.value.find(t => t.path === node.path);
-              if (tabItem && tabItem.content !== currentVal) {
-                tabItem.isDirty = true;
-              }
-            });
-          }
-        }
-
-        existingTab = {
-          name: node.name,
-          path: node.path,
-          content: rawContent,
-          isDirty: false,
-          lineNumber: 1,
-          scrollTop: 0,
-          editorMode: 'monaco',
-          monacoModel: tabModel ? markRaw(tabModel) : null 
-        };
-
-        openTabs.value.push(existingTab);
-      } else {
-        console.error('Backend failed to read file context:', res?.message || res);
-        return;
-      }
-    }
-
-    await setActiveTab(node.path);
-    saveTabState();
-
-  } catch (err) {
-    console.error('Failed during file selection loading sequence:', err);
-  }
-};
-
 const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
   try {
     let actualPath = filePath;
@@ -414,14 +257,8 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
       }
     }
 
-    let targetTab = openTabs.value.find(t => t.path === actualPath);
-    
-    if (!targetTab) {
-      const fileName = actualPath.split(/[\\/]/).pop();
-      await handleFileSelection({ path: actualPath, name: fileName, isDir: false });
-    } else {
-      await setActiveTab(actualPath);
-    }
+    const fileName = actualPath.split(/[\\/]/).pop();
+    await tabsRef.value?.openTab({ path: actualPath, name: fileName, isDir: false });
 
     await nextTick();
     
@@ -435,7 +272,7 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
             activeEditor.setPosition({ lineNumber: parsedLine, column: 1 });
             const parsedScrollTop = parseInt(scrollTop, 10);
             if (!isNaN(parsedScrollTop)) activeEditor.setScrollTop(parsedScrollTop);
-            const restoredTab = openTabs.value.find(t => t.path === actualPath);
+            const restoredTab = tabsRef.value?.openTabs.find(t => t.path === actualPath);
             if (restoredTab) {
               restoredTab.lineNumber = parsedLine;
               restoredTab.scrollTop = !isNaN(parsedScrollTop) ? parsedScrollTop : restoredTab.scrollTop;
@@ -443,7 +280,7 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
             activeEditor.focus();
           }
         }
-        saveTabState(actualPath);
+        tabsRef.value?.saveTabState(actualPath);
         resolve();
       }, 50);
     });
@@ -453,224 +290,10 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
   }
 };
 
-const closeTab = (path) => {
-  const tabIndex = openTabs.value.findIndex(t => t.path === path);
-  if (tabIndex === -1) return;
-
-  const targetTab = openTabs.value[tabIndex];
-
-  if (targetTab.isDirty) {
-    pendingClosePath.value = path;
-    closeConfirmVisible.value = true;
-    return;
-  }
-
-  executeForceCloseTab(path);
-};
-
-const executeForceCloseTab = (path) => {
-  const tabIndex = openTabs.value.findIndex(t => t.path === path);
-  if (tabIndex === -1) return;
-
-  const targetTab = openTabs.value[tabIndex];
-  const activeEditor = editorInstance || window.editorInstance;
-
-  if (activeTabPath.value === path && activeEditor && window.monaco) {
-    if (openTabs.value.length > 1) {
-      const nextIndex = tabIndex === openTabs.value.length - 1 ? tabIndex - 1 : tabIndex + 1;
-      const nextTab = openTabs.value[nextIndex];
-      if (nextTab && nextTab.monacoModel) {
-        activeEditor.setModel(toRaw(nextTab.monacoModel));
-      } else {
-        const emptyModel = window.monaco.editor.createModel('', 'plaintext');
-        activeEditor.setModel(emptyModel);
-      }
-      activeTabPath.value = openTabs.value[nextIndex].path;
-    } else {
-      activeTabPath.value = null;
-      const emptyModel = window.monaco.editor.createModel('', 'plaintext');
-      activeEditor.setModel(emptyModel);
-    }
-  }
-
-  if (targetTab?.monacoModel?.dispose) {
-    targetTab.monacoModel.dispose();
-  } else {
-    const fallbackModel = window.monaco?.editor?.getModel(window.monaco.Uri.file(path));
-    if (fallbackModel) fallbackModel.dispose();
-  }
-
-  openTabs.value.splice(tabIndex, 1);
-  saveTabState();
-};
-
-const handleConfirmCloseSave = async () => {
-  if (!pendingClosePath.value) return;
-  await setActiveTab(pendingClosePath.value);
-  await saveActiveFile();
-  const path = pendingClosePath.value;
-  pendingClosePath.value = null;
-  closeConfirmVisible.value = false;
-  executeForceCloseTab(path);
-};
-
-const handleConfirmCloseDiscard = () => {
-  if (!pendingClosePath.value) return;
-  const path = pendingClosePath.value;
-  pendingClosePath.value = null;
-  closeConfirmVisible.value = false;
-  
-  const targetTab = openTabs.value.find(t => t.path === path);
-  if (targetTab) targetTab.isDirty = false;
-  
-  executeForceCloseTab(path);
-};
-
-const handleConfirmCloseCancel = () => {
-  pendingClosePath.value = null;
-  closeConfirmVisible.value = false;
-};
-
-const saveTabState = (pathOverride = null) => {
-  const activeEditor = editorInstance || window.editorInstance;
-  const targetPath = pathOverride || activeTabPath.value;
-  const activeTab = openTabs.value.find(t => t.path === targetPath);
-
-  if (activeEditor && activeTab && activeEditor.getModel()?.uri.toString() === window.monaco?.Uri.file(targetPath).toString()) {
-    const position = activeEditor.getPosition();
-    activeTab.lineNumber = position?.lineNumber || activeTab.lineNumber || 1;
-    activeTab.scrollTop = activeEditor.getScrollTop();
-  }
-
-  const payload = {
-    activeTabPath: activeTabPath.value || '',
-    tabs: openTabs.value.map(tab => ({
-      path: tab.path,
-      lineNumber: tab.lineNumber || 1,
-      scrollTop: typeof tab.scrollTop === 'number' ? tab.scrollTop : 0
-    }))
-  };
-
-  localStorage.setItem(getWorkspaceTabsStorageKey(), JSON.stringify(payload));
-};
-
-const preloadFileTab = async (filePath, lineNumber, scrollTop) => {
-  try {
-    let existingTab = openTabs.value.find(t => t.path === filePath);
-    if (existingTab) return existingTab;
-
-    const res = await window.api.invoke('get-file-content', { filePath });
-    if (res && (res.success !== false)) {
-      const rawContent = typeof res === 'string' ? res : (res.content || '');
-      const monacoGlobal = window.monaco;
-      let tabModel = null;
-      
-      if (monacoGlobal) {
-        const languageId = getMonacoLanguage(filePath);
-        const modelUri = monacoGlobal.Uri.file(filePath);
-        tabModel = monacoGlobal.editor.getModel(modelUri);
-        
-        if (!tabModel) {
-          tabModel = monacoGlobal.editor.createModel(rawContent, languageId, modelUri);
-          tabModel.onDidChangeContent(() => {
-            const currentVal = tabModel.getValue();
-            const tabItem = openTabs.value.find(t => t.path === filePath);
-            if (tabItem && tabItem.content !== currentVal) {
-              tabItem.isDirty = true;
-            }
-          });
-        }
-      }
-
-      const newTab = {
-        name: filePath.split(/[\\/]/).pop(),
-        path: filePath,
-        content: rawContent,
-        isDirty: false,
-        lineNumber: lineNumber || 1,
-        scrollTop: scrollTop || 0,
-        monacoModel: tabModel ? markRaw(tabModel) : null 
-      };
-      openTabs.value.push(newTab);
-      return newTab;
-    }
-  } catch (err) {
-    console.error('Failed to preload tab:', filePath, err);
-  }
-  return null;
-};
-
-const restoreTabState = async () => {
-  const storedState = localStorage.getItem(getWorkspaceTabsStorageKey());
-  if (!storedState) return;
-
-  try {
-    const payload = JSON.parse(storedState);
-    if (!Array.isArray(payload.tabs)) return;
-
-    // Phase 1: Load all tab data and models in parallel WITHOUT switching the editor
-    const loadPromises = payload.tabs.map(tab => {
-      if (tab?.path) return preloadFileTab(tab.path, tab.lineNumber, tab.scrollTop);
-      return null;
-    });
-    
-    await Promise.all(loadPromises);
-
-    // Phase 2: Set the active tab ONLY ONCE at the end
-    if (payload.activeTabPath && openTabs.value.some(tab => tab.path === payload.activeTabPath)) {
-      const activeTab = openTabs.value.find(tab => tab.path === payload.activeTabPath);
-      await navigateToFileAndLine(
-        payload.activeTabPath,
-        activeTab?.lineNumber,
-        activeTab?.scrollTop
-      );
-    }
-  } catch (err) {
-    console.warn('Failed to restore workspace tab state:', err);
-  }
-};
-
-const activeTabEditorMode = computed(() => {
-  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
-  return tab ? (tab.editorMode || 'monaco') : 'monaco';
-});
-
-const activeTabContent = computed(() => {
-  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
-  return tab ? tab.content : '';
-});
-
-const toggleActiveEditorView = () => {
-  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
-  if (!tab) return;
-  tab.editorMode = tab.editorMode === 'dragdrop' ? 'monaco' : 'dragdrop';
-  if (tab.editorMode === 'monaco') {
-    nextTick(() => setActiveTab(tab.path));
-  }
-};
-
-const handleSimplifiedContentUpdate = (newContent) => {
-  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
-  if (!tab) return;
-  tab.content = newContent;
-  tab.isDirty = true;
-  if (tab.monacoModel && !tab.monacoModel.isDisposed()) {
-    tab.monacoModel.setValue(newContent);
-  }
-};
-
-const handleSwitchToCode = () => {
-  const tab = openTabs.value.find(t => t.path === activeTabPath.value);
-  if (tab) {
-    setTimeout(() => {
-      tab.editorMode = 'monaco';
-      nextTick(() => setActiveTab(tab.path));
-    }, 1500);
-  }
-};
 const saveActiveFile = async () => {
-  if (!activeTabPath.value) return;
-  const currentTab = openTabs.value.find(t => t.path === activeTabPath.value);
+  const activePath = tabsRef.value?.activeTabPath;
+  if (!activePath) return;
+  const currentTab = tabsRef.value?.activeTabObj;
   if (!currentTab) return;
 
   let codePayload = currentTab.content;
@@ -693,7 +316,6 @@ const handleGlobalShortcuts = (e) => {
   }
 };
 
-// Context Overlay Hooks
 const openContextMenu = (e, node, selectedPaths = []) => {
   const paths = selectedPaths.length > 0 ? selectedPaths : (node && !node.isDir ? [node.path] : []);
   contextMenu.value = { visible: true, x: e.clientX, y: e.clientY, targetNode: node, selectedPaths: paths };
@@ -752,7 +374,6 @@ const triggerRenameModal = (node) => {
   };
 };
 
-// Unified Multi-File and Single-File Deletion Trigger
 const triggerDeleteAction = (pathsOverride = null) => {
   closeContextMenu();
 
@@ -836,7 +457,6 @@ const commitModalAction = async () => {
 
     const cleanFileName = `${input}${selectedExtension}`;
     
-    // Normalize path separators to accurately slice parent path across all OS formats
     const normalizedPath = targetNode.path.replace(/\\/g, '/');
     const lastSlash = normalizedPath.lastIndexOf('/');
     const parent = lastSlash !== -1 ? targetNode.path.substring(0, lastSlash + 1) : '';
@@ -844,12 +464,12 @@ const commitModalAction = async () => {
 
     const res = await window.api.invoke('rename-file', { oldFilePath: targetNode.path, newFilePath: newPath });
     if (res && res.success) {
-      const tab = openTabs.value.find(t => t.path === targetNode.path);
+      const tab = tabsRef.value?.openTabs.find(t => t.path === targetNode.path);
       if (tab) { 
         tab.name = cleanFileName; 
         tab.path = newPath; 
       }
-      if (activeTabPath.value === targetNode.path) activeTabPath.value = newPath;
+      if (tabsRef.value?.activeTabPath === targetNode.path) tabsRef.value.activeTabPath = newPath;
       fileTreeRef.value?.refreshTree([...expandedFoldersRegistry.value]);
     }
   }
@@ -857,7 +477,7 @@ const commitModalAction = async () => {
     for (const filePath of targets) {
       const res = await window.api.invoke('delete-file-or-dir', { path: filePath });
       if (res && res.success) {
-        executeForceCloseTab(filePath);
+        tabsRef.value?.closeTab(filePath);
       }
     }
     fileTreeRef.value?.clearSelection();
@@ -872,18 +492,9 @@ const handleWindowResize = () => {
   activeEd?.layout();
 };
 
-/**
- * Silences Monaco Editor's internal 'Canceled' promise rejections.
- * 
- * Monaco uses thrown cancellation errors as standard control flow to abort 
- * stale background worker tasks (e.g., hover, auto-complete, language service) 
- * when models are switched, updated, or disposed. These are non-fatal, expected 
- * engine signals rather than actual runtime crashes.
- */
 const handleUnhandledRejection = (event) => {
   const reason = event.reason;
   if (reason) {
-    // Check for Monaco's cancellation errors
     const isCanceled = 
       reason.name === 'Canceled' || 
       reason.message === 'Canceled' || 
@@ -956,17 +567,17 @@ onMounted(() => {
         window.editorInstance = instance;
 
         editorStateDisposables = [
-          instance.onDidBlurEditorText(saveTabState),
+          instance.onDidBlurEditorText(() => tabsRef.value?.saveTabState()),
           instance.onDidScrollChange((event) => {
-            if (event.scrollTopChanged) saveTabState();
+            if (event.scrollTopChanged) tabsRef.value?.saveTabState();
           })
         ];
 
-        if (activeTabPath.value) {
-          const bufferedTab = openTabs.value.find(t => t.path === activeTabPath.value);
+        if (tabsRef.value?.activeTabPath) {
+          const bufferedTab = tabsRef.value?.openTabs.find(t => t.path === tabsRef.value.activeTabPath);
           if (bufferedTab) {
             instance.setValue(bufferedTab.content);
-            const languageId = getMonacoLanguage(activeTabPath.value);
+            const languageId = getMonacoLanguage(tabsRef.value.activeTabPath);
             const model = instance.getModel();
             if (model && monacoGlobal.editor?.setModelLanguage) {
               monacoGlobal.editor.setModelLanguage(model, languageId);
@@ -974,7 +585,7 @@ onMounted(() => {
           }
         }
 
-        await restoreTabState();
+        await tabsRef.value?.restoreTabState();
       } catch (initErr) {
         console.error("[DIAGNOSTIC] Error during editor layout orchestration:", initErr);
       }
@@ -1050,7 +661,6 @@ const handleToggleMinimize = () => {
 </script>
 
 <style scoped>
-
 .pane-divider-v {
   width: 4px;
   background-color: var(--border-color);
@@ -1082,5 +692,4 @@ const handleToggleMinimize = () => {
     background-color: var(--primary-blue);
   }
 }
-
 </style>

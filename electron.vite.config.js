@@ -22,10 +22,13 @@ export default defineConfig({
               '!build/**/*',
               '!electron.vite.config.js',
               '!VS',           
-              '!**/.*',         
+              '!**/.*',     
+              '!.*/**/*',    
               '!**/.vs/**/*',
               '!c#',               
-              '!c#/**/*'        
+              '!c#/**/*',
+              '!src/**/*.vue',
+              '!python/**/*'      
             ],
             dest: '.' // Targets the main outDir directly
           }
