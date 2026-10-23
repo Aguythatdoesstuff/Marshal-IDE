@@ -92,6 +92,10 @@
         "from": "c#/published-components/",
         "to": "published-components"
       },
+      {
+        "from": "python/published-components/",
+        "to": "published-components"
+      },
       "LICENSE.txt"
     ]
   }

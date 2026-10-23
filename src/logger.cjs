@@ -263,7 +263,20 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB)
 
 function archiveCurrentSession() {
     return new Promise(async (resolve, reject) => {
+        try {
+            if (logger) {
+                await new Promise((resolveLogger) => {
+                    logger.end(() => {
+                        resolveLogger();
+                    });
+                });
+                logger = null;
+            }
+        } catch (e) {
+        }
+
         const outputZipPath = path.join(LOGS_ROOT_DIR, `${SESSION_TIMESTAMP}.zip`);
+
         const output = createWriteStream(outputZipPath);
         const archive = archiver('zip', { zlib: { level: 9 } });
 
@@ -271,14 +284,27 @@ function archiveCurrentSession() {
             try {
                 await fs.rm(SESSION_DIR, { recursive: true, force: true });
                 resolve(`Archived: ${path.basename(outputZipPath)}`);
-            } catch (e) { resolve(`Archived, but dir deletion failed.`); }
+            } catch (e) { 
+                reject(e); 
+            }
         });
-        archive.on('error', (err) => reject(err));
+
+        output.on('error', (err) => {
+            reject(err);
+        });
+
+        archive.on('error', (err) => {
+            reject(err);
+        });
+
         archive.pipe(output);
+
         try {
             archive.directory(SESSION_DIR, false);
-            archive.finalize();
-        } catch (e) { reject(e); }
+            await archive.finalize();
+        } catch (e) { 
+            reject(e); 
+        }
     });
 }
 

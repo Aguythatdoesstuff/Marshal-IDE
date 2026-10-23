@@ -1,7 +1,7 @@
 // src/ipcHandlers/compiler.js
 import { spawn } from 'child_process';
 import path from 'path';
-import fs from 'fs-extra';
+import { resolveBinaryPath } from './binaryUtils.js';
 
 let compilerProcess = null;
 
@@ -18,30 +18,7 @@ export function spawnCompiler(config, loggerFn) {
     }
 
     try {
-        const platform = process.platform;
-        const isDev = !process.resourcesPath || !fs.existsSync(path.join(process.resourcesPath, 'published-components'));
-
-        const baseDir = isDev
-            ? path.join(process.cwd(), 'c#', 'published-components', 'compiler')
-            : path.join(process.resourcesPath, 'published-components', 'compiler');
-
-        let binaryPath;
-        if (platform === 'win32') {
-            binaryPath = path.join(baseDir, 'windows', 'Compiler.exe');
-        } else if (platform === 'linux') {
-            binaryPath = path.join(baseDir, 'linux', 'Compiler');
-        } else {
-            throw new Error(`Unsupported OS platform: ${platform}`);
-        }
-
-        if (platform === 'linux') {
-            try {
-                fs.chmodSync(binaryPath, 0o755);
-                log('info', `Successfully assigned execution rights (0755) to Linux binary.`);
-            } catch (permissionError) {
-                log('warn', `Failed to run chmodSync on binary file: ${permissionError.message}`);
-            }
-        }
+        const binaryPath = resolveBinaryPath('compiler', log);
 
         const args = [
             `--output=${config.output_dir}`,
@@ -88,7 +65,6 @@ export function compileFile(filePath, outputOptions, loggerFn) {
         if (compilerProcess && compilerProcess.stdin && compilerProcess.stdin.writable) {
             const absolutePath = path.resolve(filePath);
             
-            // Construct command line arguments
             const args = [];
             args.push(absolutePath);
             

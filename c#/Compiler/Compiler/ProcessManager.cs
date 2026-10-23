@@ -213,6 +213,7 @@ namespace Compiler
                 default:
                     Compiler.Logging.Logger.LogMain("Unsupported file type: " + extension);
                     Compiler.Logging.Logger.LogWarning("DISPATCHER", $"Extension {extension} is not supported");
+                    IPC.Send("UnsupportedFile", new { file = absolutePath, extension = extension, path = absolutePath });
                     break;
             }
 
@@ -388,12 +389,6 @@ namespace Compiler
             }
         }
 
-        private void ProcessSingleFileAsync(string absolutePath)
-        {
-            var options = CompilationOptions.Default(absolutePath);
-            ProcessSingleFileAsync(options);
-        }
-
         private void ProcessSingleFileAsync(CompilationOptions options)
         {
             string absolutePath = options.FilePath;
@@ -402,6 +397,7 @@ namespace Compiler
             if (!File.Exists(absolutePath))
             {
                 Compiler.Logging.Logger.LogMain($"[ERROR] File does not exist: {absolutePath}");
+                IPC.Send("FileNotFound", new { file = absolutePath, path = absolutePath });
                 return;
             }
 
@@ -411,6 +407,7 @@ namespace Compiler
             if (!SupportedExtensions.Contains(ext))
             {
                 Compiler.Logging.Logger.LogMain($"[SKIP] Ignored unsupported file: {absolutePath}. Extension '{ext}' not in SupportedExtensions");
+                IPC.Send("UnsupportedFile", new { file = absolutePath, extension = ext, path = absolutePath });
                 return;
             }
 
@@ -472,6 +469,7 @@ namespace Compiler
                 default:
                     // No compiler implemented for this extension yet
                     Compiler.Logging.Logger.LogWarning("COMPILER", $"No compiler implemented for extension {extension}");
+                    IPC.Send("NoCompiler", new { file = absolutePath, extension = extension, path = absolutePath });
                     return;
             }
 

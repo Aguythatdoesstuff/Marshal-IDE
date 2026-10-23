@@ -12,6 +12,7 @@ import { Transform } from 'stream';
 import AdmZip from 'adm-zip';
 import { runImporter } from './src/ipcHandlers/importer.js';
 import { spawnCompiler, compileFile, stopCompiler } from './src/ipcHandlers/compiler.js';
+import { spawnImgConverter, processImage, stopImgConverter } from './src/ipcHandlers/img-converter.js';
 import { getEditorCache, saveEditorCache } from './src/cacheHandler.js';
 
 
@@ -784,6 +785,22 @@ function setupAutoUpdater() {
 	ipcMain.handle('request-ast', handleAstRequest);
 	ipcMain.handle('get-file-content', async (e, { filePath }) => getFileContent(filePath));
 	ipcMain.handle('save-file', async (e, { filePath, content }) => saveAndTriggerCompilation(filePath, content));
+	ipcMain.handle('process-image', async (event, { filePath, imageType, mainOutputDir, cacheOutputDir }) => {
+		try {
+			if (!INPUT_DIR) {
+				return { success: false, message: "No project loaded." };
+			}
+
+			const targetMainOutput = mainOutputDir || OUTPUT_DIR;
+			const targetCacheOutput = cacheOutputDir || path.join(currentProjectConfig.project_root, 'cache', 'images');
+
+			const result = await processImage(filePath, imageType, targetMainOutput, targetCacheOutput, logToSystem);
+			return result;
+		} catch (error) {
+			appLogger?.error(`Image processing IPC failure: ${error.message}`, { source: 'Main-IPC-ImgConverter' });
+			return { success: false, message: error.message };
+		}
+	});
 	ipcMain.handle('open-directory-dialog', async () => {
 		const { canceled, filePaths } = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), { 
 			defaultPath: require('os').homedir(),
@@ -1157,6 +1174,9 @@ function setupAutoUpdater() {
 		}else {
 			appLogger?.info(`Skipping setupAutoUpdater, Running in DEV.`, { source: 'Main-Init' })
 		}
+		
+		spawnImgConverter({ log_path: logger.getLogsSessionDir() }, logToSystem);
+
 		ipcMain.handle('export-project', async (event, projectName) => {
 			try {
 				const safeName = projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -1339,7 +1359,18 @@ function setupAutoUpdater() {
 		});
 	});
 
-	app.on('will-quit', async (event) => {
+	let isQuitting = false;
+
+	app.on('before-quit', async (event) => {
+		// If we've already run the cleanup, let the quit proceed normally
+		if (isQuitting) {
+			return;
+		}
+
+		// Prevent the default quit behavior so we can perform async cleanup
+		event.preventDefault();
+		isQuitting = true;
+		await stopImgConverter();
 		if (watcherProcess) {
 			try {
 				if (watcherProcess.connected) {
@@ -1355,10 +1386,9 @@ function setupAutoUpdater() {
 		}
 		if (!isArchivingAndQuitting) {
 			isArchivingAndQuitting = true;
-			event.preventDefault();
 			await logger.archiveCurrentSession();
-			app.quit();
 		}
+		app.quit();
 	});
 	
 }
