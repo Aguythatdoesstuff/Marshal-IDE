@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['c:/Users/Kacper/Desktop/Projects/Marshal-IDE/python/img-converter/img-converter.py'],
+    ['img-converter.py'],
     pathex=[],
     binaries=[],
     datas=[],

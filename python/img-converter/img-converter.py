@@ -1,3 +1,38 @@
+"""
+img-converter.py - Cross-platform texture conversion daemon wrapper for texconv.
+
+================================================================================
+USAGE EXAMPLES & PROTOCOL:
+================================================================================
+
+1. STARTING THE DAEMON:
+   Run the script from your terminal, passing an absolute path for logging:
+   $ /usr/bin/python3 img-converter.py --log-path=/home/kacper/Desktop
+
+2. SENDING COMMANDS VIA STDIN:
+   Once the daemon outputs '[READY] img-converter Worker started. Listening on stdin...', 
+   send JSON-formatted strings prefixed with 'process-image:'.
+   
+   * CRITICAL FLAGS:
+     - Always include '-y' to automatically overwrite existing output files 
+       (otherwise texconv throws an error if the file already exists).
+     - On Linux/macOS, use '--' right before your absolute file paths so texconv 
+       doesn't confuse leading slashes ('/') with command-line switches.
+
+   * EXAMPLE 1: Convert PNG to DDS using BC3/DXT5 compression (with overwrite enabled)
+     process-image:["-ft", "dds", "-f", "BC3_UNORM", "-y", "-o", "/home/kacper/Desktop", "--", "/home/kacper/Desktop/MarshalIdeLogo.png"]
+
+   * EXAMPLE 2: Convert PNG to uncompressed RGBA8 (with overwrite enabled)
+     process-image:["-ft", "dds", "-f", "R8G8B8A8_UNORM", "-y", "-o", "/home/kacper/Desktop", "--", "/home/kacper/Desktop/MarshalIdeLogo.png"]
+
+   * EXAMPLE 3: Shutting down the daemon cleanly
+     exit
+     # or
+     shutdown
+     # or
+     send a SIGINT/SIGTERM termination signal!
+================================================================================
+"""
 import json
 import os
 import platform
@@ -66,8 +101,12 @@ def setup_custom_logger(args: list[str]) -> bool:
                 return False
 
     if log_path is None:
-        print("[ERROR] Missing required '--log-path=' argument. Logging directory not defined.")
-        return False
+        if not getattr(sys, "frozen", False):
+            # Dev mode fallback: logs to Desktop for testing 
+            log_path = Path.home() / "Desktop"
+        else:
+            print("[ERROR] Missing required '--log-path=' argument. Logging directory not defined.")
+            return False
 
     sys.stdout = DualLogger(output_dir=log_path, filename="process.log")
     return True
