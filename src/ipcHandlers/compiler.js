@@ -103,19 +103,40 @@ export function stopCompiler(source = 'Compiler-Lifecycle', loggerFn = () => {})
         }
     };
 
-    if (!compilerProcess) return;
+    if (!compilerProcess) return Promise.resolve();
 
-    try {
-        log('info', `Terminating compiler process via SIGTERM.`, source);
-        compilerProcess.kill('SIGTERM');
-    } catch (e) {
-        log('error', `Failed to SIGTERM compiler process (${e.message}), sending SIGKILL command.`);
+    return new Promise((resolve) => {
+        const proc = compilerProcess;
+
+        const cleanup = () => {
+            proc.removeAllListeners('close');
+            proc.removeAllListeners('exit');
+            if (compilerProcess === proc) {
+                compilerProcess = null;
+            }
+            resolve();
+        };
+
+        proc.once('close', cleanup);
+        proc.once('exit', cleanup);
+
         try {
-            log('info', `Terminating compiler process via SIGKILL.`, source);
-            compilerProcess.kill('SIGKILL');
-        } catch (err) {
-            log('error', `Failed to SIGKILL compiler process: ${err.message}`);
+            log('info', `Terminating compiler process via SIGTERM.`, source);
+            proc.kill('SIGTERM');
+        } catch (e) {
+            log('error', `Failed to SIGTERM compiler process (${e.message}), sending SIGKILL command.`);
+            try {
+                log('info', `Terminating compiler process via SIGKILL.`, source);
+                proc.kill('SIGKILL');
+            } catch (err) {
+                log('error', `Failed to SIGKILL compiler process: ${err.message}`);
+                cleanup();
+            }
         }
-    }
-    compilerProcess = null;
+
+        // Fallback timeout in case process hangs on exit
+        setTimeout(() => {
+            cleanup();
+        }, 3000);
+    });
 }

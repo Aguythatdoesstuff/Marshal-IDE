@@ -15,7 +15,11 @@ const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.scr
 
 // --- Process Safety ---
 const checkParentAndExit = () => {
-    if (!process.connected) process.exit(0);
+    if (!process.connected) {
+        console.log('warn', 'Parent process disconnected. Watcher terminating compiler process...', 'Watcher-Lifecycle');
+        stopCompilerProcess();
+        process.exit(0)
+    };
 };
 process.on('disconnect', () => checkParentAndExit());
 setInterval(checkParentAndExit, 2000);
@@ -176,11 +180,5 @@ process.on('message', (packet) => {
     }
 });
 
-// --- Dynamic POSIX OS Termination Interceptors ---
-process.on('SIGTERM', () => {
-    logToMain('warn', 'Received SIGTERM from unknown source. Watcher terminating compiler process...', 'Watcher-Lifecycle');
-    stopCompilerProcess();
-    process.exit(0);
-});
 
 startWatcher();

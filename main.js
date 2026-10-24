@@ -687,6 +687,7 @@ function setupAutoUpdater() {
                 return;
             }
             if (logData.action === 'stop-compiler') {
+				console.log(`[Main] Received stop-compiler action from watcher. Stopping compiler...`);
                 stopCompiler(logData.source, logToSystem);
                 return;
             }
@@ -1275,7 +1276,6 @@ function setupAutoUpdater() {
 		// Prevent the default quit behavior so we can perform async cleanup
 		event.preventDefault();
 		isQuitting = true;
-		await stopImgConverter();
 		if (watcherProcess) {
 			try {
 				if (watcherProcess.connected) {
@@ -1283,12 +1283,14 @@ function setupAutoUpdater() {
 					
 					// Disconnect the IPC channel safely so the watcher's 'disconnect' event fires
 					watcherProcess.disconnect();
+
 				}
 			} catch (e) {
-				// Guard silent errors if it was already closed
+				applogger?.error(`Error while terminating watcher process: ${e.message}`, { source: 'Main-Quit' });
 			}
 			watcherProcess = null;
 		}
+		await stopImgConverter();
 		if (!isArchivingAndQuitting) {
 			isArchivingAndQuitting = true;
 			await logger.archiveCurrentSession();
