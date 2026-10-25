@@ -4,19 +4,6 @@ import fs from 'fs-extra';
 
 export function registerImageImporterHandlers(ipcMain, context) {
     const { getInputDir, getLogger, updateManifest } = context;
-    ipcMain.handle('select-image-file', async () => {
-        const { canceled, filePaths } = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
-            title: 'Select Image to Import',
-            filters: [{ name: 'DirectDraw Surface', extensions: ['dds'] }],
-            properties: ['openFile']
-        });
-
-        if (canceled || filePaths.length === 0) {
-            return { success: true, canceled: true };
-        }
-
-        return { success: true, canceled: false, filePath: filePaths[0] };
-    });
 
     ipcMain.handle('import-image', async (event, args) => {
         const appLogger = getLogger();
