@@ -13,6 +13,11 @@ const ALLOWED_IMAGE_TYPES = {
         format: 'R8G8B8A8_UNORM',
         description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed)'
     },
+    'ideas': {
+        fileType: 'dds',
+        format: 'R8G8B8A8_UNORM',
+        description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed)'
+    },
     // Diffuse map: The primary color texture defining the base visual patterns and painting of the model.
     'diffuse': {
         fileType: 'dds',
@@ -113,7 +118,7 @@ export async function processImage(filePath, imageType, mainOutputDir, cacheOutp
         throw new Error(errorMsg);
     }
 
-    if (!imgConverterProcess || !imgConverterProcess.stdin || !imgConverterProcess.writable) {
+    if (!imgConverterProcess || !imgConverterProcess.stdin || !imgConverterProcess.stdin.writable) {
         const errorMsg = 'ImgConverter daemon process is not running or stdin is unavailable.';
         log('error', errorMsg, SOURCE);
         return { success: false, message: errorMsg };
@@ -145,10 +150,11 @@ export async function processImage(filePath, imageType, mainOutputDir, cacheOutp
             absolutePath
         ];
 
-        // 3. Cache 32x32 PNG command (using a temporary copy to avoid filename collisions in cacheOutputDir)
+        // 3. Cache 32x32 PNG command (using the OS temp directory to avoid polluting the cache directory with temporary files)
+        const os = require('os');
         const parsedPath = path.parse(absolutePath);
         const temp32Name = `${parsedPath.name}_32x32${parsedPath.ext}`;
-        const temp32Path = path.join(cacheOutputDir, temp32Name);
+        const temp32Path = path.join(os.tmpdir(), temp32Name);
         await fs.copy(absolutePath, temp32Path);
 
         const cache32Args = [
@@ -170,6 +176,44 @@ export async function processImage(filePath, imageType, mainOutputDir, cacheOutp
         log('info', `Sending cache 32x32 PNG request`, SOURCE);
         imgConverterProcess.stdin.write(`process-image:${JSON.stringify(cache32Args)}\n`);
 
+        const png32Path = path.join(cacheOutputDir, `${parsedPath.name}_32x32.png`);
+        log('info', `Waiting for 32x32 PNG to be generated at: ${png32Path}`, SOURCE);
+        let attempts = 0;
+        while (!(await fs.pathExists(png32Path)) && attempts < 30) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+        }
+
+        if (!(await fs.pathExists(png32Path))) {
+            log('error', `Timed out waiting for 32x32 PNG after ${attempts} attempts: ${png32Path}`, SOURCE);
+        } else {
+            log('info', `Found 32x32 PNG after ${attempts} attempts. Reading buffer...`, SOURCE);
+            const pngBuffer = await fs.readFile(png32Path);
+            const base64Data = `data:image/png;base64,${pngBuffer.toString('base64')}`;
+
+            const configPath = path.join(cacheOutputDir, 'config.json');
+            log('info', `Targeting config.json at: ${configPath}`, SOURCE);
+
+            let configData = {};
+            if (await fs.pathExists(configPath)) {
+                log('info', `Existing config.json found. Reading data...`, SOURCE);
+                configData = await fs.readJson(configPath);
+            } else {
+                log('warn', `config.json not found at ${configPath}, initializing new object.`, SOURCE);
+            }
+
+            configData.thumbnail = base64Data;
+
+            // Atomic write via temp file rename
+            const tempConfigPath = `${configPath}.${Date.now()}.tmp`;
+            log('info', `Writing temporary config to: ${tempConfigPath}`, SOURCE);
+            await fs.writeJson(tempConfigPath, configData, { spaces: 2 });
+
+            log('info', `Moving temporary config to: ${configPath}`, SOURCE);
+            await fs.move(tempConfigPath, configPath, { overwrite: true });
+
+            log('info', `Successfully embedded 32x32 base64 thumbnail into config.json`, SOURCE);
+        }
         return { success: true };
     } catch (error) {
         log('error', `Image Processing Error: ${error.message}`, SOURCE);

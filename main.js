@@ -52,6 +52,7 @@ if (!gotTheLock) {
 	let currentProjectConfig = null; 
 	let INPUT_DIR = null;
 	let OUTPUT_DIR = null;
+	let METADATA_DIR = null;
 	let watcherProcess = null; 
 	let mainWindow = null; 
 	let appLogger = null; 
@@ -449,11 +450,11 @@ function setupAutoUpdater() {
 			const data = await fs.readFile(configPath, 'utf8');
 			currentProjectConfig = JSON.parse(data);
 			
-			const metaDirPath = path.join(currentProjectConfig.project_root, 'metadata');
-			const metaFilePath = path.join(metaDirPath, 'project_info.json');
+			METADATA_DIR = path.join(currentProjectConfig.project_root, 'metadata');
 
+			const metaFilePath = path.join(METADATA_DIR, 'project_info.json');
 			try {
-				await fs.mkdir(metaDirPath, { recursive: true });
+				await fs.mkdir(METADATA_DIR, { recursive: true });
 				let metaData = {};
 				try {
 					const existingMeta = await fs.readFile(metaFilePath, 'utf8');
@@ -475,7 +476,7 @@ function setupAutoUpdater() {
 
 			INPUT_DIR = currentProjectConfig.input_dir;
 			OUTPUT_DIR = currentProjectConfig.output_dir;
-
+			
 			await fs.mkdir(INPUT_DIR, { recursive: true });
 
 			// Compare template folder with the workspace root folder
@@ -786,22 +787,27 @@ function setupAutoUpdater() {
 	ipcMain.handle('request-ast', handleAstRequest);
 	ipcMain.handle('get-file-content', async (e, { filePath }) => getFileContent(filePath));
 	ipcMain.handle('save-file', async (e, { filePath, content }) => saveAndTriggerCompilation(filePath, content));
-	ipcMain.handle('process-image', async (event, { filePath, imageType, mainOutputDir, cacheOutputDir }) => {
-		try {
-			if (!INPUT_DIR) {
-				return { success: false, message: "No project loaded." };
-			}
+	// Define the core helper function
+    async function executeProcessImage({ filePath, imageType, mainOutputDir, cacheOutputDir }) {
+        if (!INPUT_DIR) {
+            return { success: false, message: "No project loaded." };
+        }
 
-			const targetMainOutput = mainOutputDir || OUTPUT_DIR;
-			const targetCacheOutput = cacheOutputDir || path.join(currentProjectConfig.project_root, 'cache', 'images');
+        const targetMainOutput = mainOutputDir || OUTPUT_DIR;
+        const targetCacheOutput = cacheOutputDir || path.join(currentProjectConfig.project_root, 'cache', 'images');
 
-			const result = await processImage(filePath, imageType, targetMainOutput, targetCacheOutput, logToSystem);
-			return result;
-		} catch (error) {
-			appLogger?.error(`Image processing IPC failure: ${error.message}`, { source: 'Main-IPC-ImgConverter' });
-			return { success: false, message: error.message };
-		}
-	});
+        return await processImage(filePath, imageType, targetMainOutput, targetCacheOutput, logToSystem);
+    }
+
+    // Update the 'process-image' IPC handler to call the helper
+    ipcMain.handle('process-image', async (event, args) => {
+        try {
+            return await executeProcessImage(args);
+        } catch (error) {
+            appLogger?.error(`Image processing IPC failure: ${error.message}`, { source: 'Main-IPC-ImgConverter' });
+            return { success: false, message: error.message };
+        }
+    });
 	ipcMain.handle('open-directory-dialog', async () => {
 		const { canceled, filePaths } = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), { 
 			defaultPath: require('os').homedir(),
@@ -1205,10 +1211,11 @@ function setupAutoUpdater() {
 
 		registerImageImporterHandlers(ipcMain, {
 			getInputDir: () => INPUT_DIR,
-			getWorkspaceRoot: () => projectWorkspaceRoot,
+			getMetadataDir: () => METADATA_DIR,
 			getOutputDir: () => OUTPUT_DIR,
 			getLogger: () => appLogger,
 			getConfig: () => currentProjectConfig,
+			processImage: executeProcessImage,
 			updateManifest
 		});
 		

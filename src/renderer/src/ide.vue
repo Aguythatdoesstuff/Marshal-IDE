@@ -43,7 +43,12 @@
         @trigger-create="triggerCreateModal"
         @request-delete="triggerDeleteAction"
       />
-      
+      <ImageConfigModal 
+        :is-open="isImageModalOpen" 
+        :file-paths="imageImportFilePaths" 
+        @update:is-open="(val) => isImageModalOpen = val"
+        @imported="fileTreeRef?.refreshTree([...expandedFoldersRegistry])"
+      />
       <div class="pane-divider-v" @mousedown="startWorkspaceResize"></div>
 
       <section class="flex min-w-0 flex-1 flex-col overflow-hidden bg-marshal-editor">
@@ -149,6 +154,7 @@ import ConsolePanel from '../ide/Console.vue';
 import FileTreePanel from '../ide/FileTree.vue';
 import Tabs from '../ide/Tabs.vue';
 import SimplifiedEditor from '../ide/components/SimplifiedEditor.vue';
+import ImageConfigModal from '../ide/components/ImageConfigModal.vue';
 import { FILE_EXTENSION_MAP, getMonacoLanguage, defineDslLanguages } from '../ide/components/hoi4/config.js';
 
 const modalDimmerRef = ref(null);
@@ -415,11 +421,15 @@ const handleRecompileAll = async () => {
   }
 };
 
+const isImageModalOpen = ref(false);
+const imageImportFilePaths = ref([]);
+
 const handleImportImage = async () => {
   try {
-    const res = await window.api.invoke('import-image');
+    const res = await window.api.invoke('prepare-img-import');
     if (res && res.success) {
-      fileTreeRef.value?.refreshTree();
+      imageImportFilePaths.value = res.filePaths || res.paths || [];
+      isImageModalOpen.value = true;
     } else if (res && res.message && !res.message.includes('cancelled')) {
       console.warn(`Import warning notice structural stack trace: ${res.message}`);
     }
@@ -427,6 +437,7 @@ const handleImportImage = async () => {
     console.error('Failed to trigger native main process asset importer:', err);
   }
 };
+
 
 const commitModalAction = async () => {
   const { mode, targetNode, inputValue, selectedExtension, targets } = modal.value;
