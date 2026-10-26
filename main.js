@@ -1205,6 +1205,7 @@ function setupAutoUpdater() {
 
 		registerImageImporterHandlers(ipcMain, {
 			getInputDir: () => INPUT_DIR,
+			getWorkspaceRoot: () => projectWorkspaceRoot,
 			getOutputDir: () => OUTPUT_DIR,
 			getLogger: () => appLogger,
 			getConfig: () => currentProjectConfig,
