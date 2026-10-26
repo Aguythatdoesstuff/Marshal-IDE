@@ -125,6 +125,42 @@ if (!gotTheLock) {
 	    }
 	}
 
+function handleUpdaterError(err) {
+    const errMsg = err.message || '';
+    const errCode = err.code || '';
+
+    const isNetworkIssue = 
+        errCode === 'ENOTFOUND' ||
+        errCode === 'ETIMEDOUT' ||
+        errCode === 'ECONNREFUSED' ||
+        errCode === 'ENETUNREACH' ||
+        errCode === 'EAI_AGAIN' ||
+        errMsg.includes('net::ERR_') ||
+        errMsg.toLowerCase().includes('offline') ||
+        errMsg.toLowerCase().includes('internet') ||
+        errMsg.toLowerCase().includes('network');
+
+    if (isNetworkIssue) {
+        appLogger?.info(`Auto-update skipped due to network connectivity issue: ${errMsg}`);
+        return;
+    }
+
+    appLogger?.error(`Critical updater bug encountered: ${errMsg}`);
+    
+    dialog.showMessageBox(BrowserWindow.getFocusedWindow(), {
+        type: 'error',
+        title: 'Auto-Updater Error',
+        message: 'Automatic update failed due to a download or configuration error.',
+        detail: `Error: ${errMsg}\n\nSince automatic downloading is currently failing, please manually download and run the latest installer from GitHub Releases and report this bug if the issue persists.`,
+        buttons: ['Open GitHub Releases', 'OK']
+    }).then(({ response }) => {
+        if (response === 0) {
+            const openFunc = open.default || open;
+            openFunc('https://github.com/Aguythatdoesstuff/Marshal-IDE/releases');
+        }
+    });
+}
+
 function setupAutoUpdater() {
     if (typeof appLogger !== 'undefined') {
         autoUpdater.logger = appLogger;
@@ -135,7 +171,6 @@ function setupAutoUpdater() {
 
     autoUpdater.on('update-available', async (info) => {
         appLogger?.info(`Update found: v${info.version}. Starting silent download...`);
-        
     });
 
     autoUpdater.on('download-progress', (progressObj) => {
@@ -157,17 +192,22 @@ function setupAutoUpdater() {
 
     autoUpdater.on('error', (err) => {
         appLogger?.error(`Updater Error: ${err.message}`);
+        handleUpdaterError(err);
     });
 
     if (app.isPackaged) {
         autoUpdater.checkForUpdates().catch(err => {
             appLogger?.error(`Update Check Failed: ${err.message}`);
+            handleUpdaterError(err);
         });
     }
 
     // Keep IPC handlers for manual overrides if needed
     ipcMain.on('start-update-download', () => {
-        autoUpdater.downloadUpdate();
+        autoUpdater.downloadUpdate().catch(err => {
+            appLogger?.error(`Manual download trigger failed: ${err.message}`);
+            handleUpdaterError(err);
+        });
     });
 
     // Execute instant install request from user interface click choice

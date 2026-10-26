@@ -17,7 +17,10 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ### Major Bug Fix
     - **Watcher and Compiler Close Orchestration**: 
         - Fix a bug that causes archiving of the current session to fail and the compiler to not close at all(causing ghost processes) when in a workspace and closing the entire app. This issue was due to the watcher and compiler not properly disconnecting and closing. Refractoring the way the watcher and compiler disconnect/close to ensure a clean shutdown sequence.
-
+### Code Cleanup & Architecture
+    - **Main Process De-bloating (`main.js`)**: 
+        - Refactor and modularize IPC handler registration away from `main.js` into dedicated domain modules to reduce file bloat and improve maintainability.
+        
 ---
 ## 🔭 Long-term Research & Development
 - **Workflow Tools**:
