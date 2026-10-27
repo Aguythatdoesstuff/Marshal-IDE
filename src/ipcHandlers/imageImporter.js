@@ -168,4 +168,165 @@ export function registerImageImporterHandlers(ipcMain, context) {
             return { success: false, message: error.message };
         }
     });
+
+    async function updateSingleImageConfig(file, metaDirPath, appLogger) {
+        const targetPath = typeof file === 'string' 
+            ? file 
+            : (file.path || file.filePath || file.imagePath || file.filename || file.safeName || '');
+        
+        if (!targetPath) {
+            throw new Error("Missing target path or safeName in payload item.");
+        }
+
+        const ext = path.extname(targetPath);
+        const safeName = (typeof file === 'object' && file.safeName) 
+            ? file.safeName 
+            : path.basename(targetPath, ext);
+
+        if (!safeName) {
+            throw new Error(`Could not determine safeName from target path: ${targetPath}`);
+        }
+
+        const configDir = path.join(metaDirPath, 'gfx', safeName);
+        const configPath = path.join(configDir, 'config.json');
+
+        await fs.ensureDir(configDir);
+
+        let existingConfig = {};
+        const configExists = await fs.pathExists(configPath);
+
+        if (!configExists) {
+            appLogger?.error(`[Main-Img-Config] Error: config.json does not exist for ${safeName} at ${configPath}. Something may have gone wrong upstream. Proceeding to create/update.`, { source: 'Main-Config' });
+        } else {
+            try {
+                existingConfig = await fs.readJson(configPath);
+            } catch (readErr) {
+                appLogger?.error(`[Main-Img-Config] Failed to parse existing config at ${configPath}, overwriting: ${readErr.message}`, { source: 'Main-Config' });
+            }
+        }
+
+        const customFields = typeof file === 'object' ? { ...file } : {};
+        delete customFields.path;
+        delete customFields.filePath;
+        delete customFields.imagePath;
+        delete customFields.filename;
+        delete customFields.safeName;
+
+        const updatedConfig = {
+            ...existingConfig,
+            ...customFields,
+            safeName,
+            updatedAt: new Date().toISOString()
+        };
+
+        const tempPath = `${configPath}.${Date.now()}.${Math.random().toString(36).substring(2, 8)}.tmp`;
+        await fs.outputJson(tempPath, updatedConfig, { spaces: 2 });
+        await fs.move(tempPath, configPath, { overwrite: true });
+
+        appLogger?.info(`[Main-Img-Config] Successfully updated config for ${safeName} at ${configPath}`, { source: 'Main-Config' });
+        return { success: true, safeName };
+    }
+
+    ipcMain.handle('get-img-config', async (event, filePath) => {
+        const appLogger = getLogger();
+        const metaDirPath = getMetadataDir();
+        if (!metaDirPath || !filePath) {
+            return { success: false, config: { safeName: '', imageType: '' } };
+        }
+
+        const ext = path.extname(filePath);
+        const baseName = path.basename(filePath, ext);
+        const gfxMetaDir = path.join(metaDirPath, 'gfx');
+
+        let gfxExists = false;
+        try {
+            gfxExists = await fs.pathExists(gfxMetaDir);
+        } catch (err) {
+            appLogger?.error(`[Main-Img-Config] Failed to check gfx metadata directory existence: ${err.message}`);
+        }
+
+        if (gfxExists) {
+            let subDirs = [];
+            try {
+                subDirs = await fs.readdir(gfxMetaDir);
+            } catch (err) {
+                appLogger?.error(`[Main-Img-Config] Failed to read gfx metadata directory: ${err.message}`);
+            }
+
+            for (const subDir of subDirs) {
+                const configPath = path.join(gfxMetaDir, subDir, 'config.json');
+                
+                let configExists = false;
+                try {
+                    configExists = await fs.pathExists(configPath);
+                } catch (_) {}
+
+                if (configExists) {
+                    try {
+                        const cfg = await fs.readJson(configPath);
+                        if (
+                            cfg.importedFrom === filePath || 
+                            cfg.safeName === baseName || 
+                            path.basename(cfg.importedFrom || '') === path.basename(filePath)
+                        ) {
+                            return { success: true, config: cfg };
+                        }
+                    } catch (readErr) {
+                        appLogger?.warn(`[Main-Img-Config] Failed to read config at ${configPath}: ${readErr.message}`);
+                    }
+                }
+            }
+        }
+
+        const directConfigPath = path.join(gfxMetaDir, baseName, 'config.json');
+        let directExists = false;
+        try {
+            directExists = await fs.pathExists(directConfigPath);
+        } catch (_) {}
+
+        if (directExists) {
+            try {
+                const cfg = await fs.readJson(directConfigPath);
+                return { success: true, config: cfg };
+            } catch (readErr) {
+                appLogger?.warn(`[Main-Img-Config] Failed to read direct config at ${directConfigPath}: ${readErr.message}`);
+            }
+        }
+
+        return { success: true, config: { safeName: baseName, imageType: '' } };
+    });
+
+    ipcMain.handle('update-img-config', async (event, payload) => {
+        const appLogger = getLogger();
+        const metaDirPath = getMetadataDir();
+
+        appLogger?.info(`[Main-Img-Config] Handler called with payload length: ${Array.isArray(payload) ? payload.length : 'non-array'}`, { source: 'Main-Config' });
+
+        if (!metaDirPath) {
+            appLogger?.error('[Main-Img-Config] Failed: metaDirPath is not defined/loaded', { source: 'Main-Config' });
+            return { success: false, message: "No project loaded." };
+        }
+
+        const items = Array.isArray(payload) ? payload : [payload];
+        const results = [];
+
+        for (const file of items) {
+            try {
+                const result = await updateSingleImageConfig(file, metaDirPath, appLogger);
+                results.push(result);
+            } catch (error) {
+                appLogger?.error(`[Main-Img-Config] Error updating individual item config: ${error.stack || error.message}`, { source: 'Main-Config' });
+                results.push({ success: false, message: error.message });
+            }
+        }
+
+        const hasFailures = results.some(r => !r.success);
+        const allFailed = results.every(r => !r.success);
+
+        if (allFailed) {
+            return { success: false, message: "All image config updates failed.", results };
+        }
+
+        return { success: !hasFailures, results };
+    });
 }

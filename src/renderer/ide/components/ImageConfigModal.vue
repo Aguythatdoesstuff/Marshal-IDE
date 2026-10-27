@@ -8,12 +8,12 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span class="text-sm font-medium text-white tracking-wide">Importing...</span>
+        <span class="text-sm font-medium text-white tracking-wide">{{ isConfigUpdate ? 'Saving Changes...' : 'Importing...' }}</span>
       </div>
 
       <!-- Modal Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-[#333333]">
-        <h2 class="text-lg font-semibold text-white">Configure Image Imports</h2>
+        <h2 class="text-lg font-semibold text-white">{{ isConfigUpdate ? 'Configure Image' : 'Configure Image Imports' }}</h2>
         <button 
           @click="closeModal" 
           class="text-[#858585] hover:text-white transition-colors p-1 rounded hover:bg-[#333333]"
@@ -40,8 +40,9 @@
               <input 
                 type="text" 
                 v-model="file.safeName" 
+                :disabled="isConfigUpdate"
                 @input="handleNameInput(index, $event)"
-                class="w-full bg-[#2d2d2d] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#007acc]"
+                class="w-full bg-[#2d2d2d] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#007acc] disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="e.g. my_game_texture"
               />
               <transition name="fade">
@@ -54,7 +55,7 @@
               </transition>
             </div>
             <p class="text-[11px] text-[#858585]">
-              This image will be normalized to a name safe for the game engine (lowercase, no spaces/special characters).
+              {{ isConfigUpdate ? 'Image name cannot be changed here. Use file rename context options instead.' : 'This image will be normalized to a name safe for the game engine (lowercase, no spaces/special characters).' }}
             </p>
           </div>
 
@@ -87,7 +88,7 @@
           :disabled="isSubmitting || !isFormValid"
           class="px-4 py-2 text-sm rounded bg-[#007acc] hover:bg-[#0098ff] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {{ isSubmitting ? 'Importing...' : 'Confirm & Import' }}
+          {{ isSubmitting ? (isConfigUpdate ? 'Saving Changes...' : 'Importing...') : (isConfigUpdate ? 'Save Changes' : 'Confirm & Import') }}
         </button>
       </div>
 
@@ -106,27 +107,51 @@ const props = defineProps({
   filePaths: {
     type: Array,
     required: true
+  },
+  isConfigUpdate: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['update:isOpen', 'imported'])
+const emit = defineEmits(['update:isOpen', 'imported', 'saved'])
 
 const isSubmitting = ref(false)
 const configuredFiles = ref([])
 
-// Watch filePaths so the list updates dynamically when the modal opens with new paths
-watch(() => props.filePaths, (newPaths) => {
-  if (newPaths) {
-    configuredFiles.value = newPaths.map(filePath => {
-      const baseName = filePath.split('\\').pop().split('/').pop().replace(/\.[^/.]+$/, "")
-      return {
+watch(() => [props.filePaths, props.isOpen], async ([newPaths]) => {
+  if (newPaths && newPaths.length > 0 && props.isOpen) {
+    const files = []
+    for (const filePath of newPaths) {
+      let safeName = ''
+      let imageType = ''
+
+      if (props.isConfigUpdate && window.api && window.api.invoke) {
+        try {
+          const res = await window.api.invoke('get-img-config', filePath)
+          if (res && res.success && res.config) {
+            safeName = res.config.safeName || ''
+            imageType = res.config.imageType || ''
+          }
+        } catch (err) {
+          console.warn('[ImageConfigModal] Failed to fetch existing image config:', err)
+        }
+      }
+
+      if (!safeName) {
+        const baseName = filePath.split('\\').pop().split('/').pop().replace(/\.[^/.]+$/, "")
+        safeName = sanitizeString(baseName)
+      }
+
+      files.push({
         originalPath: filePath,
-        safeName: sanitizeString(baseName),
-        imageType: '',
+        safeName,
+        imageType,
         showCharWarning: false,
         warningTimeout: null
-      }
-    })
+      })
+    }
+    configuredFiles.value = files
   }
 }, { immediate: true })
 
@@ -170,26 +195,43 @@ async function handleConfirmImport() {
   isSubmitting.value = true
 
   try {
-    const cachePayload = configuredFiles.value.map(file => ({
+    const payload = configuredFiles.value.map(file => ({
       path: file.originalPath,
       safeName: file.safeName,
       imageType: file.imageType
     }))
 
-    const cacheResult = await window.api.invoke('update-img-cache', cachePayload)
-    if (!cacheResult?.success) {
-      throw new Error(cacheResult?.message || 'Failed to update image cache.')
+    if (props.isConfigUpdate) {
+      const updateResult = await window.api.invoke('update-img-config', payload)
+      if (!updateResult?.success) {
+        throw new Error(updateResult?.message || 'Failed to update image configuration.')
+      }
+
+      for (const file of configuredFiles.value) {
+        await window.api.invoke('compile-file', {
+          filePath: file.originalPath,
+          outputOptions: undefined
+        })
+      }
+
+      emit('saved', payload)
+    } else {
+      const cacheResult = await window.api.invoke('update-img-cache', payload)
+      if (!cacheResult?.success) {
+        throw new Error(cacheResult?.message || 'Failed to update image cache.')
+      }
+
+      const finalizeResult = await window.api.invoke('finalize-img-import', payload)
+      if (!finalizeResult?.success) {
+        throw new Error(finalizeResult?.message || 'Failed to finalize image import.')
+      }
+
+      emit('imported', finalizeResult.imported)
     }
 
-    const finalizeResult = await window.api.invoke('finalize-img-import', cachePayload)
-    if (!finalizeResult?.success) {
-      throw new Error(finalizeResult?.message || 'Failed to finalize image import.')
-    }
-
-    emit('imported', finalizeResult.imported)
     closeModal()
   } catch (error) {
-    console.error('Import process failed:', error)
+    console.error('Operation failed:', error)
   } finally {
     isSubmitting.value = false
   }

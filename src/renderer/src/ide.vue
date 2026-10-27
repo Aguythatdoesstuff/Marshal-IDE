@@ -46,8 +46,10 @@
       <ImageConfigModal 
         :is-open="isImageModalOpen" 
         :file-paths="imageImportFilePaths" 
+        :is-config-update="isImageConfigUpdateMode"
         @update:is-open="(val) => isImageModalOpen = val"
         @imported="fileTreeRef?.refreshTree([...expandedFoldersRegistry])"
+        @saved="fileTreeRef?.refreshTree([...expandedFoldersRegistry])"
       />
       <div class="pane-divider-v" @mousedown="startWorkspaceResize"></div>
 
@@ -98,6 +100,7 @@
       <div class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerCreateModal(contextMenu.targetNode?.isDir ? contextMenu.targetNode.path : contextMenu.targetNode?.path.substring(0, contextMenu.targetNode.path.lastIndexOf('/')))">New File</div>
       
       <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerRenameModal(contextMenu.targetNode)">Rename</div>
+      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir && contextMenu.targetNode.name.toLowerCase().endsWith('.dds')" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white text-marshal-primary font-medium" @click="handleUpdateImageType(contextMenu.targetNode)">Update Image Type</div>
       <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="my-1 h-px bg-gray-700"></div>
       
       <div 
@@ -423,18 +426,43 @@ const handleRecompileAll = async () => {
 
 const isImageModalOpen = ref(false);
 const imageImportFilePaths = ref([]);
+const isImageConfigUpdateMode = ref(false);
 
 const handleImportImage = async () => {
   try {
     const res = await window.api.invoke('prepare-img-import');
     if (res && res.success) {
       imageImportFilePaths.value = res.filePaths || res.paths || [];
+      isImageConfigUpdateMode.value = false;
       isImageModalOpen.value = true;
     } else if (res && res.message && !res.message.includes('cancelled')) {
       console.warn(`Import warning notice structural stack trace: ${res.message}`);
     }
   } catch (err) {
     console.error('Failed to trigger native main process asset importer:', err);
+  }
+};
+
+const handleUpdateImageType = async (node) => {
+  closeContextMenu();
+  if (!node || !window.api || !window.api.invoke) return;
+
+  const pathsToUpdate = contextMenu.value.selectedPaths.length > 0 
+    ? contextMenu.value.selectedPaths 
+    : [node.path];
+
+  const absolutePaths = [];
+  for (const p of pathsToUpdate) {
+    const res = await window.api.invoke('get-absolute-path', p);
+    if (res && res.success && res.absolutePath) {
+      absolutePaths.push(res.absolutePath);
+    }
+  }
+
+  if (absolutePaths.length > 0) {
+    imageImportFilePaths.value = absolutePaths;
+    isImageConfigUpdateMode.value = true;
+    isImageModalOpen.value = true;
   }
 };
 

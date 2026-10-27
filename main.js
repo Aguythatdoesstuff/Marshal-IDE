@@ -1019,7 +1019,25 @@ function setupAutoUpdater() {
 	       return { success: true };
 	    } catch (e) { return { success: false, message: e.message }; }
 	});
-	
+	ipcMain.handle('get-absolute-path', async (event, relPath) => {
+        if (!INPUT_DIR) {
+            return { success: false, message: "No project loaded." };
+        }
+        try {
+            const absolutePath = path.resolve(INPUT_DIR, relPath);
+            return { success: true, absolutePath };
+        } catch (error) {
+            appLogger?.error(`[Main-Import] Error getting absolute path: ${error.message}`);
+            return { success: false, message: error.message };
+        }
+    });
+	ipcMain.handle('compile-file', async (event, { filePath, outputOptions }) => {
+	    try {
+	       await compileFile(filePath, outputOptions, logToSystem);
+	       return { success: true };
+	    } catch (e) { return { success: false, message: e.message }; }
+	});
+
 	ipcMain.handle('get-log-broadcaster-methods', () => {
 		return LogBroadcaster ? { success: true } : { success: false };
 	});
