@@ -151,7 +151,7 @@ The importer and compiler therefore share a language but remain independently re
 
 The importer and compiler are published from their respective Visual Studio projects using platform-specific publish settings.
 
-They are distributed as self-contained executables, avoiding a requirement for users to separately install the .NET runtime. Executable names vary by platform, such as `Compiler.exe` on Windows and `compiler` on Linux.
+They are distributed as self-contained executables, avoiding a requirement for users to separately install the .NET runtime. Executable names vary by platform, such as `Compiler.exe` on Windows and `Compiler` on Linux.
 
 This makes deployment more predictable and reduces external runtime prerequisites.
 
@@ -187,16 +187,19 @@ The decision is a performance optimization layered on top of Electron, rather th
 
 ### 5.1 Build commands
 
-Marshal's build pipeline depends on the requested npm script.
+Marshal's build pipeline depends on the requested npm script:
 
-| Command | Purpose |
-|---|---|
-| `npm start` | Runs the Electron-Vite build and launches Electron with warning tracing. |
-| `npm run dist` | Builds the application and packages it using Electron Builder. |
-| `npm run dist:win` | Builds and packages the Windows distribution. |
-| `npm run dist:linux` | Builds and packages the Linux distribution. |
-| `npm run dist:all` | Builds and packages Windows and Linux distributions. |
-| `npm run license-gen` | Generates the third-party license inventory from `package.json`. |
+- npm start — Runs the Electron-Vite build and launches Electron with warning tracing.(Dev enviornment/dev mode)
+
+- npm run dist — Builds the application and packages it using Electron Builder.
+
+- npm run dist:win — Builds and packages the Windows distribution.
+
+- npm run dist:linux — Builds and packages the Linux distribution.
+
+- npm run dist:all — Builds and packages Windows and Linux distributions.
+
+- npm run license-gen — Generates the third-party license inventory from package.json.
 
 The main and preload bundles are built as CommonJS outputs. Electron-Vite also builds the renderer from the Vue application entry point.
 
@@ -356,13 +359,11 @@ Temporary files normally use the operating system's temporary directory, with ex
 
 ### 8.6 Semantic asset types and managed output locations
 
-The image importer is designed around HOI4 asset types, not just generic file conversion.
+The image importer is built around HOI4 asset types rather than generic file conversion. It places imported assets directly into the appropriate HOI4 image subdirectories, following the IDE's expected project structure. It does not generally create a separate `ManagedByMarshalIDE` folder to isolate its outputs.
 
-Imported assets are placed in the appropriate HOI4 image subdirectory under `ManagedByMarshalIDE`. This separates Marshal-managed assets from unrelated content and gives the IDE a predictable area for assets it has imported.
+Marshal IDE treats its generated files as IDE-managed outputs, even when they live alongside other project files. It assumes control over those outputs and does not ask whether the user has manually edited them before overwriting them. If a generated file is changed without updating its corresponding source input, a later generation can overwrite that change without warning. The source input is authoritative; generated output is not intended to be edited independently.
 
-A semantic asset type can also determine which outputs are required. For example, a country flag needs multiple DDS sizes. Selecting the Country Flag type and supplying the relevant country tag allows the importer to produce the required variants from one source image.
-
-This is more useful than asking users to manually create each size and place it in the correct location. The importer can handle the repetitive game-specific requirements while keeping the source image and asset metadata associated with the workspace.
+Semantic asset types determine what the importer generates and where it places the results. For example, selecting **Country Flag** and supplying a country tag lets the importer generate the required DDS sizes from a single source image and place them in the appropriate game directories. This removes the need to manually create each variant or determine its destination. The IDE handles the game-specific output requirements, while the source image and relevant asset metadata remain associated with the workspace.
 
 ## 9. Process Lifecycle and Stability
 
@@ -396,6 +397,12 @@ These changes address lifecycle reliability and maintainability without changing
 
 ## 10. Release Roadmap and Known Weaknesses
 
+### Roadmap Context
+
+The sections below document planned work and explain the technical context behind certain upcoming changes. They are not the authoritative or necessarily up-to-date release roadmap. For the latest roadmap, see `About Marshal IDE/Roadmap.md`.
+
+This section exists to preserve additional development context: why certain changes are planned, which architectural weaknesses they address, and why particular improvements matter.
+
 ### v1.5.0 — Developer Experience Update
 
 The planned v1.5.0 work includes:
@@ -406,7 +413,7 @@ The planned v1.5.0 work includes:
 - Reliable deletion and renaming cleanup for dynamically named outputs.
 - Updated hardcoded release notes in the What's New modal.
 
-The output-manifest work is particularly significant because it removes the need to maintain duplicated output-naming logic in the deletion handler.
+The output-manifest work is particularly significant because it removes the need to maintain duplicated output-naming logic in the deletion handler. Instead, the IDE can use the compiler's record of generated files to determine which outputs belong to each source input, including outputs whose names depend on source content.
 
 ### v1.5.1 — Stability and Maintainability
 
@@ -416,11 +423,13 @@ The planned v1.5.1 work includes:
 - Improving process cleanup and session archiving reliability.
 - Moving IPC handlers out of `main.js` to improve modularity.
 
-These releases target weaknesses that have become more apparent as Marshal's features and process interactions have grown.
+These items provide technical context for known weaknesses that have become more apparent as Marshal IDE's features and process interactions have grown. Their inclusion here explains the reasoning behind the planned work; consult `About Marshal IDE/Roadmap.md`
 
 ## 11. Project Distribution and Licensing
 
 Marshal IDE is a closed-source project. Access to repository contribution mechanisms is restricted by the project owner, and pull requests from unauthorized users are not accepted.
+
+The applicable End User License Agreement (EULA) governs the use and distribution of Marshal IDE and its components. You can review the license terms in `LICENSE.txt`. When launching the IDE, the EULA manager will require you to accept the applicable EULA, or a specific EULA presented for that situation, before proceeding. By using the IDE, you must accept the applicable license agreement to continue.
 
 Although GitHub's platform behavior may allow a repository to be forked, that does not grant permission to redistribute or develop an unauthorized fork. The project's EULA governs permitted use and distribution.
 
