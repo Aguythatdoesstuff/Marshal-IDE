@@ -18,6 +18,11 @@ const ALLOWED_IMAGE_TYPES = {
         format: 'R8G8B8A8_UNORM',
         description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed)'
     },
+    'fallback': {
+        fileType: 'dds',
+        format: 'R8G8B8A8_UNORM',
+        description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed)'
+    },
     // Diffuse map: The primary color texture defining the base visual patterns and painting of the model.
     'diffuse': {
         fileType: 'dds',

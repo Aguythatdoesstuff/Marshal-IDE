@@ -41,6 +41,10 @@
                 <span v-if="node.isExpanded">📂</span>
                 <span v-else>📁</span>
               </template>
+              <!-- Display 32x32 preview icon if loaded for .dds file -->
+              <template v-else-if="isDdsFile(node.name) && imagePreviews[node.name]">
+                <img :src="imagePreviews[node.name]" class="h-3.5 w-3.5 object-contain align-middle rounded" alt="" />
+              </template>
               <template v-else>
                 <svg class="h-3.5 w-3.5 align-middle" viewBox="0 0 24 24" fill="currentColor" :style="{ color: getFileColor(node.name) }">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/>
@@ -84,6 +88,10 @@ const getFileColor = (fileName) => {
   return FILE_COLOR_MAP[ext] || FILE_COLOR_MAP['.unknown'];
 };
 
+const isDdsFile = (fileName) => {
+  return fileName && fileName.toLowerCase().endsWith('.dds');
+};
+
 const props = defineProps({
   sidebarWidth: { type: Number, default: 260 },
   activePath: { type: String, default: null }
@@ -96,6 +104,7 @@ const openFoldersSet = ref(new Set());
 const selectedFilePaths = ref(new Set());
 const lastSelectedNode = ref(null);
 const isDraggingOver = ref(false);
+const imagePreviews = ref({});
 
 const getOpenFoldersStorageKey = () => {
   const workspaceName = localStorage.getItem('marshal_project_to_load') || 'No Active Project';
@@ -134,6 +143,34 @@ const loadDirectory = async (dirPath = '') => {
   return [];
 };
 
+const fetchPreviewsForNodes = async (nodes) => {
+  const ddsNodes = nodes.filter(n => !n.isDir && isDdsFile(n.name) && !imagePreviews.value[n.name]);
+  if (ddsNodes.length === 0) return;
+
+  // Map .dds filenames to base names without extension (e.g., "my_icon.dds" -> "my_icon")
+  const filePayloads = ddsNodes.map(n => {
+    const name = n.name;
+    return name.toLowerCase().endsWith('.dds') ? name.substring(0, name.length - 4) : name;
+  });
+
+  if (window.api && window.api.invoke) {
+    try {
+      const res = await window.api.invoke('get-img-preview', { files: filePayloads, size: '32x32' });
+      if (res && res.results) {
+        res.results.forEach((r, idx) => {
+          const originalNode = ddsNodes[idx];
+          if (r.success && r.base64 && originalNode) {
+            const base64Data = r.base64.startsWith('data:') ? r.base64 : `data:image/png;base64,${r.base64}`;
+            imagePreviews.value[originalNode.name] = base64Data;
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('[FileTree] Failed to fetch 32x32 image previews:', err);
+    }
+  }
+};
+
 const refreshTree = async () => {
   const buildVisibleTree = async (dirPath = '') => {
     const nodes = await loadDirectory(dirPath);
@@ -153,6 +190,7 @@ const refreshTree = async () => {
   };
 
   treeData.value = await buildVisibleTree();
+  await fetchPreviewsForNodes(treeData.value);
 };
 
 const isNodeSelected = (node) => {
@@ -298,4 +336,3 @@ onMounted(() => {
   refreshTree();
 });
 </script>
-

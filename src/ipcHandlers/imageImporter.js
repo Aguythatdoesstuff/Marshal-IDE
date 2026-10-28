@@ -329,4 +329,154 @@ export function registerImageImporterHandlers(ipcMain, context) {
 
         return { success: !hasFailures, results };
     });
+    ipcMain.handle('get-img-preview', async (event, payload) => {
+        const appLogger = getLogger();
+        const metaDirPath = getMetadataDir();
+
+        appLogger?.info(`[Main-Img-Config] Handler called with payload: ${JSON.stringify(payload)}`, { source: 'Main-Config' });
+
+        if (!metaDirPath) {
+            appLogger?.error('[Main-Img-Config] Failed: metaDirPath is not defined/loaded', { source: 'Main-Config' });
+            return { success: false, message: "No project loaded." };
+        }
+
+        const rawItems = payload?.files || payload;
+        const requestedSize = payload?.size || 'original';
+        const items = Array.isArray(rawItems) ? rawItems : [rawItems];
+        const results = [];
+
+        for (const file of items) {
+            let result;
+            
+            try {
+                result = await resolveImagePreview(file, requestedSize, metaDirPath, appLogger);
+            } catch (error) {
+                appLogger?.error(`[Main-Img-Config] Error getting preview for item: ${error.stack || error.message}`, { source: 'Main-Config' });
+                result = { success: false, message: error.message, file };
+            }
+            
+            results.push(result);
+        }
+
+        const hasFailures = results.some(r => !r.success);
+        const allFailed = results.every(r => !r.success);
+
+        if (allFailed) {
+            return { success: false, message: "All image preview requests failed.", results };
+        }
+
+        return { success: !hasFailures, results };
+    });
+
+    async function findFileRecursive(dir, targetName) {
+        if (!(await fs.pathExists(dir))) return null;
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                const found = await findFileRecursive(fullPath, targetName);
+                if (found) return found;
+            } else if (entry.isFile()) {
+                const parsed = path.parse(entry.name);
+                if (parsed.name === targetName) {
+                    return fullPath;
+                }
+            }
+        }
+        return null;
+    }
+
+    async function resolveImagePreview(file, size, metaDirPath, appLogger) {
+        const imageName = typeof file === 'string' ? file : file.name;
+        const targetFileName = size === '32x32' ? `${imageName}_32x32.png` : `${imageName}.png`;
+
+        if (size !== '32x32') {
+            return { success: true, size: 'original', fileName: targetFileName };
+        }
+
+        const configDir = path.join(metaDirPath, 'gfx', imageName);
+        const configPath = path.join(configDir, 'config.json');
+        let config = {};
+
+        try {
+            if (await fs.pathExists(configPath)) {
+                const fileContent = await fs.readFile(configPath, 'utf8');
+                config = JSON.parse(fileContent);
+            }
+        } catch (readErr) {
+            config = {};
+        }
+
+        if (config?.thumbnail) {
+            return { 
+                success: true, 
+                size: '32x32', 
+                fileName: targetFileName, 
+                base64: config.thumbnail 
+            };
+        }
+
+        if (config?.imagePreviews?.[targetFileName]) {
+            return { 
+                success: true, 
+                size: '32x32', 
+                fileName: targetFileName, 
+                base64: config.imagePreviews[targetFileName] 
+            };
+        }
+
+        appLogger?.warn(`[Main-Img-Config] Warning: 32x32 preview for "${imageName}" not found in config.json. Generating via processImage.`, { source: 'Main-Config' });
+
+        const inputDir = getInputDir();
+        let filePath = null;
+        if (config.importedFrom && await fs.pathExists(config.importedFrom)) {
+            filePath = config.importedFrom;
+        } else if (inputDir) {
+            const gfxInputRoot = path.join(inputDir, 'gfx');
+            filePath = await findFileRecursive(gfxInputRoot, imageName);
+        }
+
+        if (!filePath || !(await fs.pathExists(filePath))) {
+            appLogger?.error(`[Main-Img-Config] Error: Source image not found for ${imageName}`, { source: 'Main-Config' });
+            throw new Error(`Source image not found for thumbnail generation: ${imageName}`);
+        }
+
+        const mainOutputDir = path.dirname(filePath);
+        const cacheOutputDir = configDir;
+        const imageType = config.imageType || 'fallback';
+
+        const result = await processImage({
+            filePath,
+            imageType,
+            mainOutputDir,
+            cacheOutputDir
+        });
+
+        if (!result || !result.success) {
+            throw new Error(result?.message || `Failed to process image for preview: ${imageName}`);
+        }
+
+        const targetImagePath = path.join(configDir, targetFileName);
+        if (!(await fs.pathExists(targetImagePath))) {
+            throw new Error(`Generated preview image not found at: ${targetImagePath}`);
+        }
+
+        const buffer = await fs.readFile(targetImagePath);
+        const base64Data = `data:image/png;base64,${buffer.toString('base64')}`;
+
+        config.thumbnail = base64Data;
+        delete config.imagePreviews;
+
+        const tempPath = `${configPath}.${Date.now()}.${Math.random().toString(36).substring(2, 8)}.tmp`;
+        await fs.outputJson(tempPath, config, { spaces: 2 });
+        await fs.move(tempPath, configPath, { overwrite: true });
+
+        return { 
+            success: true, 
+            size: '32x32', 
+            fileName: targetFileName, 
+            base64: base64Data,
+            warning: 'Preview was missing from config.json and generated via processImage.'
+        };
+    }
 }
