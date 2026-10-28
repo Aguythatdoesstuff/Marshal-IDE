@@ -5,6 +5,29 @@ import fs from 'fs-extra';
 export function registerImageImporterHandlers(ipcMain, context) {
     const { getInputDir, getLogger, updateManifest, getMetadataDir, processImage } = context;
 
+    /**
+     * Helper to consistently extract the exact base name (without extension) from a string path,
+     * filename, or payload object, strictly preserving spaces, hyphens, and original casing,
+     * deliberately bypassing any upstream slugified/sanitized safeName properties.
+     */
+    function getSafeName(input) {
+        if (!input) return '';
+        if (typeof input === 'object') {
+            const p = input.path || input.filePath || input.imagePath || input.filename || input.name;
+            if (p) {
+                const ext = path.extname(p);
+                return path.basename(p, ext);
+            }
+            if (input.safeName) return input.safeName;
+            return '';
+        }
+        if (typeof input === 'string') {
+            const ext = path.extname(input);
+            return path.basename(input, ext);
+        }
+        return '';
+    }
+
     ipcMain.handle('prepare-img-import', async (event, args) => {
         const appLogger = getLogger();
         const INPUT_DIR = getInputDir();
@@ -19,7 +42,6 @@ export function registerImageImporterHandlers(ipcMain, context) {
         try {
             let filePaths = [];
             
-            // Extract paths if passed via args object, direct string, or array
             const directSource = args?.sourcePath || (typeof args === 'string' ? args : null) || (Array.isArray(args) ? args : null);
 
             if (directSource) {
@@ -49,7 +71,6 @@ export function registerImageImporterHandlers(ipcMain, context) {
 
             appLogger?.info(`[Main-Import-Prep] Preparation successful. Returning ${filePaths.length} path(s).`, { source: 'Main-Import' });
             
-            // Return the clean file paths for your modal to consume
             return { 
                 success: true, 
                 filePaths: filePaths 
@@ -76,7 +97,8 @@ export function registerImageImporterHandlers(ipcMain, context) {
             const files = Array.isArray(payload) ? payload : [payload];
 
             for (const file of files) {
-                const { path: importedFrom, safeName, imageType } = file;
+                const { path: importedFrom, imageType } = file;
+                const safeName = getSafeName(file);
                 if (!safeName) continue;
 
                 const configDir = path.join(metaDirPath, 'gfx', safeName);
@@ -132,7 +154,9 @@ export function registerImageImporterHandlers(ipcMain, context) {
             const importedResults = [];
 
             for (const file of files) {
-                const { path: filePath, safeName, imageType } = file;
+                const { path: filePath, imageType } = file;
+                const safeName = getSafeName(file);
+
                 if (!filePath || !safeName || !imageType) {
                     throw new Error(`Missing required import parameters: path=${filePath}, safeName=${safeName}, imageType=${imageType}`);
                 }
@@ -170,21 +194,10 @@ export function registerImageImporterHandlers(ipcMain, context) {
     });
 
     async function updateSingleImageConfig(file, metaDirPath, appLogger) {
-        const targetPath = typeof file === 'string' 
-            ? file 
-            : (file.path || file.filePath || file.imagePath || file.filename || file.safeName || '');
+        const safeName = getSafeName(file);
         
-        if (!targetPath) {
-            throw new Error("Missing target path or safeName in payload item.");
-        }
-
-        const ext = path.extname(targetPath);
-        const safeName = (typeof file === 'object' && file.safeName) 
-            ? file.safeName 
-            : path.basename(targetPath, ext);
-
         if (!safeName) {
-            throw new Error(`Could not determine safeName from target path: ${targetPath}`);
+            throw new Error("Missing target path or safeName in payload item.");
         }
 
         const configDir = path.join(metaDirPath, 'gfx', safeName);
@@ -234,9 +247,20 @@ export function registerImageImporterHandlers(ipcMain, context) {
             return { success: false, config: { safeName: '', imageType: '' } };
         }
 
-        const ext = path.extname(filePath);
-        const baseName = path.basename(filePath, ext);
+        const safeName = getSafeName(filePath);
         const gfxMetaDir = path.join(metaDirPath, 'gfx');
+
+        if (safeName) {
+            const directConfigPath = path.join(gfxMetaDir, safeName, 'config.json');
+            try {
+                if (await fs.pathExists(directConfigPath)) {
+                    const cfg = await fs.readJson(directConfigPath);
+                    return { success: true, config: cfg };
+                }
+            } catch (readErr) {
+                appLogger?.warn(`[Main-Img-Config] Failed to read direct config at ${directConfigPath}: ${readErr.message}`);
+            }
+        }
 
         let gfxExists = false;
         try {
@@ -265,8 +289,8 @@ export function registerImageImporterHandlers(ipcMain, context) {
                     try {
                         const cfg = await fs.readJson(configPath);
                         if (
+                            cfg.safeName === safeName ||
                             cfg.importedFrom === filePath || 
-                            cfg.safeName === baseName || 
                             path.basename(cfg.importedFrom || '') === path.basename(filePath)
                         ) {
                             return { success: true, config: cfg };
@@ -278,22 +302,7 @@ export function registerImageImporterHandlers(ipcMain, context) {
             }
         }
 
-        const directConfigPath = path.join(gfxMetaDir, baseName, 'config.json');
-        let directExists = false;
-        try {
-            directExists = await fs.pathExists(directConfigPath);
-        } catch (_) {}
-
-        if (directExists) {
-            try {
-                const cfg = await fs.readJson(directConfigPath);
-                return { success: true, config: cfg };
-            } catch (readErr) {
-                appLogger?.warn(`[Main-Img-Config] Failed to read direct config at ${directConfigPath}: ${readErr.message}`);
-            }
-        }
-
-        return { success: true, config: { safeName: baseName, imageType: '' } };
+        return { success: true, config: { safeName: safeName || path.basename(filePath, path.extname(filePath)), imageType: '' } };
     });
 
     ipcMain.handle('update-img-config', async (event, payload) => {
@@ -329,6 +338,7 @@ export function registerImageImporterHandlers(ipcMain, context) {
 
         return { success: !hasFailures, results };
     });
+
     ipcMain.handle('get-img-preview', async (event, payload) => {
         const appLogger = getLogger();
         const metaDirPath = getMetadataDir();
@@ -387,14 +397,14 @@ export function registerImageImporterHandlers(ipcMain, context) {
     }
 
     async function resolveImagePreview(file, size, metaDirPath, appLogger) {
-        const imageName = typeof file === 'string' ? file : file.name;
-        const targetFileName = size === '32x32' ? `${imageName}_32x32.png` : `${imageName}.png`;
-
-        if (size !== '32x32') {
-            return { success: true, size: 'original', fileName: targetFileName };
+        const safeName = getSafeName(file);
+        if (!safeName) {
+            throw new Error("Could not determine safeName for preview resolution.");
         }
-
-        const configDir = path.join(metaDirPath, 'gfx', imageName);
+        
+        const isThumbnail = size === '32x32';
+        const targetFileName = isThumbnail ? `${safeName}_32x32.png` : `${safeName}.png`;
+        const configDir = path.join(metaDirPath, 'gfx', safeName);
         const configPath = path.join(configDir, 'config.json');
         let config = {};
 
@@ -407,7 +417,7 @@ export function registerImageImporterHandlers(ipcMain, context) {
             config = {};
         }
 
-        if (config?.thumbnail) {
+        if (isThumbnail && config?.thumbnail) {
             return { 
                 success: true, 
                 size: '32x32', 
@@ -419,13 +429,25 @@ export function registerImageImporterHandlers(ipcMain, context) {
         if (config?.imagePreviews?.[targetFileName]) {
             return { 
                 success: true, 
-                size: '32x32', 
+                size, 
                 fileName: targetFileName, 
                 base64: config.imagePreviews[targetFileName] 
             };
         }
 
-        appLogger?.warn(`[Main-Img-Config] Warning: 32x32 preview for "${imageName}" not found in config.json. Generating via processImage.`, { source: 'Main-Config' });
+        const targetImagePath = path.join(configDir, targetFileName);
+        if (await fs.pathExists(targetImagePath)) {
+            const buffer = await fs.readFile(targetImagePath);
+            const base64Data = `data:image/png;base64,${buffer.toString('base64')}`;
+            return {
+                success: true,
+                size,
+                fileName: targetFileName,
+                base64: base64Data
+            };
+        }
+
+        appLogger?.warn(`[Main-Img-Config] Warning: Preview (${targetFileName}) for "${safeName}" not found. Generating via processImage.`, { source: 'Main-Config' });
 
         const inputDir = getInputDir();
         let filePath = null;
@@ -433,12 +455,12 @@ export function registerImageImporterHandlers(ipcMain, context) {
             filePath = config.importedFrom;
         } else if (inputDir) {
             const gfxInputRoot = path.join(inputDir, 'gfx');
-            filePath = await findFileRecursive(gfxInputRoot, imageName);
+            filePath = await findFileRecursive(gfxInputRoot, safeName);
         }
 
         if (!filePath || !(await fs.pathExists(filePath))) {
-            appLogger?.error(`[Main-Img-Config] Error: Source image not found for ${imageName}`, { source: 'Main-Config' });
-            throw new Error(`Source image not found for thumbnail generation: ${imageName}`);
+            appLogger?.error(`[Main-Img-Config] Error: Source image not found for ${safeName}`, { source: 'Main-Config' });
+            throw new Error(`Source image not found for preview generation: ${safeName}`);
         }
 
         const mainOutputDir = path.dirname(filePath);
@@ -453,10 +475,9 @@ export function registerImageImporterHandlers(ipcMain, context) {
         });
 
         if (!result || !result.success) {
-            throw new Error(result?.message || `Failed to process image for preview: ${imageName}`);
+            throw new Error(result?.message || `Failed to process image for preview: ${safeName}`);
         }
 
-        const targetImagePath = path.join(configDir, targetFileName);
         if (!(await fs.pathExists(targetImagePath))) {
             throw new Error(`Generated preview image not found at: ${targetImagePath}`);
         }
@@ -464,19 +485,21 @@ export function registerImageImporterHandlers(ipcMain, context) {
         const buffer = await fs.readFile(targetImagePath);
         const base64Data = `data:image/png;base64,${buffer.toString('base64')}`;
 
-        config.thumbnail = base64Data;
-        delete config.imagePreviews;
+        if (isThumbnail) {
+            config.thumbnail = base64Data;
+            delete config.imagePreviews;
 
-        const tempPath = `${configPath}.${Date.now()}.${Math.random().toString(36).substring(2, 8)}.tmp`;
-        await fs.outputJson(tempPath, config, { spaces: 2 });
-        await fs.move(tempPath, configPath, { overwrite: true });
+            const tempPath = `${configPath}.${Date.now()}.${Math.random().toString(36).substring(2, 8)}.tmp`;
+            await fs.outputJson(tempPath, config, { spaces: 2 });
+            await fs.move(tempPath, configPath, { overwrite: true });
+        }
 
         return { 
             success: true, 
-            size: '32x32', 
+            size, 
             fileName: targetFileName, 
             base64: base64Data,
-            warning: 'Preview was missing from config.json and generated via processImage.'
+            warning: 'Preview was missing and generated via processImage.'
         };
     }
 }

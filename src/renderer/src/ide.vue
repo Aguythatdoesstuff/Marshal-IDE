@@ -21,12 +21,9 @@
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 5H5l3.5-4.5z"/></svg>
           Import Img
         </button>
-        <button class="inline-flex items-center justify-center gap-1.5 rounded bg-marshal-primary px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50" @click="saveActiveFile" :disabled="!tabsRef?.activeTabPath">
+        <button class="inline-flex items-center justify-center gap-1.5 rounded bg-marshal-primary px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50" @click="saveActiveFile" :disabled="!tabsRef?.activeTabPath || isImageTab">
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H5C3.89 3 3 3.89 3 5v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
           Save
-        </button>
-        <button v-if="isDevMode && tabsRef?.activeTabPath" class="inline-flex items-center justify-center gap-1.5 rounded border border-yellow-500/50 bg-yellow-500/10 px-3.5 py-1.5 text-xs font-semibold text-yellow-300 transition hover:bg-yellow-500/20" @click="tabsRef?.toggleActiveEditorView()">
-          {{ tabsRef?.activeTabEditorMode === 'dragdrop' ? 'Switch to Code Editor' : 'Open Simplified Editor' }}
         </button>
         <button class="inline-flex items-center justify-center rounded border border-marshal-border bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-marshal-text transition hover:bg-white/10 hover:opacity-90" @click="handleExitWorkspace">Exit Workspace</button>
       </div>
@@ -38,7 +35,7 @@
         ref="fileTreeRef"
         :sidebar-width="sidebarWidth"
         :active-path="tabsRef?.activeTabPath"
-        @file-selected="(node) => tabsRef?.openTab(node)"
+        @file-selected="handleFileSelected"
         @node-contextmenu="openContextMenu"
         @trigger-create="triggerCreateModal"
         @request-delete="triggerDeleteAction"
@@ -62,15 +59,24 @@
         />
 
         <div class="relative min-h-0 flex-1 overflow-hidden flex flex-col">
-          <div v-if="tabsRef?.activeTabEditorMode === 'dragdrop'" class="flex-1 flex flex-col overflow-hidden bg-marshal-editor w-full h-full">
-            <SimplifiedEditor 
-              :file-path="tabsRef?.activeTabPath" 
-              :content="tabsRef?.activeTabContent" 
-              @update:content="(val) => tabsRef?.updateActiveTabContent(val)" 
-              @switch-to-code="tabsRef?.switchToCodeView()" 
+          <!-- Clean Edge-to-Edge Full-Size Image Preview Container -->
+          <div v-if="isImageTab" class="absolute inset-0 flex items-center justify-center overflow-auto bg-[#181818] p-6 select-none">
+            <div v-if="activeImageLoading" class="text-xs text-marshal-muted">
+              Loading original texture preview...
+            </div>
+            <img 
+              v-else-if="activeImageUrl" 
+              :src="activeImageUrl" 
+              class="max-h-full max-w-full object-contain shadow-2xl rounded bg-[linear-gradient(45deg,#222_25%,transparent_25%),linear-gradient(-45deg,#222_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#222_75%),linear-gradient(-45deg,transparent_75%,#222_75%)] bg-[size:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+              alt="Full Texture Preview"
             />
+            <div v-else class="text-xs text-rose-400">
+              Failed to load original image preview.
+            </div>
           </div>
-          <div v-show="tabsRef?.activeTabEditorMode !== 'dragdrop'" id="editor-container" class="monaco-mount-target" :class="{ 'pointer-events-none': isResizing }"></div>
+
+          <!-- Monaco Code Editor Container -->
+          <div v-show="!isImageTab" id="editor-container" class="monaco-mount-target" :class="{ 'pointer-events-none': isResizing }"></div>
           
           <div v-if="tabsRef?.openTabs.length === 0" class="absolute inset-0 flex items-center justify-center p-6 text-center text-[13px] text-marshal-muted">
             <p>Select a structural project file asset from the tree browser configuration map to begin code composition.</p>
@@ -152,11 +158,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
 import ConsolePanel from '../ide/Console.vue';
 import FileTreePanel from '../ide/FileTree.vue';
 import Tabs from '../ide/Tabs.vue';
-import SimplifiedEditor from '../ide/components/SimplifiedEditor.vue';
 import ImageConfigModal from '../ide/components/ImageConfigModal.vue';
 import { FILE_EXTENSION_MAP, getMonacoLanguage, defineDslLanguages } from '../ide/components/hoi4/config.js';
 
@@ -167,6 +172,37 @@ let editorStateDisposables = [];
 
 const isDevMode = ref(false);
 const activeProjectName = ref('Loading...');
+
+const activeImageUrl = ref('');
+const activeImageLoading = ref(false);
+
+const isImageTab = computed(() => {
+  const activePath = tabsRef.value?.activeTabPath;
+  if (!activePath) return false;
+  return activePath.toLowerCase().endsWith('.dds');
+});
+
+// Watch active tab changes to fetch full-size cached original PNG for DDS files
+watch(() => tabsRef.value?.activeTabPath, async (newPath) => {
+  if (!newPath || !newPath.toLowerCase().endsWith('.dds')) {
+    activeImageUrl.value = '';
+    return;
+  }
+  
+  activeImageLoading.value = true;
+  activeImageUrl.value = '';
+
+  try {
+    const previewRes = await window.api.invoke('get-img-preview', { files: [newPath], size: 'original' });
+    if (previewRes && previewRes.success && previewRes.results?.[0]?.base64) {
+      activeImageUrl.value = previewRes.results[0].base64;
+    }
+  } catch (err) {
+    console.error("Failed to load active original image preview texture:", err);
+  } finally {
+    activeImageLoading.value = false;
+  }
+});
 
 onMounted(async () => {
   activeProjectName.value = localStorage.getItem('marshal_project_to_load') || 'No Active Project';
@@ -252,6 +288,19 @@ const vClickOutside = {
   }
 };
 
+const handleFileSelected = async (node) => {
+  if (!node || node.isDir) return;
+  
+  if (node.name.toLowerCase().endsWith('.dds')) {
+    try {
+      await window.api.invoke('get-img-config', node.path);
+    } catch (err) {
+      console.error("Failed to load DDS config on select:", err);
+    }
+  }
+  tabsRef.value?.openTab(node);
+};
+
 const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
   try {
     let actualPath = filePath;
@@ -267,6 +316,16 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
     }
 
     const fileName = actualPath.split(/[\\/]/).pop();
+    const isDds = fileName.toLowerCase().endsWith('.dds');
+
+    if (isDds) {
+      try {
+        await window.api.invoke('get-img-config', actualPath);
+      } catch (err) {
+        console.error("Failed to load DDS image config on navigation:", err);
+      }
+    }
+
     await tabsRef.value?.openTab({ path: actualPath, name: fileName, isDir: false });
 
     await nextTick();
@@ -274,7 +333,7 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
     await new Promise(resolve => {
       setTimeout(() => {
         const activeEditor = editorInstance || window.editorInstance;
-        if (activeEditor && lineNumber !== undefined && lineNumber !== 'Unknown') {
+        if (activeEditor && lineNumber !== undefined && lineNumber !== 'Unknown' && !isDds) {
           const parsedLine = parseInt(lineNumber, 10);
           if (!isNaN(parsedLine)) {
             activeEditor.revealLineInCenter(parsedLine);
@@ -301,12 +360,12 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
 
 const saveActiveFile = async () => {
   const activePath = tabsRef.value?.activeTabPath;
-  if (!activePath) return;
+  if (!activePath || isImageTab.value) return;
   const currentTab = tabsRef.value?.activeTabObj;
   if (!currentTab) return;
 
   let codePayload = currentTab.content;
-  if (currentTab.editorMode !== 'dragdrop' && editorInstance) {
+  if (editorInstance) {
     const modelToSave = currentTab.monacoModel || editorInstance.getModel();
     if (modelToSave) codePayload = modelToSave.getValue();
   }
