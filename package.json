@@ -21,7 +21,7 @@
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "chokidar": "^3.6.0",
-    "electron-updater": "^6.6.2",
+    "electron-updater": "^6.8.11",
     "fs-extra": "^11.3.3",
     "monaco-editor": "^0.52.0",
     "open": "^10.2.0",
