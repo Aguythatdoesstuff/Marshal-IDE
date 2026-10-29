@@ -14,13 +14,17 @@
 ## Key Features
 
 * **Blazing-Fast C# Compiler Stack**: Powered by a high-performance C# backend pipeline that maximizes transpilation velocity and minimizes resource overhead.
-* **Deep Syntax Validation & Error Tracking**: Integrated syntactic error-checking catches malformed expressions, layout anomalies, and structural depth issues. Jump directly to offending code lines via the dedicated **Error Tab** in the console. (syntax validation does not validate hoi4 code that is being passed through, thats the game engines job)
+* **Deep Syntax Validation & Error Tracking**: Integrated syntactic error-checking catches malformed expressions, layout anomalies, and structural depth issues. Jump directly to offending code lines via the dedicated **Error Tab** in the console. (Syntax validation does not validate HoI4 code that is being passed through; that's the game engine's job.)
 * **Compiler Warning Tab**: A dedicated console tab that surfaces non-breaking compiler warnings and best-practice recommendations.
 * **Multi-File Tabbed Interface & Session Persistence**: Open and switch between multiple scripts simultaneously. Tab layouts, active views, and filetree folder states automatically restore across sessions.
 * **Indentation-Based Structure**: Uses clean tab indentation rather than curly brackets to define code blocks, eliminating missing-bracket syntax errors.
 * **Intelligent Output Synchronization**: Automatically cleans up generated output files when source blocks or files are deleted, keeping build folders lean and Git-friendly.
-* **Visual File Browser & Asset Import**: Color-coded file icons provide immediate spatial recognition. Drag-and-drop `.dds` images directly into the project sidebar to automatically route assets into GFX directories.
-* **Instant GFX Importer**: One-click `.dds` integration automatically generates required `spriteTypes` and pathing logic—just reference the asset directly in code with `GFX_` prefixes.
+* **Refactored Smart Image Importer**:
+  * **Wide Format Support**: Import virtually any image format, including `.dds`, `.png`, `.jpg`, `.jpeg`, `.bmp`, `.tga`, `.webp`, `.tiff`, `.tif`, and `.hdr`.
+  * **Interactive Type Config Modal**: Specify image types (e.g., set `PLACEHOLDER.png` as an `idea` image type) and custom attributes (such as equipment IDs or country tags) before importing. Every selected image has its intended role explicitly defined.
+  * **Automated Asset & Prefix Handling**: The compiler automatically compresses and converts images into the game engine's preferred format while injecting required prefixes (e.g., `idea_`) and formatting output tailored to the image type.
+  * **Image Type Editing**: Need to fix an assignment? Simply right-click (light click) an image and select **Update Image Type**. *(Note: Direct renaming is currently disabled to prevent metadata loss from file watchers mistaking renames for deletions. To rename, delete and reimport under a new name, which enforces safe naming rules like using underscores instead of spaces).*
+  * **Filetree Previews & Lightbox View**: Thumbnail image previews appear directly within the project filetree. Clicking an image opens a full-size preview modal for effortless spatial recognition.
 * **Vanilla Mod Importer**: Built-in migration tool to effortlessly import existing vanilla Hearts of Iron IV mods into a Marshal workspace.
 * **Implicit Localization**: Provide plain text inside quotes for names and descriptions; Marshal generates organized `.yml` files and localization keys automatically.
 * **Advanced Scripted GUI**: High-level UI declarations for complex components (e.g., draggable windows, simplified horizontal progress bars) in a fraction of standard game code.
