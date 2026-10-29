@@ -7,7 +7,10 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
     - **Asset Suite**: 
         - Built-in `.dds` image previewer.
         - Improved Integrated JPEG/PNG(and more) to `.dds` image importer.
-
+### Bug Fixes
+    - **Metadata-Driven Cleanup**: 
+        - Replaced fragile path/extension heuristics with transpiler-generated output manifests, fixing missed file purges and ensuring reliable deletion and renaming cleanup for dynamically named outputs (like history files).
+    - **Compiler**: Fixed a fatal crash ("Stack empty" error) that occurred when compiling malformed or edge-case structures in `.scriptedgui` files by adding proper stack-safety guards in block range processing.
 ## [1.4.0] - 2026-10-22 - Compiler Update
 ### Added
     - **Unit Support**: Dedicated DSL for Unit modding.(https://hoi4.paradoxwikis.com/Unit_modding)

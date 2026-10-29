@@ -1,107 +1,78 @@
 // deletion_handler.js
-import * as path from 'path';
-import * as fs from 'fs';
+import fs from 'fs-extra';
+import path from 'path';
 import { logToMain } from './watcher_workspace.js';
-import { getPathConfig } from '../compilers/compiler_helpers.js';
+
+const SOURCE = 'Deletion-Handler';
 
 /**
- * Derives the list of expected output files based on directory heuristics.
+ * Handles the deletion of a file by reading its cache config, purging all output files,
+ * and then removing the file's specific cache folder.
+ * @param {string} filePath Path of the deleted input file.
+ * @param {Object} config Workspace configuration object.
  */
-function deriveOutputFileList(inputPath) {
-    const FILE_EXTENSION = path.extname(inputPath);
+export async function handleDeletion(filePath, config) {
+    if (!config || !config.metadata_dir) {
+        logToMain('warn', `Skipped deletion handling: Missing metadata_dir in config.`, SOURCE);
+        return;
+    }
+
+    const cache_dir = path.join(config.metadata_dir, 'fileOutCache');
+    const fileName = path.basename(filePath);
+    const parsed = path.parse(fileName);
     
+    // Turn filename into cache folder name (e.g., china.event -> chinaevent)
+    const cacheFolderName = parsed.name + parsed.ext.replace('.', '');
+    const fileCacheDir = path.join(cache_dir, cacheFolderName);
+    const configJsonPath = path.join(fileCacheDir, 'config.json');
+
+    logToMain('info', `Processing deletion for input file: "${filePath}"`, SOURCE);
+    logToMain('info', `-> Derived cache folder name: "${cacheFolderName}"`, SOURCE);
+    logToMain('info', `-> Expected cache config path: "${configJsonPath}"`, SOURCE);
+
+    // 1. Read config.json safely with its own localized error handling
+    let cacheConfig = null;
     try {
-        const PATH_MAP = getPathConfig(FILE_EXTENSION);
-
-        if (!PATH_MAP) {
-            return [];
+        if (await fs.pathExists(configJsonPath)) {
+            logToMain('info', `Found config.json. Reading output references...`, SOURCE);
+            cacheConfig = await fs.readJson(configJsonPath);
+        } else {
+            logToMain('info', `No config.json found at expected path: "${configJsonPath}"`, SOURCE);
         }
-
-        const inputFilename = path.basename(inputPath);
-        const baseName = inputFilename.substring(0, inputFilename.lastIndexOf('.'));
-        
-        const outputFiles = [];
-
-        for (const [key, targetDir] of Object.entries(PATH_MAP)) {
-            let extension = '.txt'; 
-            let suffix = '';
-
-            const checkDir = targetDir.replace(/\\/g, '/');
-
-            // --- SPECIAL GFX RULES ---
-            if (FILE_EXTENSION === '.dds') {
-                // DEFINITION FILE (.gfx) -> goes to interface/handledByMarshalIDE/
-                const definitionDir = path.join('interface', 'handledByMarshalIDE');
-                outputFiles.push(path.join(definitionDir, `${baseName}.gfx`));
-
-                // IMAGE FILE (.dds) -> goes to gfx/interface/handledByMarshalIDE/
-                const imageDir = path.join('gfx', 'interface', 'handledByMarshalIDE');
-                outputFiles.push(path.join(imageDir, `${baseName}.dds`));
-
-                continue; // Skip standard heuristics for .dds files completely
-            }
-            // --- EXISTING HEURISTICS ---
-            else if (checkDir.includes('localisation')) {
-                extension = '.yml';
-                suffix = '_l_english'; 
-            } else if (key === 'interface' || checkDir.includes('interface')) {
-                // Push both .gui and .gfx versions
-                const guiFile = `${baseName}.gui`;
-                const gfxFile = `${baseName}.gfx`;
-                
-                outputFiles.push(path.join(targetDir, guiFile));
-                outputFiles.push(path.join(targetDir, gfxFile));
-                
-                continue; // Skip the default push at the bottom of the loop for this special case
-            } else if (key === 'definition' || checkDir.includes('common')) {
-                extension = '.txt';
-                suffix = '';
-            }
-
-            const finalFilename = `${baseName}${suffix}${extension}`;
-            outputFiles.push(path.join(targetDir, finalFilename));
-        }
-
-        return outputFiles;
-
     } catch (error) {
-        logToMain('error', `Cleanup error: Could not resolve paths for ${FILE_EXTENSION}`);
-        return [];
-    }
-}
-
-/**
- * Deletes the compiled output files associated with a given IDE source file.
- */
-function cleanupFiles(sourcePath, outputBaseDir) {
-    const relativePathsToDelete = deriveOutputFileList(sourcePath);
-
-    if (relativePathsToDelete.length === 0) {
-        return; 
+        logToMain('error', `Failed to read config.json at "${configJsonPath}": ${error.message}`, SOURCE);
     }
 
-    relativePathsToDelete.forEach(relativePath => {
-        const fullPath = path.join(outputBaseDir, relativePath);
-
-        logToMain('info', `Attempting cleanup: ${relativePath}`, 'Watcher-Cleanup');
-
-        if (fs.existsSync(fullPath)) {
+    // 2. Purge referenced outputs - loop is cleanly isolated with individual try/catch per item
+    if (cacheConfig && Array.isArray(cacheConfig.outputs)) {
+        logToMain('info', `Purging ${cacheConfig.outputs.length} referenced output file(s)...`, SOURCE);
+        for (const outputPath of cacheConfig.outputs) {
             try {
-                fs.unlinkSync(fullPath);
-                logToMain('info', `Deleted output file: ${path.basename(fullPath)}`, 'Watcher-Cleanup');
+                if (await fs.pathExists(outputPath)) {
+                    logToMain('info', `  - Removing output file: "${outputPath}"`, SOURCE);
+                    await fs.remove(outputPath);
+                } else {
+                    logToMain('info', `  - Output file already missing on disk: "${outputPath}"`, SOURCE);
+                }
             } catch (err) {
-                logToMain('error', `Failed to delete file: ${err.message}`);
+                logToMain('error', `Failed to purge output file "${outputPath}": ${err.message}`, SOURCE);
             }
         }
-    });
-}
+    } else if (cacheConfig) {
+        logToMain('info', `No valid 'outputs' array found in config.json.`, SOURCE);
+    }
 
-export function handleDeletion(deletedFilePath, outputBaseDir) {
-    logToMain('info', `Handling deletion of: ${path.basename(deletedFilePath)}`);
-    cleanupFiles(deletedFilePath, outputBaseDir);
-}
+    // 3. Remove the file's cache folder itself with its own localized error handling
+    try {
+        if (await fs.pathExists(fileCacheDir)) {
+            logToMain('info', `Deleting file cache directory: "${fileCacheDir}"`, SOURCE);
+            await fs.remove(fileCacheDir);
+        } else {
+            logToMain('info', `Cache folder already doesn't exist: "${fileCacheDir}"`, SOURCE);
+        }
+    } catch (error) {
+        logToMain('error', `Failed to delete cache directory "${fileCacheDir}": ${error.message}`, SOURCE);
+    }
 
-export function handleRename(oldFilePath, newFilePath, outputBaseDir) {
-    logToMain('info', `Handling rename: ${path.basename(oldFilePath)} -> ${path.basename(newFilePath)}`);
-    cleanupFiles(oldFilePath, outputBaseDir);
+    logToMain('info', `Successfully completed cleanup sequence for deleted file: "${filePath}"`, SOURCE);
 }

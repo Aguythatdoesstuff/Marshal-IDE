@@ -32,6 +32,9 @@ namespace Compiler
                 var destImagePath = Path.Combine(imageOutDir, sourceFileName);
                 File.Copy(SourceAbsolutePath, destImagePath, true);
 
+                // Track the copied DDS image in cache
+                CacheHandler.HandleCacheUpdate(destImagePath, SourceFileName, SourceAbsolutePath);
+
                 // Create the .gfx definition file in interface/handledByMarshalIDE
                 var gfxFileName = nameOnly + ".gfx";
                 var gfxFilePath = Path.Combine(gfxOutDir, gfxFileName);
@@ -45,6 +48,9 @@ namespace Compiler
                     sw.WriteLine("    }");
                     sw.WriteLine("}");
                 }
+
+                // Track the created .gfx definition file in cache
+                CacheHandler.HandleCacheUpdate(gfxFilePath, SourceFileName, SourceAbsolutePath);
 
                 Compiler.Logging.Logger.LogComponent("DdsCompiler", $"Processed {sourceFileName}");
             }

@@ -3,11 +3,9 @@
 This document outlines the planned trajectory for Marshal IDE. Note: Features marked as "Researching" are experimental.
 
 ## 🛠 v1.5.0 – DX Update
-### Bug Fixes
-    - **Metadata-Driven Cleanup**: 
-        - Replaced fragile path/extension heuristics with transpiler-generated output manifests, fixing missed file purges and ensuring reliable deletion and renaming cleanup for dynamically named outputs (like history files).
-### Misc
-- **What's New Modal**: Manually update the hardcoded release notes content for the current version.
+
+### Add
+- **What's New Modal**: Dynamic loading implemented for changelogs, pulling directly from Roadmap.md instead of requiring manual Vue file edits..
 
 ## 🛠 v1.5.1 – Stability and Bug Fixes
 ### Major Bug Fix

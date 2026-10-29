@@ -3,13 +3,12 @@ import fs from 'fs-extra';
 import * as path from 'path';
 import chokidar from 'chokidar';
 import { fileURLToPath } from 'url';
-import { handleDeletion, handleRename } from './deletion_handler.js'; 
+import { handleDeletion } from './deletion_handler.js'; 
 import { SyncEngine } from './sync_engine.js'; 
 
 const __filename = fileURLToPath(import.meta.url);
 
 let config; 
-let outputBaseDir; 
 
 const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds', '.equipment', '.unit', '.oob', '.history']);
 
@@ -18,8 +17,8 @@ const checkParentAndExit = () => {
     if (!process.connected) {
         console.log('warn', 'Parent process disconnected. Watcher terminating compiler process...', 'Watcher-Lifecycle');
         stopCompilerProcess();
-        process.exit(0)
-    };
+        process.exit(0);
+    }
 };
 process.on('disconnect', () => checkParentAndExit());
 setInterval(checkParentAndExit, 2000);
@@ -35,11 +34,9 @@ async function setupWorkspace() {
         const payloadString = process.argv[2]; 
         if (!payloadString) throw new Error(`No config payload.`);
         config = JSON.parse(payloadString);
-        outputBaseDir = config.output_dir;
         const cache_dir = path.join(config.metadata_dir, 'fileOutCache');
 
         logToMain('info', `Requesting main process to spawn persistent compiler process...`, SOURCE);
-        // Request main.js to spawn the compiler via compiler.js
         process.send({
             action: 'spawn-compiler',
             config: {
@@ -49,7 +46,6 @@ async function setupWorkspace() {
             }
         });
 
-        // Safe auto-cleanup when the parent script exits
         process.on('exit', () => {
             stopCompilerProcess();
         });
@@ -63,12 +59,10 @@ async function setupWorkspace() {
 function triggerCompilation(filePath) {
     const ext = path.extname(filePath).toLowerCase();
 
-    // Whitelist check
     if (!ALLOWED_EXTENSIONS.has(ext)) return;
 
     try {
         const absolutePath = path.resolve(filePath);
-        // Request main.js to compile the file via compiler.js
         process.send({
             action: 'compile-file',
             filePath: absolutePath
@@ -85,10 +79,10 @@ async function startWatcher() {
     const SOURCE = 'Watcher-Chokidar';
     await setupWorkspace();
 
-    const syncEngine = new SyncEngine(config.project_root, config.input_dir, (f) => handleDeletion(f, outputBaseDir));
+    // Pass config to the deletion callback
+    const syncEngine = new SyncEngine(config.project_root, config.input_dir, (f) => handleDeletion(f, config));
     const syncStats = await syncEngine.performInitialSync();
 
-    // Compile files identified by the sync engine as new, modified, or part of an initial scan
     if (syncStats && Array.isArray(syncStats.changedFiles) && syncStats.changedFiles.length > 0) {
         logToMain('info', `Sync engine identified ${syncStats.changedFiles.length} files requiring compilation on startup. Processing...`, SOURCE);
         for (const filePath of syncStats.changedFiles) {
@@ -111,7 +105,7 @@ async function startWatcher() {
             syncEngine.addFile(relPath).catch(() => {});
             
             if (lastUnlinkedPath) {
-                handleRename(lastUnlinkedPath, filePath, outputBaseDir);
+                handleDeletion(lastUnlinkedPath, filePath, config);
                 lastUnlinkedPath = null; 
             }
             triggerCompilation(filePath);
@@ -129,7 +123,7 @@ async function startWatcher() {
 
             setTimeout(() => {
                 if (lastUnlinkedPath === filePath) {
-                    handleDeletion(filePath, outputBaseDir);
+                    handleDeletion(filePath, config);
                     lastUnlinkedPath = null;
                 }
             }, RENAME_THRESHOLD_MS);
@@ -157,14 +151,12 @@ function stopCompilerProcess(source = 'Watcher-Lifecycle') {
     });
 }
 
-// --- IPC Directive Router for Main Process Directives ---
 process.on('message', (packet) => {
     if (!packet || typeof packet !== 'object') return;
 
     switch (packet.action) {
         case 'manual-recompile-all':
             logToMain('info', 'Received master workspace-wide rebuild instruction. Initiating complete compiler pass...', 'Watcher-IPC');
-            
             if (config && config.input_dir) {
                 walkAndCompile(config.input_dir); 
             }
@@ -180,6 +172,5 @@ process.on('message', (packet) => {
             break;
     }
 });
-
 
 startWatcher();

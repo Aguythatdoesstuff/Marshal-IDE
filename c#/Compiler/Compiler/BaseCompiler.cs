@@ -373,7 +373,10 @@ namespace Compiler
 
                         // Closing brace will be handled by the openBlocks stack
                         // when we encounter the next item at same or lower depth
-                        openBlocks.Pop(); // Remove this block from tracking
+                        if (openBlocks.Count > 0)
+                        {
+                            openBlocks.Pop(); // Remove this block from tracking
+                        }
                         sw.WriteLine(Ident(depth) + "}");
                         i = j;
                         continue;
