@@ -2,11 +2,6 @@
 
 This document outlines the planned trajectory for Marshal IDE. Note: Features marked as "Researching" are experimental.
 
-## 🛠 v1.5.0 – DX Update
-
-### Add
-- **What's New Modal**: Dynamic loading implemented for changelogs, pulling directly from Roadmap.md instead of requiring manual Vue file edits..
-
 ## 🛠 v1.5.1 – Stability and Bug Fixes
 ### Major Bug Fix
     - **Watcher and Compiler Close Orchestration**: 

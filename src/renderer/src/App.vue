@@ -27,69 +27,18 @@
           <span class="rounded-full bg-marshal-primary/20 px-2.5 py-1 text-xs font-semibold text-marshal-primary">Latest Update</span>
         </div>
 
-        <div class="mt-2 flex min-h-0 flex-1 flex-col">
-          <p class="mb-4 text-sm text-gray-300">Here's a quick look at the main features and technical enhancements in this update:</p>
-          
-          <div class="min-h-0 flex-1 overflow-y-auto pr-3 space-y-6">
-            <!-- Added Section -->
-            <div>
-              <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs font-bold uppercase tracking-widest text-marshal-primary">Added</h3>
-              <ul class="list-disc space-y-2.5 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
-                <li>
-                  <strong class="font-semibold text-white">Country Support:</strong> Dedicated DSL for country creation and modding 
-                  <a href="https://hoi4.paradoxwikis.com/Country_creation" target="_blank" rel="noopener noreferrer" class="ml-1 inline-flex items-center text-xs text-sky-400 hover:underline">(Wiki Reference)</a>
-                </li>
-                <li>
-                  <strong class="font-semibold text-white">Unit Support:</strong> Dedicated DSL for Unit modding 
-                  <a href="https://hoi4.paradoxwikis.com/Unit_modding" target="_blank" rel="noopener noreferrer" class="ml-1 inline-flex items-center text-xs text-sky-400 hover:underline">(Wiki Reference)</a>
-                </li>
-                <li>
-                  <strong class="font-semibold text-white">Equipment Support:</strong> Dedicated DSL for Equipment modding 
-                  <a href="https://hoi4.paradoxwikis.com/Equipment_modding" target="_blank" rel="noopener noreferrer" class="ml-1 inline-flex items-center text-xs text-sky-400 hover:underline">(Wiki Reference)</a>
-                </li>
-                <li>
-                  <strong class="font-semibold text-white">OOB Support:</strong> Dedicated DSL for Order of Battle modding 
-                  <a href="https://hoi4.paradoxwikis.com/Division_modding" target="_blank" rel="noopener noreferrer" class="ml-1 inline-flex items-center text-xs text-sky-400 hover:underline">(Wiki Reference)</a>
-                </li>
-                <li>
-                  <strong class="font-semibold text-white">Syntax Highlighting:</strong>
-                  <ul class="mt-1.5 list-circle space-y-1 pl-5 text-gray-300">
-                    <li>Added syntax highlighting for History DSL (Country support)</li>
-                    <li>Added syntax highlighting for Equipment DSL</li>
-                    <li>Added syntax highlighting for OOB (Order of Battle) DSL</li>
-                    <li>Added syntax highlighting for Unit DSL</li>
-                  </ul>
-                </li>
-                <li>
-                  <strong class="font-semibold text-white">Documentation:</strong>
-                  <p class="mt-0.5 text-gray-300">Added Getting Started documentation for Country, Unit, Equipment, and OOB modding DSLs.</p>
-                </li>
-              </ul>
-            </div>
-
-            <!-- Changed Section -->
-            <div>
-              <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs font-bold uppercase tracking-widest text-indigo-400">Changed</h3>
-              <ul class="list-disc space-y-2.5 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
-                <li>
-                  <strong class="font-semibold text-white">What's New Modal:</strong> Updated release notes content for the current version.
-                </li>
-              </ul>
-            </div>
-
-            <!-- Fixed Section -->
-            <div>
-              <h3 class="mb-3 border-b border-gray-800 pb-1.5 text-xs font-bold uppercase tracking-widest text-orange-400">Fixed</h3>
-              <ul class="list-disc space-y-2.5 pl-5 text-sm leading-relaxed text-gray-300 marker:text-gray-600">
-                <li>
-                  <strong class="font-semibold text-white">Event Compiler:</strong> Resolved an off-by-one state leak bug where event options were shifting into subsequent events or duplicating. Added explicit state flushing on event boundaries to ensure open option blocks are committed to their parent event before transitioning to new events or namespaces.
-                </li>
-                <li>
-                  <strong class="font-semibold text-white">Validator:</strong> Prevented incorrect depth errors after single-line pass-through syntax for the DSL syntax in specific cases.
-                </li>
-              </ul>
-            </div>
-          </div>
+        <div class="mt-4 flex min-h-0 flex-1 flex-col">
+          <!-- Exact Wiki-styled content container and parser -->
+          <main class="main-content min-h-0 flex-1 overflow-y-auto rounded border border-gray-700 bg-marshal-editor p-4">
+            <article class="text-marshal-text">
+              <div v-if="isLoadingChangelog" class="animate-pulse text-marshal-primary">Reading changelog...</div>
+              <div v-else-if="changelogError" class="text-red-400">
+                <h1>Error Loading Changelog</h1>
+                <p>{{ changelogError }}</p>
+              </div>
+              <div v-else class="prose-content" v-html="parsedMarkdown"></div>
+            </article>
+          </main>
 
           <!-- Update Prompt -->
           <div v-if="updateIsReadyToInstall" class="mt-4 rounded-md border border-marshal-primary bg-sky-950/50 p-4 text-center">
@@ -109,40 +58,220 @@
   </div>
 </template>
 
-<script>
-import logoIcon from '../../../build/icon.png'
-import Eula from './Eula.vue'
-import WorkspaceSelection from './WorkspaceSelection.vue'
-import Wiki from './wiki.vue'
-import Settings from './settings.vue'
-import Ide from './ide.vue'
-import Importing from './Importing.vue'
-import DragDropEditor from '../ide/components/DragDropEditor.vue';
-import SimplifiedEditor from '../ide/components/SimplifiedEditor.vue';
+<script setup>
+import { ref, onMounted, watch } from 'vue';
+import logoIcon from '../../../build/icon.png';
+import Eula from './Eula.vue';
+import WorkspaceSelection from './WorkspaceSelection.vue';
+import Wiki from './wiki.vue';
+import Settings from './settings.vue';
+import Ide from './ide.vue';
+import Importing from './Importing.vue';
 
-export default {
-  name: 'App',
-  components: { Eula, WorkspaceSelection, Wiki, Settings, Ide, Importing, DragDropEditor, SimplifiedEditor },
-  data() {
-    return { currentScreen: 'SPLASH', statusText: 'Starting Marshal IDE', logoUrl: logoIcon, showWhatsNewModal: false, pendingWhatsNew: false, appVersion: '', updateIsReadyToInstall: false }
-  },
-  async mounted() {
-    if (window.api && window.api.on) window.api.on('update-ready-interactive', () => { this.updateIsReadyToInstall = true; this.showWhatsNewModal = true })
-    if (localStorage.getItem('FORCE_SCREEN') === 'WIKI') { this.currentScreen = 'WIKI'; localStorage.removeItem('FORCE_SCREEN'); return }
-    if (!window.api || !window.api.invoke) { console.error('Electron IPC bridge is not available.'); this.currentScreen = 'EULA'; return }
-    try {
-      const bootState = await window.api.invoke('get-boot-state')
-      this.statusText = 'Loading Environment...'
-      this.appVersion = bootState.currentVersion || '1.0.0'
-      if (bootState.enforceEula) { this.currentScreen = 'EULA'; this.pendingWhatsNew = bootState.showWhatsNew }
-      else { this.currentScreen = 'WORKSPACE'; this.showWhatsNewModal = bootState.showWhatsNew }
-    } catch (error) { console.error('Failed to fetch boot state:', error); this.currentScreen = 'EULA' }
-    window.api.on('eula-accepted-success', () => { this.currentScreen = 'WORKSPACE'; if (this.pendingWhatsNew) { this.showWhatsNewModal = true; this.pendingWhatsNew = false } })
-    window.api.on('navigate-to', targetScreen => { if (targetScreen) this.currentScreen = targetScreen.toUpperCase() })
-  },
-  methods: {
-    async closeWhatsNew() { this.showWhatsNewModal = false; if (window.api && window.api.invoke) { try { await window.api.invoke('dismiss-whats-new') } catch (error) { console.error("Failed to dismiss What's New modal:", error) } } },
-    async triggerAppUpdate() { if (window.api && window.api.invoke) { try { await window.api.invoke('execute-immediate-install') } catch (error) { console.error('Failed to invoke immediate installation routine:', error) } } }
+// --- Reactive State ---
+const currentScreen = ref('SPLASH');
+const statusText = ref('Starting Marshal IDE');
+const logoUrl = logoIcon;
+const showWhatsNewModal = ref(false);
+const pendingWhatsNew = ref(false);
+const appVersion = ref('');
+const updateIsReadyToInstall = ref(false);
+
+const isLoadingChangelog = ref(false);
+const changelogError = ref('');
+const parsedMarkdown = ref('');
+
+// --- Exact Native Markdown-to-HTML Compiler from Wiki.vue ---
+const parseMarkdownNative = (md) => {
+  let html = md;
+  // Blockquotes
+  html = html.replace(/^\>\s+(.*)$/gim, '<blockquote>$1</blockquote>');
+  // Code Blocks
+  html = html.replace(/```([\s\S]*?)```/gm, '<pre><code>$1</code></pre>');
+  // Inline Code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Headers (h1 - h3)
+  html = html.replace(/^# (.*)$/gim, '<h1>$1</h1>');
+  html = html.replace(/^## (.*)$/gim, '<h2>$1</h2>');
+  html = html.replace(/^### (.*)$/gim, '<h3>$1</h3>');
+  // Bold / Italics
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  // Bullet points
+  html = html.replace(/^\s*-\s+(.*)$/gim, '<ul><li>$1</li></ul>');
+  // Fix double list stacking wrappers
+  html = html.replace(/<\/ul>\s*<ul>/g, '');
+  
+  return html;
+};
+
+// --- Load Changelog exactly like Wiki.vue loads docs ---
+const loadChangelog = async () => {
+  isLoadingChangelog.value = true;
+  changelogError.value = '';
+  parsedMarkdown.value = '';
+
+  try {
+    let markdown = "";
+    if (window.api && window.api.invoke) {
+      markdown = await window.api.invoke('read-doc-file', 'About Marshal IDE/Changelog.md');
+    } else {
+      markdown = "# Changelog\nEnvironment API not available.";
+    }
+    
+    parsedMarkdown.value = parseMarkdownNative(markdown);
+  } catch (e) {
+    changelogError.value = e.message;
+  } finally {
+    isLoadingChangelog.value = false;
   }
-}
+};
+
+watch(showWhatsNewModal, (newVal) => {
+  if (newVal) {
+    loadChangelog();
+  }
+});
+
+// --- Lifecycle (matching original options API hooks) ---
+onMounted(async () => {
+  if (window.api && window.api.on) {
+    window.api.on('update-ready-interactive', () => { 
+      updateIsReadyToInstall.value = true; 
+      showWhatsNewModal.value = true; 
+    });
+  }
+
+  if (localStorage.getItem('FORCE_SCREEN') === 'WIKI') { 
+    currentScreen.value = 'WIKI'; 
+    localStorage.removeItem('FORCE_SCREEN'); 
+    return; 
+  }
+
+  if (!window.api || !window.api.invoke) { 
+    console.error('Electron IPC bridge is not available.'); 
+    currentScreen.value = 'EULA'; 
+    return; 
+  }
+
+  try {
+    const bootState = await window.api.invoke('get-boot-state');
+    statusText.value = 'Loading Environment...';
+    appVersion.value = bootState.currentVersion || '1.0.0';
+    
+    if (bootState.enforceEula) { 
+      currentScreen.value = 'EULA'; 
+      pendingWhatsNew.value = bootState.showWhatsNew; 
+    } else { 
+      currentScreen.value = 'WORKSPACE'; 
+      showWhatsNewModal.value = bootState.showWhatsNew; 
+    }
+  } catch (error) { 
+    console.error('Failed to fetch boot state:', error); 
+    currentScreen.value = 'EULA'; 
+  }
+
+  window.api.on('eula-accepted-success', () => { 
+    currentScreen.value = 'WORKSPACE'; 
+    if (pendingWhatsNew.value) { 
+      showWhatsNewModal.value = true; 
+      pendingWhatsNew.value = false; 
+    } 
+  });
+
+  window.api.on('navigate-to', targetScreen => { 
+    if (targetScreen) currentScreen.value = targetScreen.toUpperCase(); 
+  });
+});
+
+const closeWhatsNew = async () => { 
+  showWhatsNewModal.value = false; 
+  if (window.api && window.api.invoke) { 
+    try { 
+      await window.api.invoke('dismiss-whats-new'); 
+    } catch (error) { 
+      console.error("Failed to dismiss What's New modal:", error); 
+    } 
+  } 
+};
+
+const triggerAppUpdate = async () => { 
+  if (window.api && window.api.invoke) { 
+    try { 
+      await window.api.invoke('execute-immediate-install'); 
+    } catch (error) { 
+      console.error('Failed to invoke immediate installation routine:', error); 
+    } 
+  } 
+};
 </script>
+
+<style scoped>
+/* Matching Wiki.vue prose styles */
+.prose-content :deep(h1) {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.25rem;
+}
+
+.prose-content :deep(h2) {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #60a5fa;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-content :deep(h3) {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.prose-content :deep(ul) {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-content :deep(li) {
+  margin-bottom: 0.35rem;
+  color: #cbd5e1;
+}
+
+.prose-content :deep(p) {
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+  color: #94a3b8;
+}
+
+.prose-content :deep(code) {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.85em;
+  color: #f87171;
+}
+
+.prose-content :deep(pre) {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 1rem;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+}
+
+.prose-content :deep(a) {
+  color: #38bdf8;
+  text-decoration: underline;
+}
+</style>

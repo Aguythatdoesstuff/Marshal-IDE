@@ -1,6 +1,6 @@
 {
   "name": "marshal-ide",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "productName": "Marshal IDE",
   "description": "Marshal IDE + MarshalScript Editor",
   "type": "module",

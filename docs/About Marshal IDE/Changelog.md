@@ -7,10 +7,13 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
     - **Asset Suite**: 
         - Built-in `.dds` image previewer.
         - Improved Integrated JPEG/PNG(and more) to `.dds` image importer.
-### Bug Fixes
+### Changed
+    - **What's New Modal**: Dynamic loading implemented for changelogs, pulling directly from Roadmap.md instead of requiring manual Vue file edits.
+### Fixed
     - **Metadata-Driven Cleanup**: 
         - Replaced fragile path/extension heuristics with transpiler-generated output manifests, fixing missed file purges and ensuring reliable deletion and renaming cleanup for dynamically named outputs (like history files).
     - **Compiler**: Fixed a fatal crash ("Stack empty" error) that occurred when compiling malformed or edge-case structures in `.scriptedgui` files by adding proper stack-safety guards in block range processing.
+
 ## [1.4.0] - 2026-10-22 - Compiler Update
 ### Added
     - **Unit Support**: Dedicated DSL for Unit modding.(https://hoi4.paradoxwikis.com/Unit_modding)
@@ -27,7 +30,6 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
 ### Changed
     - **What's New Modal**: Manually update the hardcoded release notes content for the current version.
 ### Fixed
-
 - **Event compiler:** Resolved an off-by-one state leak bug where event options were shifting into subsequent events or duplicating. Added explicit state flushing on event boundaries to ensure open option blocks are committed to their parent event before transitioning to new events or namespaces.
 - **Validator:** prevented incorrect depth errors after single-line pass through syntax for the DSL syntax in some specific cases.
 - **Logger Archiving:** Fixed log archiving logic to recursively include all subfolders and nested directory structures within session folders instead of only capturing root-level log files.
