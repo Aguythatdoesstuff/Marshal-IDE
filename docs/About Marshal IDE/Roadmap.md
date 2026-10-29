@@ -3,10 +3,6 @@
 This document outlines the planned trajectory for Marshal IDE. Note: Features marked as "Researching" are experimental.
 
 ## 🛠 v1.5.0 – DX Update
-### DX changes
-    - **Asset Suite**: 
-        - Built-in `.dds` image previewer.
-        - Integrated JPEG/PNG to `.dds` converter.
 ### Bug Fixes
     - **Metadata-Driven Cleanup**: 
         - Replaced fragile path/extension heuristics with transpiler-generated output manifests, fixing missed file purges and ensuring reliable deletion and renaming cleanup for dynamically named outputs (like history files).

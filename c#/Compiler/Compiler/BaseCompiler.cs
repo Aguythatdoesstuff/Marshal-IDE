@@ -116,6 +116,9 @@ namespace Compiler
             {
                 writeAction(sw, shouldCreate);
             }
+
+            // Handle cache update with the output file path, source filename, and source path
+            CacheHandler.HandleCacheUpdate(outPath, SourceFileName, SourceAbsolutePath);
         }
 
 

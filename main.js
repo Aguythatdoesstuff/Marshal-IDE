@@ -708,7 +708,8 @@ function setupAutoUpdater() {
 			output_dir: path.resolve(OUTPUT_DIR), 
 			project_root: currentProjectConfig.project_root,
 			mod_name: projectName,
-    		log_dir: logger.getLogsSessionDir()
+    		log_dir: logger.getLogsSessionDir(),
+    		metadata_dir: METADATA_DIR
 	    });
 	    
 	    watcherProcess = fork(WATCHER_SCRIPT_PATH, [watcherPayload], { 

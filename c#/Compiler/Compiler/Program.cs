@@ -20,7 +20,12 @@ using System.Text.Json;
 /// AST ONLY (Skip compilation, only export AST as JSON):
 ///   C:\absolute\path\to\file.event && only_out_ast = true && o = C:\absolute\output\path\file.json
 /// 
-/// PARAMETERS:
+/// COMMAND-LINE FLAGS (via args):
+///   --debug=<path>: Optional. Absolute path to debug logs directory
+///   --output=<path>: Optional. Absolute path to output directory (defaults to Desktop/marshal-ide-compiler-debbug/compiled-data)
+///   --cachePath=<path>: REQUIRED. Absolute path to cache directory for tracking compiled files
+/// 
+/// STDIN PARAMETERS:
 ///   - File path (required): Absolute path to the file to compile
 ///   - out_ast: If "true", output AST after standard compilation runs
 ///   - only_out_ast: If "true", skip compilation entirely and only output AST
@@ -133,12 +138,46 @@ namespace Compiler
                 resolvedOutputPath = Path.Combine(desktop, "marshal-ide-compiler-debbug", "compiled-data");
             }
 
+            string cachePathArg = null;
+            if (args != null && args.Length > 0)
+            {
+                cachePathArg = args.FirstOrDefault(a => a.StartsWith("--cachePath=", StringComparison.OrdinalIgnoreCase));
+            }
+
+            string resolvedCachePath;
+            if (!string.IsNullOrWhiteSpace(cachePathArg))
+            {
+                var raw = cachePathArg.Substring("--cachePath=".Length).Trim();
+                if (!Path.IsPathRooted(raw))
+                {
+                    Compiler.Logging.Logger.LogMain("[ERROR] --cachePath must be an absolute path.");
+                    return;
+                }
+
+                try
+                {
+                    resolvedCachePath = Path.GetFullPath(raw);
+                }
+                catch
+                {
+                    Compiler.Logging.Logger.LogMain("[ERROR] Failed to normalize provided --cachePath path.");
+                    return;
+                }
+            }
+            else
+            {
+                Compiler.Logging.Logger.LogMain("[ERROR] --cachePath is required.");
+                return;
+            }
+
             BaseCompiler.OutputPath = resolvedOutputPath;
+            CacheHandler.CachePath = resolvedCachePath;
             try { Directory.CreateDirectory(BaseCompiler.OutputPath); } catch { }
+            try { Directory.CreateDirectory(CacheHandler.CachePath); } catch { }
 
             var manager = new ProcessManager();
-            IPC.Log("Info", $"Compiler initialized and ready to compile. Received Output path:{resolvedOutputPath}     Logs path:{resolvedLogPath}");
-            Compiler.Logging.Logger.LogMain($"[PROGRAM] Compiler started with Output={resolvedOutputPath} Logs={resolvedLogPath}");
+            IPC.Log("Info", $"Compiler initialized and ready to compile. Received Output path:{resolvedOutputPath}     Cache path:{resolvedCachePath}     Logs path:{resolvedLogPath}");
+            Compiler.Logging.Logger.LogMain($"[PROGRAM] Compiler started with Output={resolvedOutputPath} Cache={resolvedCachePath} Logs={resolvedLogPath}");
             // Enter continuous loop to receive absolute file paths from parent process via stdin
             while (true)
             {

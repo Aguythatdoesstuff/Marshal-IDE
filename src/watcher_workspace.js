@@ -36,15 +36,16 @@ async function setupWorkspace() {
         if (!payloadString) throw new Error(`No config payload.`);
         config = JSON.parse(payloadString);
         outputBaseDir = config.output_dir;
+        const cache_dir = path.join(config.metadata_dir, 'fileOutCache');
 
         logToMain('info', `Requesting main process to spawn persistent compiler process...`, SOURCE);
-        
         // Request main.js to spawn the compiler via compiler.js
         process.send({
             action: 'spawn-compiler',
             config: {
                 output_dir: config.output_dir,
-                log_dir: config.log_dir
+                log_dir: config.log_dir,    
+                cache_dir: cache_dir
             }
         });
 

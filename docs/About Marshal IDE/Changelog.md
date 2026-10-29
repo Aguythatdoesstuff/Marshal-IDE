@@ -2,6 +2,12 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
+## [1.5.0] - not yet published - DX Update
+### Added
+    - **Asset Suite**: 
+        - Built-in `.dds` image previewer.
+        - Improved Integrated JPEG/PNG(and more) to `.dds` image importer.
+
 ## [1.4.0] - 2026-10-22 - Compiler Update
 ### Added
     - **Unit Support**: Dedicated DSL for Unit modding.(https://hoi4.paradoxwikis.com/Unit_modding)

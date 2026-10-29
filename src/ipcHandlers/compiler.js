@@ -22,6 +22,7 @@ export function spawnCompiler(config, loggerFn) {
 
         const args = [
             `--output=${config.output_dir}`,
+            `--cachePath=${config.cache_dir}`,
             `--debug=${config.log_dir}`
         ];
 

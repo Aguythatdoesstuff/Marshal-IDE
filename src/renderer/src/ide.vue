@@ -67,7 +67,7 @@
             <img 
               v-else-if="activeImageUrl" 
               :src="activeImageUrl" 
-              class="max-h-full max-w-full object-contain shadow-2xl rounded bg-[linear-gradient(45deg,#222_25%,transparent_25%),linear-gradient(-45deg,#222_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#222_75%),linear-gradient(-45deg,transparent_75%,#222_75%)] bg-[size:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
+              class="max-h-full max-w-full object-contain shadow-2xl rounded bg-[linear-gradient(45deg,#222_25%,transparent_25%),linear-gradient(-45deg,#222_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#222_75%],linear-gradient(-45deg,transparent_75%,#222_75%)] bg-[size:16px_16px] bg-[position:0_0,0_8px,8px_-8px,-8px_0px]"
               alt="Full Texture Preview"
             />
             <div v-else class="text-xs text-rose-400">
@@ -105,7 +105,7 @@
     >
       <div class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerCreateModal(contextMenu.targetNode?.isDir ? contextMenu.targetNode.path : contextMenu.targetNode?.path.substring(0, contextMenu.targetNode.path.lastIndexOf('/')))">New File</div>
       
-      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerRenameModal(contextMenu.targetNode)">Rename</div>
+      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir && !contextMenu.targetNode.name.toLowerCase().endsWith('.dds')" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerRenameModal(contextMenu.targetNode)">Rename</div>
       <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir && contextMenu.targetNode.name.toLowerCase().endsWith('.dds')" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white text-marshal-primary font-medium" @click="handleUpdateImageType(contextMenu.targetNode)">Update Image Type</div>
       <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="my-1 h-px bg-gray-700"></div>
       
@@ -419,7 +419,7 @@ const triggerCreateModal = (parentPath = '') => {
 
 const triggerRenameModal = (node) => {
   closeContextMenu();
-  if (node.isDir) return;
+  if (node.isDir || node.name.toLowerCase().endsWith('.dds')) return;
 
   const originalExt = '.' + node.path.split('.').pop().toLowerCase();
   let baseName = node.name;
@@ -548,6 +548,7 @@ const commitModalAction = async () => {
     }
   } 
   else if (mode === 'rename' && targetNode) {
+    if (targetNode.name && targetNode.name.toLowerCase().endsWith('.dds')) return;
     let input = inputValue.trim();
     if (!input) return;
     const lastDotIndex = input.lastIndexOf('.');
