@@ -97,7 +97,7 @@ export function registerImageImporterHandlers(ipcMain, context) {
             const files = Array.isArray(payload) ? payload : [payload];
 
             for (const file of files) {
-                const { path: importedFrom, imageType } = file;
+                const { path: importedFrom, imageType, ...extraFields } = file;
                 const safeName = getSafeName(file);
                 if (!safeName) continue;
 
@@ -115,8 +115,12 @@ export function registerImageImporterHandlers(ipcMain, context) {
                     }
                 }
 
+                delete extraFields.path;
+                delete extraFields.safeName;
+
                 const updatedConfig = {
                     ...existingConfig,
+                    ...extraFields,
                     safeName,
                     imageType,
                     importedFrom,

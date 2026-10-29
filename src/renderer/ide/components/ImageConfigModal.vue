@@ -69,8 +69,41 @@
               <option value="" disabled>Select image type...</option>
               <option value="focus">Focus/Focus Tree</option>
               <option value="ideas">Ideas/National spirits</option>
+              <option value="flag">Country Flag</option>
+              <option value="equipment">Equipment / Technology</option>
+              <option value="event">Event Picture</option>
+              <option value="fallback">Standard / Fallback (Uncompressed dds)</option>
             </select>
           </div>
+
+          <!-- Extra Conditional Information Fields (Misc info loaded & updated when triggered from ide.vue) -->
+          <transition name="fade">
+            <!-- Country Flag Extra Info -->
+            <div v-if="file.imageType === 'flag'" class="space-y-1 pl-3 border-l-2 border-[#007acc]">
+              <label class="block text-xs font-medium text-white">Country Tag <span class="text-red-400">*</span></label>
+              <input 
+                type="text" 
+                v-model="file.countryTag"
+                class="w-full bg-[#2d2d2d] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#007acc]"
+                placeholder="e.g. GER, USA, FRA"
+                maxlength="3"
+                @input="file.countryTag = file.countryTag.toUpperCase()"
+              />
+              <p class="text-[11px] text-[#858585]">3-letter tag of the country this flag belongs to.</p>
+            </div>
+
+            <!-- Equipment Extra Info -->
+            <div v-else-if="file.imageType === 'equipment'" class="space-y-1 pl-3 border-l-2 border-[#007acc]">
+              <label class="block text-xs font-medium text-white">Equipment ID <span class="text-red-400">*</span></label>
+              <input 
+                type="text" 
+                v-model="file.equipmentId"
+                class="w-full bg-[#2d2d2d] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#007acc]"
+                placeholder="e.g. infantry_weapons_1"
+              />
+              <p class="text-[11px] text-[#858585]">Equipment or technology ID this image belongs to.</p>
+            </div>
+          </transition>
 
         </div>
       </div>
@@ -125,13 +158,27 @@ watch(() => [props.filePaths, props.isOpen], async ([newPaths]) => {
     for (const filePath of newPaths) {
       let safeName = ''
       let imageType = ''
+      let countryTag = ''
+      let equipmentId = ''
+      let miscProps = {}
 
+      // When triggered via Update Image Type in ide.vue (isConfigUpdate = true), load existing config & misc info
       if (props.isConfigUpdate && window.api && window.api.invoke) {
         try {
           const res = await window.api.invoke('get-img-config', filePath)
           if (res && res.success && res.config) {
             safeName = res.config.safeName || ''
             imageType = res.config.imageType || ''
+            countryTag = res.config.countryTag || ''
+            equipmentId = res.config.equipmentId || ''
+            
+            // Capture any other misc properties stored in config.json
+            const excludedKeys = ['safeName', 'imageType', 'importedFrom', 'updatedAt', 'thumbnail', 'imagePreviews', 'countryTag', 'equipmentId']
+            for (const [k, v] of Object.entries(res.config)) {
+              if (!excludedKeys.includes(k)) {
+                miscProps[k] = v
+              }
+            }
           }
         } catch (err) {
           console.warn('[ImageConfigModal] Failed to fetch existing image config:', err)
@@ -147,6 +194,9 @@ watch(() => [props.filePaths, props.isOpen], async ([newPaths]) => {
         originalPath: filePath,
         safeName,
         imageType,
+        countryTag,
+        equipmentId,
+        ...miscProps,
         showCharWarning: false,
         warningTimeout: null
       })
@@ -183,7 +233,12 @@ function handleNameInput(index, event) {
 
 const isFormValid = computed(() => {
   if (configuredFiles.value.length === 0) return false
-  return configuredFiles.value.every(file => file.safeName.trim() !== '' && file.imageType !== '')
+  return configuredFiles.value.every(file => {
+    if (!file.safeName.trim() || !file.imageType) return false
+    if (file.imageType === 'flag' && !file.countryTag?.trim()) return false
+    if (file.imageType === 'equipment' && !file.equipmentId?.trim()) return false
+    return true
+  })
 })
 
 function closeModal() {
@@ -195,11 +250,21 @@ async function handleConfirmImport() {
   isSubmitting.value = true
 
   try {
-    const payload = configuredFiles.value.map(file => ({
-      path: file.originalPath,
-      safeName: file.safeName,
-      imageType: file.imageType
-    }))
+    const payload = configuredFiles.value.map(file => {
+      const { originalPath, safeName, imageType, countryTag, equipmentId, showCharWarning, warningTimeout, ...misc } = file
+      const item = {
+        path: originalPath,
+        safeName,
+        imageType,
+        ...misc
+      }
+      if (imageType === 'flag') {
+        item.countryTag = countryTag.trim().toUpperCase()
+      } else if (imageType === 'equipment') {
+        item.equipmentId = equipmentId.trim()
+      }
+      return item
+    })
 
     if (props.isConfigUpdate) {
       const updateResult = await window.api.invoke('update-img-config', payload)

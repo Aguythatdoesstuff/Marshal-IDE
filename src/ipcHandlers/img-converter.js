@@ -18,6 +18,24 @@ const ALLOWED_IMAGE_TYPES = {
         format: 'R8G8B8A8_UNORM',
         description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed)'
     },
+    // Country flag configuration: Configured as uncompressed DDS (texconv can output TGA via -ft tga, but DDS works natively in many modern pipelines).
+    'flag': {
+        fileType: 'dds',
+        format: 'R8G8B8A8_UNORM',
+        description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed DDS Flag)'
+    },
+    // Equipment & technology icon configuration: DXT5/BC3 block compression balances file size and handles clean edges/transparency well.
+    'equipment': {
+        fileType: 'dds',
+        format: 'BC3_UNORM',
+        description: 'DXT5 / BC3 Interpolated 8-bit Alpha Compressed'
+    },
+    // Event picture configuration: Larger artwork assets where DXT5/BC3 compression keeps VRAM usage manageable without degrading scene quality.
+    'event': {
+        fileType: 'dds',
+        format: 'BC3_UNORM',
+        description: 'DXT5 / BC3 Interpolated Alpha Compressed (Recommended for Event Pictures)'
+    },
     'fallback': {
         fileType: 'dds',
         format: 'R8G8B8A8_UNORM',

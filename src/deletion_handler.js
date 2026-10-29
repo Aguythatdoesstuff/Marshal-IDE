@@ -21,8 +21,10 @@ export async function handleDeletion(filePath, config) {
     const fileName = path.basename(filePath);
     const parsed = path.parse(fileName);
     
-    // Turn filename into cache folder name (e.g., china.event -> chinaevent)
-    const cacheFolderName = parsed.name + parsed.ext.replace('.', '');
+    // For .dds images, use the raw file name without extension; for others, keep the combined name format
+    const ext = parsed.ext.toLowerCase();
+    const cacheFolderName = ext === '.dds' ? parsed.name : (parsed.name + parsed.ext.replace('.', ''));
+    
     const fileCacheDir = path.join(cache_dir, cacheFolderName);
     const configJsonPath = path.join(fileCacheDir, 'config.json');
 
