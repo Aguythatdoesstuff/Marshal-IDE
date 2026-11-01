@@ -105,8 +105,11 @@
     >
       <div class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerCreateModal(contextMenu.targetNode?.isDir ? contextMenu.targetNode.path : contextMenu.targetNode?.path.substring(0, contextMenu.targetNode.path.lastIndexOf('/')))">New File</div>
       
-      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir && !contextMenu.targetNode.name.toLowerCase().endsWith('.dds')" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerRenameModal(contextMenu.targetNode)">Rename</div>
-      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir && contextMenu.targetNode.name.toLowerCase().endsWith('.dds')" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white text-marshal-primary font-medium" @click="handleUpdateImageType(contextMenu.targetNode)">Update Image Type</div>
+      <!-- Rename: Hidden if it is a directory OR ends with .dds OR ends with .tga -->
+      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir && !contextMenu.targetNode.name.toLowerCase().endsWith('.dds') && !contextMenu.targetNode.name.toLowerCase().endsWith('.tga')" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white" @click="triggerRenameModal(contextMenu.targetNode)">Rename</div>
+
+      <!-- Update Image Type: Shown if it is NOT a directory AND ends with either .dds OR .tga -->
+      <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir && (contextMenu.targetNode.name.toLowerCase().endsWith('.dds') || contextMenu.targetNode.name.toLowerCase().endsWith('.tga'))" class="cursor-pointer px-3.5 py-2 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white text-marshal-primary font-medium" @click="handleUpdateImageType(contextMenu.targetNode)">Update Image Type</div>
       <div v-if="contextMenu.targetNode && !contextMenu.targetNode.isDir" class="my-1 h-px bg-gray-700"></div>
       
       <div 
@@ -179,12 +182,12 @@ const activeImageLoading = ref(false);
 const isImageTab = computed(() => {
   const activePath = tabsRef.value?.activeTabPath;
   if (!activePath) return false;
-  return activePath.toLowerCase().endsWith('.dds');
+  return ['.dds', '.tga'].some(ext => activePath.toLowerCase().endsWith(ext));
 });
 
 // Watch active tab changes to fetch full-size cached original PNG for DDS files
 watch(() => tabsRef.value?.activeTabPath, async (newPath) => {
-  if (!newPath || !newPath.toLowerCase().endsWith('.dds')) {
+  if (!newPath || !['.dds', '.tga'].some(ext => newPath.toLowerCase().endsWith(ext))) {
     activeImageUrl.value = '';
     return;
   }
@@ -291,11 +294,11 @@ const vClickOutside = {
 const handleFileSelected = async (node) => {
   if (!node || node.isDir) return;
   
-  if (node.name.toLowerCase().endsWith('.dds')) {
+  if (['.dds', '.tga'].some(ext => node.name.toLowerCase().endsWith(ext))) {
     try {
       await window.api.invoke('get-img-config', node.path);
     } catch (err) {
-      console.error("Failed to load DDS config on select:", err);
+      console.error("Failed to load DDS or TGA config on select:", err);
     }
   }
   tabsRef.value?.openTab(node);
@@ -316,13 +319,13 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
     }
 
     const fileName = actualPath.split(/[\\/]/).pop();
-    const isDds = fileName.toLowerCase().endsWith('.dds');
+    const isImage = ['.dds', '.tga'].some(ext => fileName.toLowerCase().endsWith(ext));
 
-    if (isDds) {
+    if (isImage) {
       try {
         await window.api.invoke('get-img-config', actualPath);
       } catch (err) {
-        console.error("Failed to load DDS image config on navigation:", err);
+        console.error("Failed to load DDS or TGA image config on navigation:", err);
       }
     }
 
@@ -333,7 +336,7 @@ const navigateToFileAndLine = async (filePath, lineNumber, scrollTop) => {
     await new Promise(resolve => {
       setTimeout(() => {
         const activeEditor = editorInstance || window.editorInstance;
-        if (activeEditor && lineNumber !== undefined && lineNumber !== 'Unknown' && !isDds) {
+        if (activeEditor && lineNumber !== undefined && lineNumber !== 'Unknown' && !isImage) {
           const parsedLine = parseInt(lineNumber, 10);
           if (!isNaN(parsedLine)) {
             activeEditor.revealLineInCenter(parsedLine);
@@ -419,7 +422,7 @@ const triggerCreateModal = (parentPath = '') => {
 
 const triggerRenameModal = (node) => {
   closeContextMenu();
-  if (node.isDir || node.name.toLowerCase().endsWith('.dds')) return;
+  if (node.isDir || ['.dds', '.tga'].some(ext => node.name.toLowerCase().endsWith(ext))) return;
 
   const originalExt = '.' + node.path.split('.').pop().toLowerCase();
   let baseName = node.name;
@@ -548,7 +551,7 @@ const commitModalAction = async () => {
     }
   } 
   else if (mode === 'rename' && targetNode) {
-    if (targetNode.name && targetNode.name.toLowerCase().endsWith('.dds')) return;
+    if (targetNode.name && ['.dds', '.tga'].some(ext => targetNode.name.toLowerCase().endsWith(ext))) return;
     let input = inputValue.trim();
     if (!input) return;
     const lastDotIndex = input.lastIndexOf('.');

@@ -7,7 +7,7 @@ const SOURCE = 'Deletion-Handler';
 
 /**
  * Handles the deletion of a file by reading its cache config, purging all output files,
- * and then removing the file's specific cache folder.
+ * and removing its specific folder from both fileOutCache and the gfx cache.
  * @param {string} filePath Path of the deleted input file.
  * @param {Object} config Workspace configuration object.
  */
@@ -17,19 +17,26 @@ export async function handleDeletion(filePath, config) {
         return;
     }
 
-    const cache_dir = path.join(config.metadata_dir, 'fileOutCache');
+    const fileOutCacheDir = path.join(config.metadata_dir, 'fileOutCache');
+    const gfxCacheDir = path.join(config.metadata_dir, 'gfx');
+    
     const fileName = path.basename(filePath);
     const parsed = path.parse(fileName);
     
-    // For .dds images, use the raw file name without extension; for others, keep the combined name format
-    const ext = parsed.ext.toLowerCase();
-    const cacheFolderName = ext === '.dds' ? parsed.name : (parsed.name + parsed.ext.replace('.', ''));
+    // 1. fileOutCache: Uniform naming for ALL files (e.g. image.dds -> imagedds)
+    const fileOutCacheFolderName = parsed.name + parsed.ext.replace('.', '');
     
-    const fileCacheDir = path.join(cache_dir, cacheFolderName);
+    // 2. gfx cache: Strips extension entirely for all files (e.g. image.dds -> image)
+    const gfxCacheFolderName = parsed.name;
+    
+    const fileCacheDir = path.join(fileOutCacheDir, fileOutCacheFolderName);
+    const gfxFileCacheDir = path.join(gfxCacheDir, gfxCacheFolderName);
+    
     const configJsonPath = path.join(fileCacheDir, 'config.json');
 
     logToMain('info', `Processing deletion for input file: "${filePath}"`, SOURCE);
-    logToMain('info', `-> Derived cache folder name: "${cacheFolderName}"`, SOURCE);
+    logToMain('info', `-> fileOutCache folder name: "${fileOutCacheFolderName}"`, SOURCE);
+    logToMain('info', `-> gfx cache folder name: "${gfxCacheFolderName}"`, SOURCE);
     logToMain('info', `-> Expected cache config path: "${configJsonPath}"`, SOURCE);
 
     // 1. Read config.json safely with its own localized error handling
@@ -64,16 +71,28 @@ export async function handleDeletion(filePath, config) {
         logToMain('info', `No valid 'outputs' array found in config.json.`, SOURCE);
     }
 
-    // 3. Remove the file's cache folder itself with its own localized error handling
+    // 3. Remove the file's cache folder inside fileOutCache
     try {
         if (await fs.pathExists(fileCacheDir)) {
-            logToMain('info', `Deleting file cache directory: "${fileCacheDir}"`, SOURCE);
+            logToMain('info', `Deleting fileOutCache directory: "${fileCacheDir}"`, SOURCE);
             await fs.remove(fileCacheDir);
         } else {
-            logToMain('info', `Cache folder already doesn't exist: "${fileCacheDir}"`, SOURCE);
+            logToMain('info', `fileOutCache folder already doesn't exist: "${fileCacheDir}"`, SOURCE);
         }
     } catch (error) {
-        logToMain('error', `Failed to delete cache directory "${fileCacheDir}": ${error.message}`, SOURCE);
+        logToMain('error', `Failed to delete fileOutCache directory "${fileCacheDir}": ${error.message}`, SOURCE);
+    }
+
+    // 4. Remove the file's folder inside the gfx cache (extension-free parsed.name)
+    try {
+        if (await fs.pathExists(gfxFileCacheDir)) {
+            logToMain('info', `Deleting gfx cache directory: "${gfxFileCacheDir}"`, SOURCE);
+            await fs.remove(gfxFileCacheDir);
+        } else {
+            logToMain('info', `gfx cache folder already doesn't exist: "${gfxFileCacheDir}"`, SOURCE);
+        }
+    } catch (error) {
+        logToMain('error', `Failed to delete gfx cache directory "${gfxFileCacheDir}": ${error.message}`, SOURCE);
     }
 
     logToMain('info', `Successfully completed cleanup sequence for deleted file: "${filePath}"`, SOURCE);

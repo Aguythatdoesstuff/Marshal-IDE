@@ -290,7 +290,7 @@ namespace Compiler
                 return Array.Empty<string>();
             }
 
-            var allowedExtensions = new[] { ".decision", ".event", ".focus", ".idea", ".scriptedgui", ".script", ".equipment", ".unit", ".history" };
+            var allowedExtensions = new[] { ".decision", ".event", ".focus", ".idea", ".scriptedgui", ".script", ".equipment", ".unit", ".history", ".dds", ".tga" };
             var files = new List<string>();
 
             foreach (var ext in allowedExtensions)

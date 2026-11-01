@@ -41,7 +41,7 @@
                 <span v-if="node.isExpanded">📂</span>
                 <span v-else>📁</span>
               </template>
-              <!-- Display 32x32 preview icon if loaded for .dds file -->
+              <!-- Display 32x32 preview icon if loaded for .dds or .tga file -->
               <template v-else-if="isDdsFile(node.name) && imagePreviews[node.name]">
                 <img :src="imagePreviews[node.name]" class="h-3.5 w-3.5 object-contain align-middle rounded" alt="" />
               </template>
@@ -58,7 +58,7 @@
     </div>
 
     <div v-if="isDraggingOver" class="pointer-events-none absolute inset-0 flex items-center justify-center bg-marshal-primary/20 text-[13px] font-semibold text-white backdrop-blur-sm">
-      <span>Drop .dds image(s) to import</span>
+      <span>Drop one or more image(s) to import</span>
     </div>
   </aside>
 </template>
@@ -89,7 +89,7 @@ const getFileColor = (fileName) => {
 };
 
 const isDdsFile = (fileName) => {
-  return fileName && fileName.toLowerCase().endsWith('.dds');
+  return fileName && ['.dds', '.tga'].some(ext => fileName.toLowerCase().endsWith(ext));
 };
 
 const props = defineProps({
@@ -150,7 +150,7 @@ const fetchPreviewsForNodes = async (nodes) => {
   // Map .dds filenames to base names without extension (e.g., "my_icon.dds" -> "my_icon")
   const filePayloads = ddsNodes.map(n => {
     const name = n.name;
-    return name.toLowerCase().endsWith('.dds') ? name.substring(0, name.length - 4) : name;
+    return ['.dds', '.tga'].some(ext => name.toLowerCase().endsWith(ext)) ? name.substring(0, name.length - 4) : name;
   });
 
   if (window.api && window.api.invoke) {
@@ -303,7 +303,7 @@ const handleDrop = async (e) => {
   const rawFiles = e.dataTransfer?.files ? Array.from(e.dataTransfer.files) : [];
 
   const ddsFilePaths = rawFiles
-    .filter(f => f.name && f.name.toLowerCase().endsWith('.dds'))
+    .filter(f => f.name && ['.dds or .tga', '.tga'].some(ext => f.name.toLowerCase().endsWith(ext)))
     .map(f => {
       if (window.api && typeof window.api.getPathForFile === 'function') {
         try {

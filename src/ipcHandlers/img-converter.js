@@ -18,11 +18,11 @@ const ALLOWED_IMAGE_TYPES = {
         format: 'R8G8B8A8_UNORM',
         description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed)'
     },
-    // Country flag configuration: Configured as uncompressed DDS (texconv can output TGA via -ft tga, but DDS works natively in many modern pipelines).
+    // Country flag configuration: Configured as uncompressed 32-bit ARGB TGA with 3 separate sizes handled automatically.
     'flag': {
-        fileType: 'dds',
+        fileType: 'tga',
         format: 'R8G8B8A8_UNORM',
-        description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed DDS Flag)'
+        description: 'Uncompressed 32-bit ARGB TGA Flag (Standard 82x52, Medium 41x26, Small 10x7)'
     },
     // Equipment & technology icon configuration: DXT5/BC3 block compression balances file size and handles clean edges/transparency well.
     'equipment': {

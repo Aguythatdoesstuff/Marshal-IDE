@@ -69,27 +69,40 @@
               <option value="" disabled>Select image type...</option>
               <option value="focus">Focus/Focus Tree</option>
               <option value="ideas">Ideas/National spirits</option>
-              <option value="flag">Country Flag</option>
+              <option value="flag">Country Flag (Auto 3 Sizes when compiled: 82x52, 41x26, 10x7)</option>
               <option value="equipment">Equipment / Technology</option>
               <option value="event">Event Picture</option>
               <option value="fallback">Standard / Fallback (Uncompressed dds)</option>
             </select>
           </div>
 
-          <!-- Extra Conditional Information Fields (Misc info loaded & updated when triggered from ide.vue) -->
+          <!-- Extra Conditional Information Fields -->
           <transition name="fade">
             <!-- Country Flag Extra Info -->
-            <div v-if="file.imageType === 'flag'" class="space-y-1 pl-3 border-l-2 border-[#007acc]">
-              <label class="block text-xs font-medium text-white">Country Tag <span class="text-red-400">*</span></label>
-              <input 
-                type="text" 
-                v-model="file.countryTag"
-                class="w-full bg-[#2d2d2d] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#007acc]"
-                placeholder="e.g. GER, USA, FRA"
-                maxlength="3"
-                @input="file.countryTag = file.countryTag.toUpperCase()"
-              />
-              <p class="text-[11px] text-[#858585]">3-letter tag of the country this flag belongs to.</p>
+            <div v-if="file.imageType === 'flag'" class="space-y-3 pl-3 border-l-2 border-[#007acc]">
+              <div class="space-y-1">
+                <label class="block text-xs font-medium text-white">Country Tag <span class="text-red-400">*</span></label>
+                <input 
+                  type="text" 
+                  v-model="file.countryTag"
+                  class="w-full bg-[#2d2d2d] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#007acc]"
+                  placeholder="e.g. GER, USA, FRA"
+                  maxlength="3"
+                  @input="file.countryTag = file.countryTag.toUpperCase()"
+                />
+                <p class="text-[11px] text-[#858585]">3-letter tag of the country this flag belongs to.</p>
+              </div>
+
+              <div class="space-y-1">
+                <label class="block text-xs font-medium text-white">Ideology Group <span class="text-[#858585]">(Optional)</span></label>
+                <input 
+                  type="text" 
+                  v-model="file.ideologyGroup"
+                  class="w-full bg-[#2d2d2d] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#007acc]"
+                  placeholder="e.g. fascism, democratic, communism"
+                />
+                <p class="text-[11px] text-[#858585]">Optional ideology group assigned to this flag.</p>
+              </div>
             </div>
 
             <!-- Equipment Extra Info -->
@@ -159,6 +172,7 @@ watch(() => [props.filePaths, props.isOpen], async ([newPaths]) => {
       let safeName = ''
       let imageType = ''
       let countryTag = ''
+      let ideologyGroup = ''
       let equipmentId = ''
       let miscProps = {}
 
@@ -170,10 +184,10 @@ watch(() => [props.filePaths, props.isOpen], async ([newPaths]) => {
             safeName = res.config.safeName || ''
             imageType = res.config.imageType || ''
             countryTag = res.config.countryTag || ''
+            ideologyGroup = res.config.ideologyGroup || ''
             equipmentId = res.config.equipmentId || ''
             
-            // Capture any other misc properties stored in config.json
-            const excludedKeys = ['safeName', 'imageType', 'importedFrom', 'updatedAt', 'thumbnail', 'imagePreviews', 'countryTag', 'equipmentId']
+            const excludedKeys = ['safeName', 'imageType', 'importedFrom', 'updatedAt', 'thumbnail', 'imagePreviews', 'countryTag', 'ideologyGroup', 'equipmentId']
             for (const [k, v] of Object.entries(res.config)) {
               if (!excludedKeys.includes(k)) {
                 miscProps[k] = v
@@ -195,6 +209,7 @@ watch(() => [props.filePaths, props.isOpen], async ([newPaths]) => {
         safeName,
         imageType,
         countryTag,
+        ideologyGroup,
         equipmentId,
         ...miscProps,
         showCharWarning: false,
@@ -251,7 +266,7 @@ async function handleConfirmImport() {
 
   try {
     const payload = configuredFiles.value.map(file => {
-      const { originalPath, safeName, imageType, countryTag, equipmentId, showCharWarning, warningTimeout, ...misc } = file
+      const { originalPath, safeName, imageType, countryTag, ideologyGroup, equipmentId, showCharWarning, warningTimeout, ...misc } = file
       const item = {
         path: originalPath,
         safeName,
@@ -260,6 +275,9 @@ async function handleConfirmImport() {
       }
       if (imageType === 'flag') {
         item.countryTag = countryTag.trim().toUpperCase()
+        if (ideologyGroup?.trim()) {
+          item.ideologyGroup = ideologyGroup.trim().toLowerCase()
+        }
       } else if (imageType === 'equipment') {
         item.equipmentId = equipmentId.trim()
       }

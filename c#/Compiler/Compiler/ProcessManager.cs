@@ -30,8 +30,8 @@ namespace Compiler
             ".script",
             ".oob",
             ".history",
-            ".dds"
-
+            ".dds",
+            ".tga"
         };
 
         /// <summary>
@@ -164,6 +164,14 @@ namespace Compiler
             string fileName = Path.GetFileName(absolutePath);
             Compiler.Logging.Logger.LogMain($"Processing: {absolutePath}");
             Compiler.Logging.Logger.LogComponentReceived(extension, absolutePath);
+
+            // Image files (.dds, .tga) skip validation and go straight to compilation
+            if (extension == ".dds" || extension == ".tga")
+            {
+                Compiler.Logging.Logger.LogMain($"[ProcessSingleFileAsync] Image file detected ({extension}), skipping validation and proceeding to compilation");
+                CompileFileForExtension(extension, absolutePath, null, options);
+                return;
+            }
 
             BaseValidator validator = null;
             string selectedValidator = "NONE";
@@ -412,6 +420,7 @@ namespace Compiler
             }
 
             Compiler.Logging.Logger.LogMain($"[ProcessSingleFileAsync] Extension is supported, dispatching validator...");
+            Compiler.Logging.Logger.LogMain($"[DEBUG] About to call DispatchValidator with extension: {ext}");
             DispatchValidator(absolutePath, ext, options);
         }
 
@@ -463,6 +472,7 @@ namespace Compiler
                     selectedCompiler = "ScriptCompiler";
                     break;
                 case ".dds":
+                case ".tga":
                     compiler = new DdsCompiler();
                     selectedCompiler = "DdsCompiler";
                     break;

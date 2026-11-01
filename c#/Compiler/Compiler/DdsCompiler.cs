@@ -1,10 +1,15 @@
 using System;
 using System.IO;
+using System.Text.Json;
 
 namespace Compiler
 {
     public class DdsCompiler : BaseCompiler
     {
+        /// <summary>
+        /// Compiles DDS and TGA image files.
+        /// Supports multiple image types: ideas, equipment, flag, focus, event, fallback.
+        /// </summary>
         public override void Compile()
         {
             try
@@ -15,42 +20,15 @@ namespace Compiler
                     return;
                 }
 
-                // Ensure output folders
-                var relativeImageTarget = Path.Combine("gfx", "interface", "handledByMarshalIDE");
-                var relativeGfxTarget = Path.Combine("interface", "handledByMarshalIDE");
-
-                var imageOutDir = Path.Combine(OutputPath ?? string.Empty, relativeImageTarget);
-                var gfxOutDir = Path.Combine(OutputPath ?? string.Empty, relativeGfxTarget);
-
-                Directory.CreateDirectory(imageOutDir);
-                Directory.CreateDirectory(gfxOutDir);
-
                 var sourceFileName = Path.GetFileName(SourceAbsolutePath);
                 var nameOnly = Path.GetFileNameWithoutExtension(sourceFileName);
 
-                // Copy the DDS image into the gfx/interface/handledByMarshalIDE folder
-                var destImagePath = Path.Combine(imageOutDir, sourceFileName);
-                File.Copy(SourceAbsolutePath, destImagePath, true);
+                // Read image metadata from cache to determine output type
+                var imageMetadata = ReadImageMetadata(nameOnly);
 
-                // Track the copied DDS image in cache
-                CacheHandler.HandleCacheUpdate(destImagePath, SourceFileName, SourceAbsolutePath);
-
-                // Create the .gfx definition file in interface/handledByMarshalIDE
-                var gfxFileName = nameOnly + ".gfx";
-                var gfxFilePath = Path.Combine(gfxOutDir, gfxFileName);
-
-                using (var sw = new StreamWriter(new FileStream(gfxFilePath, FileMode.Create, FileAccess.Write, FileShare.Read), new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
-                {
-                    sw.WriteLine("spriteTypes = {");
-                    sw.WriteLine("    spriteType = {");
-                    sw.WriteLine($"        name = \"GFX_{nameOnly}\"");
-                    sw.WriteLine($"        texturefile = \"gfx/interface/handledByMarshalIDE/{sourceFileName}\"");
-                    sw.WriteLine("    }");
-                    sw.WriteLine("}");
-                }
-
-                // Track the created .gfx definition file in cache
-                CacheHandler.HandleCacheUpdate(gfxFilePath, SourceFileName, SourceAbsolutePath);
+                // Delegate all output handling to ImageTypeHandler - it owns the output path logic
+                ImageTypeHandler.HandleImageOutput(imageMetadata, sourceFileName, nameOnly, 
+                    SourceAbsolutePath, OutputPath);
 
                 Compiler.Logging.Logger.LogComponent("DdsCompiler", $"Processed {sourceFileName}");
             }
@@ -60,6 +38,45 @@ namespace Compiler
                 Compiler.Logging.Logger.ReportUnhandledException(ex);
                 IPC.Send("FatalError", ex.Message);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Reads image metadata from the cache.
+        /// Looks for config.json at: CachePath\gfx\{imageName (no extension)}\config.json
+        /// </summary>
+        private static ImageMetadata ReadImageMetadata(string imageName)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(CacheHandler.CachePath) || string.IsNullOrWhiteSpace(imageName))
+                {
+                    return null;
+                }
+
+                // CachePath points to fileOutCache, but image metadata is in parent metadata folder
+                // Go up one level, then into gfx/{imageName}/config.json
+                var metadataRoot = Path.Combine(CacheHandler.CachePath, "..");
+                var cacheConfigPath = Path.Combine(metadataRoot, "gfx", imageName, "config.json");
+
+                // Normalize the path to clean up the ..
+                cacheConfigPath = Path.GetFullPath(cacheConfigPath);
+
+                if (!File.Exists(cacheConfigPath))
+                {
+                    Compiler.Logging.Logger.LogComponent("DdsCompiler", $"Image cache metadata not found at {cacheConfigPath}");
+                    return null;
+                }
+
+                var json = File.ReadAllText(cacheConfigPath);
+                var metadata = JsonSerializer.Deserialize<ImageMetadata>(json);
+
+                return metadata;
+            }
+            catch (Exception ex)
+            {
+                Compiler.Logging.Logger.LogComponent("DdsCompiler", $"Error reading image metadata: {ex.Message}");
+                return null;
             }
         }
     }

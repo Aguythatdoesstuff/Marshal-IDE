@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 
 let config; 
 
-const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds', '.equipment', '.unit', '.oob', '.history']);
+const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.script', '.idea', '.focus', '.dds','.tga', '.equipment', '.unit', '.oob', '.history']);
 
 // --- Process Safety ---
 const checkParentAndExit = () => {
