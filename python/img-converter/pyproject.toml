@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "img-converter"
+version = "1.0.0"
+description = "Texture conversion daemon wrapper"
+authors = ["Kacper Kocemba"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+nuitka = "^4.3.4"
+
+[tool.poetry.scripts]
+build-win = "build:win"
+build-linux = "build:linux"
