@@ -426,7 +426,8 @@ export function registerImageImporterHandlers(ipcMain, context) {
                 success: true, 
                 size: '32x32', 
                 fileName: targetFileName, 
-                base64: config.thumbnail 
+                base64: config.thumbnail,
+                imageType: config.imageType || null
             };
         }
 
@@ -435,7 +436,8 @@ export function registerImageImporterHandlers(ipcMain, context) {
                 success: true, 
                 size, 
                 fileName: targetFileName, 
-                base64: config.imagePreviews[targetFileName] 
+                base64: config.imagePreviews[targetFileName],
+                imageType: config.imageType || null
             };
         }
 
@@ -447,7 +449,8 @@ export function registerImageImporterHandlers(ipcMain, context) {
                 success: true,
                 size,
                 fileName: targetFileName,
-                base64: base64Data
+                base64: base64Data,
+                imageType: config.imageType || null
             };
         }
 
@@ -503,7 +506,8 @@ export function registerImageImporterHandlers(ipcMain, context) {
             size, 
             fileName: targetFileName, 
             base64: base64Data,
-            warning: 'Preview was missing and generated via processImage.'
+            warning: 'Preview was missing and generated via processImage.',
+            imageType: config.imageType || null
         };
     }
 }

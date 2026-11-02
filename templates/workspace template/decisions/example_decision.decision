@@ -21,4 +21,4 @@ category  trigger_event_category
             not
                 country = GER
         on click
-            trigger_event = yes
+            trigger_some_event = yes

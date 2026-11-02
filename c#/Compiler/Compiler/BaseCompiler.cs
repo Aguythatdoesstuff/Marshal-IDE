@@ -253,7 +253,14 @@ namespace Compiler
                     if (text.Contains("= {"))
                     {
                         sw.WriteLine(Ident(depth) + text);
-                        openBlocks.Push(depth);
+                        // Only track this as an open block if the closing brace is not on the same line
+                        // (i.e., check if this is an inline complete block like "x = { y = 1 }")
+                        int openBraces = text.Count(ch => ch == '{');
+                        int closeBraces = text.Count(ch => ch == '}');
+                        if (openBraces > closeBraces)
+                        {
+                            openBlocks.Push(depth);
+                        }
                         i++; continue;
                     }
 
@@ -371,13 +378,6 @@ namespace Compiler
                             j = ProcessRange(j, end, depth);
                         }
 
-                        // Closing brace will be handled by the openBlocks stack
-                        // when we encounter the next item at same or lower depth
-                        if (openBlocks.Count > 0)
-                        {
-                            openBlocks.Pop(); // Remove this block from tracking
-                        }
-                        sw.WriteLine(Ident(depth) + "}");
                         i = j;
                         continue;
                     }

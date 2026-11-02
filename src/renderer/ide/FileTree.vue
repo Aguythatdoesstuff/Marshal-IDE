@@ -41,6 +41,14 @@
                 <span v-if="node.isExpanded">📂</span>
                 <span v-else>📁</span>
               </template>
+              <!-- Warning icon if DDS/TGA has no image type defined -->
+              <template v-else-if="isDdsFile(node.name) && !hasImageType(node)">
+                <svg class="h-3.5 w-3.5 text-amber-400 align-middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Missing image type">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </template>
               <!-- Display 32x32 preview icon if loaded for .dds or .tga file -->
               <template v-else-if="isDdsFile(node.name) && imagePreviews[node.name]">
                 <img :src="imagePreviews[node.name]" class="h-3.5 w-3.5 object-contain align-middle rounded" alt="" />
@@ -52,6 +60,7 @@
               </template>
             </span>
             <span class="truncate whitespace-nowrap">{{ node.name }}</span>
+            <span v-if="isDdsFile(node.name) && !hasImageType(node)" class="ml-2 text-[11px] italic text-amber-400/80 truncate">missing image type</span>
           </div>
         </div>
       </div>
@@ -90,6 +99,18 @@ const getFileColor = (fileName) => {
 
 const isDdsFile = (fileName) => {
   return fileName && ['.dds', '.tga'].some(ext => fileName.toLowerCase().endsWith(ext));
+};
+
+const imageTypes = ref({});
+
+const hasImageType = (node) => {
+  if (!node || !isDdsFile(node.name)) return true;
+
+  if (imageTypes.value[node.path] !== undefined) {
+    return imageTypes.value[node.path];
+  }
+
+  return true; // Default true while loading/unverified
 };
 
 const props = defineProps({
@@ -144,7 +165,7 @@ const loadDirectory = async (dirPath = '') => {
 };
 
 const fetchPreviewsForNodes = async (nodes) => {
-  const ddsNodes = nodes.filter(n => !n.isDir && isDdsFile(n.name) && !imagePreviews.value[n.name]);
+  const ddsNodes = nodes.filter(n => !n.isDir && isDdsFile(n.name));
   if (ddsNodes.length === 0) return;
 
   // Map .dds filenames to base names without extension (e.g., "my_icon.dds" -> "my_icon")
@@ -157,13 +178,25 @@ const fetchPreviewsForNodes = async (nodes) => {
     try {
       const res = await window.api.invoke('get-img-preview', { files: filePayloads, size: '32x32' });
       if (res && res.results) {
+        const newImageTypes = { ...imageTypes.value };
         res.results.forEach((r, idx) => {
           const originalNode = ddsNodes[idx];
-          if (r.success && r.base64 && originalNode) {
-            const base64Data = r.base64.startsWith('data:') ? r.base64 : `data:image/png;base64,${r.base64}`;
-            imagePreviews.value[originalNode.name] = base64Data;
+          if (originalNode) {
+            if (r.success && r.base64) {
+              const base64Data = r.base64.startsWith('data:') ? r.base64 : `data:image/png;base64,${r.base64}`;
+              imagePreviews.value[originalNode.name] = base64Data;
+            }
+
+            const imgType = r.imageType;
+            let hasValidType = true;
+            if (imgType === null || imgType === undefined || imgType === '' || imgType === 'none' || imgType === 'null') {
+              hasValidType = false;
+            }
+            newImageTypes[originalNode.path] = hasValidType;
           }
         });
+        // Reassign ref object reference to trigger Vue 3 reactivity update & re-render
+        imageTypes.value = newImageTypes;
       }
     } catch (err) {
       console.warn('[FileTree] Failed to fetch 32x32 image previews:', err);
@@ -172,6 +205,9 @@ const fetchPreviewsForNodes = async (nodes) => {
 };
 
 const refreshTree = async () => {
+  // Clear cached image types on refresh so updates take effect immediately
+  imageTypes.value = {};
+
   const buildVisibleTree = async (dirPath = '') => {
     const nodes = await loadDirectory(dirPath);
     nodes.sort((a, b) => b.isDir - a.isDir || a.name.localeCompare(b.name));

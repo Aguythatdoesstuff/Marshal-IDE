@@ -7,30 +7,30 @@ import { resolveBinaryPath } from './binaryUtils.js';
 let imgConverterProcess = null;
 
 const ALLOWED_IMAGE_TYPES = {
-    // focus tree specific configuration: Used for rendering focus tree icons in the UI. The format is uncompressed because thats what the game engine preffers.
+    // Focus tree specific configuration: Uncompressed BGRA for Clausewitz engine compatibility.
     'focus': {
         fileType: 'dds',
-        format: 'R8G8B8A8_UNORM',
-        description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed)'
+        format: 'B8G8R8A8_UNORM',
+        description: '8.8.8.8 BGRA 32-bit Unsigned (Uncompressed)'
     },
     'ideas': {
         fileType: 'dds',
-        format: 'R8G8B8A8_UNORM',
-        description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed)'
+        format: 'B8G8R8A8_UNORM',
+        description: '8.8.8.8 BGRA 32-bit Unsigned (Uncompressed)'
     },
-    // Country flag configuration: Configured as uncompressed 32-bit ARGB TGA with 3 separate sizes handled automatically.
+    // Country flag configuration: Standard TGAs are natively BGRA in memory.
     'flag': {
         fileType: 'tga',
-        format: 'R8G8B8A8_UNORM',
-        description: 'Uncompressed 32-bit ARGB TGA Flag (Standard 82x52, Medium 41x26, Small 10x7)'
+        format: 'B8G8R8A8_UNORM',
+        description: 'Uncompressed 32-bit BGRA TGA Flag (Standard 82x52, Medium 41x26, Small 10x7)'
     },
-    // Equipment & technology icon configuration: DXT5/BC3 block compression balances file size and handles clean edges/transparency well.
+    // Equipment & technology icon configuration: DXT5/BC3 block compression handles channels correctly.
     'equipment': {
         fileType: 'dds',
         format: 'BC3_UNORM',
         description: 'DXT5 / BC3 Interpolated 8-bit Alpha Compressed'
     },
-    // Event picture configuration: Larger artwork assets where DXT5/BC3 compression keeps VRAM usage manageable without degrading scene quality.
+    // Event picture configuration: DXT5/BC3 keeps VRAM usage manageable.
     'event': {
         fileType: 'dds',
         format: 'BC3_UNORM',
@@ -38,20 +38,8 @@ const ALLOWED_IMAGE_TYPES = {
     },
     'fallback': {
         fileType: 'dds',
-        format: 'R8G8B8A8_UNORM',
-        description: '8.8.8.8 ARGB 32-bit Unsigned (Uncompressed)'
-    },
-    // Diffuse map: The primary color texture defining the base visual patterns and painting of the model.
-    'diffuse': {
-        fileType: 'dds',
-        format: 'BC3_UNORM',
-        description: 'BC3/DXT5 Compressed Texture'
-    },
-    // Normal map: A surface vector map that simulates high-detail bumps and lighting angles without extra geometry.
-    'normal': {
-        fileType: 'dds',
-        format: 'BC1_UNORM',
-        description: 'BC1/DXT1 Compressed Texture'
+        format: 'B8G8R8A8_UNORM',
+        description: '8.8.8.8 BGRA 32-bit Unsigned (Uncompressed)'
     }
 };
 
@@ -159,6 +147,7 @@ export async function processImage(filePath, imageType, mainOutputDir, cacheOutp
             '-ft', targetConfig.fileType,
             '-f', targetConfig.format,
             '-y',
+            ...(imageType === 'flag' ? ['-vflip'] : []), // vital for country flags to be oriented correctly in-game (ORIGIN NEEDS TO BE BOTTOM LEFT)
             '-o', path.resolve(mainOutputDir),
             '--',
             absolutePath

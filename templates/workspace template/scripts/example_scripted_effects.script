@@ -1,4 +1,4 @@
-scripted effect trigger_event
+scripted effect trigger_some_event
     random_list = {
         50 = { 
             country_event = { id = country_event.1 }

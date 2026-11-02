@@ -11,6 +11,6 @@ on action
     }
     on_startup = {
         effect = {
-            trigger_event = yes # check: example_scripted_effects.script
+            trigger_some_event = yes # check: example_scripted_effects.script
         }
     }

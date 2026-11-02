@@ -1,0 +1,50 @@
+draggable window confirmation_popup
+    size x400 y200 
+    position x550 y350                
+    sprite "GFX_tiled_window"                
+    visible                
+        has_country_flag = open_confirmation_popup                
+
+                      
+    text                
+        text "§HAre you sure?§"                
+        font "hoi_36header"                
+        position x90 y15                
+        max size x600 y30                
+
+    text
+        text "Closing now will do something thats for sure!"
+        font "hoi_16mbs"
+        position x30 y60
+        max size x340 y100
+
+    button                
+        sprite "GFX_closebutton"                
+        position x365 y2  
+        on click                
+            clr_country_flag = open_confirmation_popup                
+
+    button                
+        text "Yes"                
+        font "hoi_16mbs"                
+        sprite "GFX_button_94x31"                
+        position x70 y140 
+        on click              
+            if
+                has_country_flag = open_info_panel           
+                then   
+                    clr_country_flag = open_info_panel 
+            else if
+                has_country_flag = open_main_window           
+                then   
+                    clr_country_flag = open_main_window 
+            clr_country_flag = open_confirmation_popup
+    
+    button                
+        text "No"                
+        font "hoi_16mbs"                
+        sprite "GFX_button_94x31"                
+        position x230 y140 
+        on click                
+            clr_country_flag = open_confirmation_popup
+

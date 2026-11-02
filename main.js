@@ -43,6 +43,7 @@ if (!gotTheLock) {
 
 	// APP PATHS (Static/Code - Read-only, updated via app installer)
 	const TEMPLATE_DIR = path.join(__dirname, 'templates', 'workspace template'); 
+	const TEMPLATE_CACHE_DIR = path.join(__dirname, 'templates', 'workspace template cache'); 
 	const WATCHER_SCRIPT_PATH = path.join(__dirname, 'src/watcher_workspace.js'); 
 
 	// SETTINGS FILE PATHS
@@ -563,7 +564,7 @@ function setupAutoUpdater() {
 		await fs.mkdir(inputPath, { recursive: true });
 		await fs.mkdir(metaPath, { recursive: true }); 
 		await copyDir(TEMPLATE_DIR, inputPath, data.includeTemplates);
-
+		await copyDir(TEMPLATE_CACHE_DIR, metaPath, data.includeTemplates);
 		// Created metadata with Project Name
 		const metaInfo = {
 		    project_name: name,

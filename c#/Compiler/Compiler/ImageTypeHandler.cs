@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json.Serialization;
+using ImageMagick;
 
 namespace Compiler
 {
@@ -96,9 +97,10 @@ namespace Compiler
         /// <summary>
         /// Default output: copies image to gfx/interface/handledByMarshalIDE and creates a .gfx definition file with GFX_ prefix.
         /// Used for: focus, event, fallback, and unknown types.
+        /// Optionally resizes image if maxWidth and maxHeight are provided.
         /// </summary>
         private static void HandleDefaultOutput(string sourceFileName, string nameOnly, 
-            string sourceAbsolutePath, string outputPath)
+            string sourceAbsolutePath, string outputPath, int? maxWidth = null, int? maxHeight = null)
         {
             try
             {
@@ -111,11 +113,37 @@ namespace Compiler
                 Directory.CreateDirectory(imageOutDir);
                 Directory.CreateDirectory(gfxOutDir);
 
+                // Resize image if max dimensions provided
+                string imageToCopy = sourceAbsolutePath;
+                string tempResizedPath = null;
+                if (maxWidth.HasValue && maxHeight.HasValue)
+                {
+                    try
+                    {
+                        tempResizedPath = ResizeImageFile(sourceAbsolutePath, maxWidth.Value, maxHeight.Value);
+                        if (tempResizedPath != sourceAbsolutePath)
+                        {
+                            imageToCopy = tempResizedPath;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Compiler.Logging.Logger.LogWarning("ImageTypeHandler", $"Failed to resize image {sourceFileName}, using original: {ex.Message}");
+                        imageToCopy = sourceAbsolutePath;
+                    }
+                }
+
                 // Copy image file
                 var destImagePath = Path.Combine(imageOutDir, sourceFileName);
                 Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Copying image to: {destImagePath}");
-                File.Copy(sourceAbsolutePath, destImagePath, true);
+                File.Copy(imageToCopy, destImagePath, true);
                 outputFiles.Add(destImagePath);
+
+                // Clean up temp file if created
+                if (tempResizedPath != null && tempResizedPath != sourceAbsolutePath && File.Exists(tempResizedPath))
+                {
+                    try { File.Delete(tempResizedPath); } catch { }
+                }
 
                 // Create GFX definition file
                 var gfxFileName = nameOnly + ".gfx";
@@ -167,11 +195,34 @@ namespace Compiler
                 Directory.CreateDirectory(imageOutDir);
                 Directory.CreateDirectory(gfxOutDir);
 
+                // Resize image to max 65x67 before copying
+                string imageToCopy = sourceAbsolutePath;
+                string tempResizedPath = null;
+                try
+                {
+                    tempResizedPath = ResizeImageFile(sourceAbsolutePath, 65, 67);
+                    if (tempResizedPath != sourceAbsolutePath)
+                    {
+                        imageToCopy = tempResizedPath;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Compiler.Logging.Logger.LogWarning("ImageTypeHandler", $"Failed to resize IDEAS image {sourceFileName}, using original: {ex.Message}");
+                    imageToCopy = sourceAbsolutePath;
+                }
+
                 // Copy image file
                 var destImagePath = Path.Combine(imageOutDir, sourceFileName);
                 Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Copying IDEAS image to: {destImagePath}");
-                File.Copy(sourceAbsolutePath, destImagePath, true);
+                File.Copy(imageToCopy, destImagePath, true);
                 outputFiles.Add(destImagePath);
+
+                // Clean up temp file if created
+                if (tempResizedPath != null && tempResizedPath != sourceAbsolutePath && File.Exists(tempResizedPath))
+                {
+                    try { File.Delete(tempResizedPath); } catch { }
+                }
 
                 // Create GFX definition file with GFX_idea_ prefix
                 var gfxFileName = nameOnly + ".gfx";
@@ -225,13 +276,36 @@ namespace Compiler
                 var imageOutDir = Path.Combine(outputPath ?? string.Empty, "gfx", "interface", "handledByMarshalIDE");
                 Directory.CreateDirectory(imageOutDir);
 
+                // Resize image to max 146x54 before copying
+                string imageToCopy = sourceAbsolutePath;
+                string tempResizedPath = null;
+                try
+                {
+                    tempResizedPath = ResizeImageFile(sourceAbsolutePath, 146, 54);
+                    if (tempResizedPath != sourceAbsolutePath)
+                    {
+                        imageToCopy = tempResizedPath;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Compiler.Logging.Logger.LogWarning("ImageTypeHandler", $"Failed to resize EQUIPMENT image {sourceFileName}, using original: {ex.Message}");
+                    imageToCopy = sourceAbsolutePath;
+                }
+
                 // Rename the image to use equipmentId instead of the original name
                 var extension = Path.GetExtension(sourceFileName);
                 var equipmentImageName = metadata.EquipmentId + extension;
                 var equipmentImagePath = Path.Combine(imageOutDir, equipmentImageName);
 
                 Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Copying EQUIPMENT image from '{sourceFileName}' to '{equipmentImageName}'");
-                File.Copy(sourceAbsolutePath, equipmentImagePath, true);
+                File.Copy(imageToCopy, equipmentImagePath, true);
+
+                // Clean up temp file if created
+                if (tempResizedPath != null && tempResizedPath != sourceAbsolutePath && File.Exists(tempResizedPath))
+                {
+                    try { File.Delete(tempResizedPath); } catch { }
+                }
 
                 Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Successfully created equipment image file: {equipmentImagePath}");
                 CacheHandler.HandleCacheUpdate(equipmentImagePath, sourceFileName, sourceAbsolutePath);
@@ -245,12 +319,13 @@ namespace Compiler
 
         /// <summary>
         /// Focus output: copies image and creates a .gfx definition file with GFX_ prefix.
+        /// Resizes to max 84x84 while preserving aspect ratio.
         /// </summary>
         private static void HandleFocusOutput(string sourceFileName, string nameOnly, 
             string sourceAbsolutePath, string outputPath)
         {
-            Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Handling FOCUS output: delegating to default handler for: {sourceFileName}");
-            HandleDefaultOutput(sourceFileName, nameOnly, sourceAbsolutePath, outputPath);
+            Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Handling FOCUS output: resizing and delegating to default handler for: {sourceFileName}");
+            HandleDefaultOutput(sourceFileName, nameOnly, sourceAbsolutePath, outputPath, maxWidth: 84, maxHeight: 84);
         }
 
         /// <summary>
@@ -281,12 +356,13 @@ namespace Compiler
 
         /// <summary>
         /// Event output: copies image and creates a .gfx definition file with GFX_ prefix.
+        /// Resizes to max 400x116 while preserving aspect ratio.
         /// </summary>
         private static void HandleEventOutput(string sourceFileName, string nameOnly, 
             string sourceAbsolutePath, string outputPath)
         {
-            Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Handling EVENT output: delegating to default handler for: {sourceFileName}");
-            HandleDefaultOutput(sourceFileName, nameOnly, sourceAbsolutePath, outputPath);
+            Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Handling EVENT output: resizing and delegating to default handler for: {sourceFileName}");
+            HandleDefaultOutput(sourceFileName, nameOnly, sourceAbsolutePath, outputPath, maxWidth: 400, maxHeight: 116);
         }
 
         /// <summary>
@@ -297,6 +373,84 @@ namespace Compiler
         {
             Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Handling FALLBACK output: delegating to default handler for: {sourceFileName}");
             HandleDefaultOutput(sourceFileName, nameOnly, sourceAbsolutePath, outputPath);
+        }
+
+        /// <summary>
+        /// Calculates resized dimensions that fit within maxWidth and maxHeight while preserving aspect ratio.
+        /// Returns the original dimensions if they already fit within bounds.
+        /// </summary>
+        private static (int width, int height) ResizeImageToFitWithin(int originalWidth, int originalHeight, int maxWidth, int maxHeight)
+        {
+            // If already fits, return original dimensions
+            if (originalWidth <= maxWidth && originalHeight <= maxHeight)
+            {
+                return (originalWidth, originalHeight);
+            }
+
+            // Calculate aspect ratio
+            double aspectRatio = (double)originalWidth / originalHeight;
+
+            // Determine which dimension to constrain based on aspect ratio
+            int newWidth = maxWidth;
+            int newHeight = (int)(maxWidth / aspectRatio);
+
+            // If calculated height exceeds maxHeight, constrain by height instead
+            if (newHeight > maxHeight)
+            {
+                newHeight = maxHeight;
+                newWidth = (int)(maxHeight * aspectRatio);
+            }
+
+            return (newWidth, newHeight);
+        }
+
+        /// <summary>
+        /// Resizes an image file to fit within max dimensions while preserving aspect ratio.
+        /// Creates a temporary resized copy and returns the path to the resized image.
+        /// </summary>
+        private static string ResizeImageFile(string sourcePath, int maxWidth, int maxHeight)
+        {
+            try
+            {
+                using (var originalImage = new MagickImage(sourcePath))
+                {
+                    // Get original dimensions
+                    int originalWidth = (int)originalImage.Width;
+                    int originalHeight = (int)originalImage.Height;
+
+                    // Calculate new dimensions preserving aspect ratio
+                    var (newWidth, newHeight) = ResizeImageToFitWithin(originalWidth, originalHeight, maxWidth, maxHeight);
+
+                    // If no resize needed, return original path
+                    if (newWidth == originalWidth && newHeight == originalHeight)
+                    {
+                        Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Image {Path.GetFileName(sourcePath)} already fits within {maxWidth}x{maxHeight} bounds");
+                        return sourcePath;
+                    }
+
+                    // Create resized image with aspect ratio preserved
+                    var resizedImage = new MagickImage(originalImage);
+                    var geometry = new MagickGeometry((uint)newWidth, (uint)newHeight) { IgnoreAspectRatio = false };
+                    resizedImage.Resize(geometry);
+
+                    // Create temporary file for resized image (same extension as original)
+                    string tempDir = Path.Combine(Path.GetTempPath(), "MarshalIDEImageResize");
+                    Directory.CreateDirectory(tempDir);
+                    string tempPath = Path.Combine(tempDir, Guid.NewGuid().ToString() + Path.GetExtension(sourcePath));
+
+                    // Preserve original format
+                    resizedImage.Write(tempPath);
+                    resizedImage.Dispose();
+
+                    Compiler.Logging.Logger.LogComponent("ImageTypeHandler", $"Resized image {Path.GetFileName(sourcePath)} from {originalWidth}x{originalHeight} to {newWidth}x{newHeight}");
+                    return tempPath;
+                }
+            }
+            catch (Exception ex)
+            {
+                Compiler.Logging.Logger.LogWarning("ImageTypeHandler", $"Failed to resize image {Path.GetFileName(sourcePath)}: {ex.Message}");
+                throw;
+            }
         }
     }
 }

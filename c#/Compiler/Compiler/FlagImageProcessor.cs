@@ -116,8 +116,10 @@ namespace Compiler
             try
             {
                 var standardImage = new MagickImage(sourceImage);
-                standardImage.Resize(StandardWidth, StandardHeight);
+                var geometry = new MagickGeometry(StandardWidth, StandardHeight) { IgnoreAspectRatio = true };
+                standardImage.Resize(geometry);
                 standardImage.Format = MagickFormat.Tga;
+                standardImage.Settings.SetDefine(MagickFormat.Tga, "write-top-left", "false");
 
                 var standardPath = Path.Combine(flagsOutputDir, fileName);
                 standardImage.Write(standardPath);
@@ -140,8 +142,10 @@ namespace Compiler
             try
             {
                 var mediumImage = new MagickImage(sourceImage);
-                mediumImage.Resize(MediumWidth, MediumHeight);
+                var geometry = new MagickGeometry(MediumWidth, MediumHeight) { IgnoreAspectRatio = true };
+                mediumImage.Resize(geometry);
                 mediumImage.Format = MagickFormat.Tga;
+                mediumImage.Settings.SetDefine(MagickFormat.Tga, "write-top-left", "false");
 
                 var mediumPath = Path.Combine(mediumDir, fileName);
                 mediumImage.Write(mediumPath);
@@ -164,9 +168,10 @@ namespace Compiler
             try
             {
                 var smallImage = new MagickImage(sourceImage);
-                smallImage.Resize(SmallWidth, SmallHeight);
+                var geometry = new MagickGeometry(SmallWidth, SmallHeight) { IgnoreAspectRatio = true };
+                smallImage.Resize(geometry);
                 smallImage.Format = MagickFormat.Tga;
-
+                smallImage.Settings.SetDefine(MagickFormat.Tga, "write-top-left", "false");
                 var smallPath = Path.Combine(smallDir, fileName);
                 smallImage.Write(smallPath);
 

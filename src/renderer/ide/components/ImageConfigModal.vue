@@ -67,12 +67,12 @@
               class="w-full bg-[#2d2d2d] border border-[#333333] rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-[#007acc]"
             >
               <option value="" disabled>Select image type...</option>
-              <option value="focus">Focus/Focus Tree</option>
-              <option value="ideas">Ideas/National spirits</option>
-              <option value="flag">Country Flag (Auto 3 Sizes when compiled: 82x52, 41x26, 10x7)</option>
-              <option value="equipment">Equipment / Technology</option>
-              <option value="event">Event Picture</option>
-              <option value="fallback">Standard / Fallback (Uncompressed dds)</option>
+              <option value="focus">Focus/Focus Tree (max 84px x 84px)</option>
+              <option value="ideas">Ideas/National spirits (max 65px x 67px)</option>
+              <option value="flag">Country Flag (Auto generates 3 Sizes when compiled: 82x52, 41x26, 10x7)</option>
+              <option value="equipment">Equipment / Technology (max 146px x 54px)</option>
+              <option value="event">Event Picture (max 400px x 116px)</option>
+              <option value="fallback">Standard / ScriptedGui (8.8.8.8 BGRA 32-bit Unsigned (Uncompressed) dds, no size enforcement)</option>
             </select>
           </div>
 

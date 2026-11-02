@@ -1,0 +1,24 @@
+draggable window info_window
+    size x700 y600 
+    position x430 y270
+    sprite "GFX_tiled_window"
+    visible
+        has_country_flag = open_info_panel
+
+    text
+        text "§HYabadabadoo§"
+        font "hoi_36header"
+        position x200 y10
+        max size x400 y30
+
+    button
+        sprite "GFX_closebutton"
+        position x665 y2 
+        on click
+            set_country_flag = open_confirmation_popup
+
+    text
+        text "§BUsefull information, blah blah blah, blah blah.§"
+        font "hoi_20b"
+        position x270 y50
+

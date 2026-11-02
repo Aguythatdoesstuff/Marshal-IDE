@@ -54,11 +54,13 @@ country "Testlandia" with tag TST
     capital 121
     map color 2 10 222 # RGB definition about the country's default colour on the political map mode
     ui color 255 255 155 # coloring for common/countries/colors.txt is currently likley unsupported and needs manual action, specifically this: color_ui = rgb { 255 255 155 }
-
+    
+    set_oob = divisionsssss
 
     add_ideas = {
         war_economy
         extensive_conscription
+        leader_dumbass
     }
     set_technology = {
         infantry_weapons = 1

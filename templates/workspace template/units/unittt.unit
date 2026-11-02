@@ -1,12 +1,11 @@
-unit artillery 
-    abbreviation "ART"
-    name "Artillery"
-    desc "Artillery"
+unit banana 
+    abbreviation "BAN"
+    name "banana"
+    desc "banana verry tasty and long"
     unit model "artillery"
 
-    unit types some_other_type
+    unit types support
         infantry
-        support
 
     unit categories category_divisional_support_battalions
         category_support_battalions
@@ -15,7 +14,7 @@ unit artillery
         category_support_artillery
 
     required equipment
-        artillery_equipment = 12
+        banana_equipment = 12
 
     map_icon_category = infantry
     priority = 0

@@ -1,5 +1,5 @@
-define type anti_air_equipment available from 1934
-    sprite "archetype_anti_air_equipment"
+define type banana_equipment_equipment available from 1934
+    sprite "archetype_banana"
     # internally its: type = <type>	   	# Internal type: what kind of unit can use this equipment
     for units 
         anti_air
@@ -14,8 +14,8 @@ define type anti_air_equipment available from 1934
     maximum_speed = 4
 
     #Defensive Abilities
-    defense = 4
-    breakthrough = 1
+    defense = 400
+    breakthrough = 100
     hardness = 0
     armor_value = 0
 
@@ -33,26 +33,26 @@ define type anti_air_equipment available from 1934
         steel = 2
     }
 
-	equipment anti_air_equipment_1 available from 1936 #because anti_air_equipment_1 is inside of anti_air_equipment we know anti_air_equipment_1 uses anti_air_equipment as its archtype
-		name "My cool equipment"
-        desc "My verry long description"
+	equipment banana_equipment_1 available from 1936 #because banana_equipment_1 is inside of banana we know banana_equipment_1 uses banana as its archtype
+		name "My banana"
+        desc "My verry long banana"
         short desc "cool desc"
 
-        name for GER "My cool equipment"
-        desc for GER "My verry long description"
-        short desc for GER "cool desc"
+            name for TST "My small banana2"
+            desc for TST "My verry small banana2"
+            short desc for TST "cool small desc2"
 
         priority = 80
 		visual_level = 0
 
-        equipment anti_air_equipment_2 available from 1940 # clearly parent = anti_air_equipment_1 archetype = anti_air_equipment
-            name "My cool equipment2"
-            desc "My verry long description2"
+        equipment banana_equipment_2 available from 1940 # clearly parent = banana_equipment_1 archetype = banana
+            name "My banana2"
+            desc "My verry long banana2"
             short desc "cool desc2"
 
-            name for GER "My cool equipment2"
-            desc for GER "My verry long description2"
-            short desc for GER "cool desc2"
+            name for TST "My small banana2"
+            desc for TST "My verry small banana2"
+            short desc for TST "cool small desc2"
             
             priority = 80
             visual_level = 1
