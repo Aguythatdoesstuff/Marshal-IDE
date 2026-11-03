@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs-extra';
 import { resolveBinaryPath } from './binaryUtils.js';
+import process from 'node:process';
 
 let imgConverterProcess = null;
 
@@ -147,7 +148,10 @@ export async function processImage(filePath, imageType, mainOutputDir, cacheOutp
             '-ft', targetConfig.fileType,
             '-f', targetConfig.format,
             '-y',
-            ...(imageType === 'flag' ? ['-vflip'] : []), // vital for country flags to be oriented correctly in-game (ORIGIN NEEDS TO BE BOTTOM LEFT)
+            // Vital for country flags on Windows (sets origin to bottom-left via texconv).
+            // On Linux, -vflip is skipped here because changing TGA origin isn't supported by the Linux texconv binary;
+            // instead, the physical image pixels are flipped upside down downstream as a glue fix (looks correct in-game, though upside down in image editors).
+            ...(imageType === 'flag' && process.platform !== 'linux' ? ['-vflip'] : []),
             '-o', path.resolve(mainOutputDir),
             '--',
             absolutePath

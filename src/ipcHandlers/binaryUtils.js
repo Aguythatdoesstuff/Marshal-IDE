@@ -12,9 +12,13 @@ import { app } from 'electron';
  */
 export function resolveBinaryPath(componentName, loggerFn) {
     const SOURCE = 'Binary-Utils';
+    // If loggerFn is already the wrapper from spawnImgConverter, 
+    // we can just call it directly with (type, message, source)
     const log = (type, message, source = SOURCE) => {
         if (typeof loggerFn === 'function') {
-            loggerFn({ type, message, source });
+            // Check if loggerFn expects an object or primitive
+            // If loggerFn is spawnImgConverter's log, it expects (type, message, source)
+            loggerFn(type, message, source);
         }
     };
 

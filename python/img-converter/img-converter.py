@@ -168,6 +168,27 @@ def process_command(cmd_str: str, texconv_exe: Path) -> None:
             cmd_args.append(payload)
 
         if cmd_args:
+            # --- Linux WIC Workaround Interception ---
+            if platform.system() == "Linux":
+                # Standalone WIC-dependent flags used in texconv
+                wic_flags = {"-vflip", "-hflip"}
+                filtered_args = []
+                skipped_flags = []
+
+                for arg in cmd_args:
+                    if arg.lower() in wic_flags:
+                        skipped_flags.append(arg)
+                    else:
+                        filtered_args.append(arg)
+
+                if skipped_flags:
+                    # Send warning via stdout (IPC) so host process knows
+                    print(f"[WARNING] Linux environment: Stripped WIC-dependent flag(s) {skipped_flags}. Pipeline will handle orientation.")
+                    log(f"Linux WIC workaround: Filtered out {skipped_flags} from argument list.")
+                
+                cmd_args = filtered_args
+            # ----------------------------------------
+
             log(f"Spawning texconv with arguments: {cmd_args}")
             try:
                 result = run_texconv(texconv_exe, cmd_args)
