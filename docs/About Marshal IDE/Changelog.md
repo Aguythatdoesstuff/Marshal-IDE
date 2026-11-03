@@ -2,7 +2,7 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
-## [1.5.0] - not yet published - DX Update
+## [1.5.0] - 2026-11-03 - DX Update
 ### Added
     - **Asset Suite**: 
         - Built-in `.dds` image previewer.
