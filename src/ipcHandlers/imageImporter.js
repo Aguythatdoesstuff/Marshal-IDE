@@ -382,27 +382,83 @@ export function registerImageImporterHandlers(ipcMain, context) {
         return { success: !hasFailures, results };
     });
 
-    async function findFileRecursive(dir, targetName) {
-        if (!(await fs.pathExists(dir))) return null;
-        const entries = await fs.readdir(dir, { withFileTypes: true });
+    async function findFileRecursive(dir, targetName, imageType = 'fallback', appLogger = null) {
+        if (!(await fs.pathExists(dir))) {
+            appLogger?.info(`[Main-Img-Scan] Directory does not exist or is inaccessible: ${dir}`, { source: 'Main-Scan' });
+            return null;
+        }
+        
+        appLogger?.info(`[Main-Img-Scan] Scanning directory: "${dir}" looking for base name: "${targetName}" (Image Type: ${imageType})`, { source: 'Main-Scan' });
+        
+        let entries;
+        try {
+            entries = await fs.readdir(dir, { withFileTypes: true });
+        } catch (err) {
+            appLogger?.error(`[Main-Img-Scan] Failed to read directory entries at ${dir}: ${err.message}`, { source: 'Main-Scan' });
+            return null;
+        }
+        
+        const targetLower = targetName.toLowerCase();
+        const expectedExt = imageType === 'flag' ? '.tga' : '.dds';
+
+        let primaryMatch = null;
+        let fallbackMatch = null;
+
         for (const entry of entries) {
             const fullPath = path.join(dir, entry.name);
             if (entry.isDirectory()) {
-                const found = await findFileRecursive(fullPath, targetName);
-                if (found) return found;
+                appLogger?.info(`[Main-Img-Scan] Entering subdirectory: ${fullPath}`, { source: 'Main-Scan' });
+                const found = await findFileRecursive(fullPath, targetName, imageType, appLogger);
+                if (found) {
+                    const parsedFound = path.parse(found);
+                    appLogger?.info(`[Main-Img-Scan] Candidate found in subdirectory: ${found} (Extension: ${parsedFound.ext}, Expected: ${expectedExt})`, { source: 'Main-Scan' });
+                    if (parsedFound.ext.toLowerCase() === expectedExt) {
+                        appLogger?.info(`[Main-Img-Scan] Primary match confirmed via recursion: ${found}`, { source: 'Main-Scan' });
+                        return found;
+                    }
+                    if (!fallbackMatch) {
+                        fallbackMatch = found;
+                        appLogger?.info(`[Main-Img-Scan] Fallback match registered via recursion: ${found}`, { source: 'Main-Scan' });
+                    }
+                }
             } else if (entry.isFile()) {
                 const parsed = path.parse(entry.name);
-                if (parsed.name === targetName) {
-                    return fullPath;
+                const ext = parsed.ext.toLowerCase();
+                
+                // Only check .dds and .tga files, matching base name case-insensitively
+                if (ext === '.dds' || ext === '.tga') {
+                    const baseNameMatches = parsed.name.toLowerCase() === targetLower;
+                    appLogger?.info(`[Main-Img-Scan] Inspecting file: "${entry.name}" | Base Match (${parsed.name.toLowerCase()} === ${targetLower}): ${baseNameMatches} | Ext: ${ext} (Expected: ${expectedExt})`, { source: 'Main-Scan' });
+                    
+                    if (baseNameMatches) {
+                        if (ext === expectedExt) {
+                            primaryMatch = fullPath;
+                            appLogger?.info(`[Main-Img-Scan] SUCCESS: Found exact primary match: ${fullPath}`, { source: 'Main-Scan' });
+                            return primaryMatch;
+                        } else if (!fallbackMatch) {
+                            fallbackMatch = fullPath;
+                            appLogger?.warn(`[Main-Img-Scan] WARNING: Found base match with mismatched extension (${ext} instead of ${expectedExt}): ${fullPath}`, { source: 'Main-Scan' });
+                        }
+                    }
                 }
             }
         }
-        return null;
+        
+        const finalResult = primaryMatch || fallbackMatch || null;
+        if (finalResult) {
+            appLogger?.info(`[Main-Img-Scan] Finished scanning "${dir}". Selected match: ${finalResult}`, { source: 'Main-Scan' });
+        } else {
+            appLogger?.info(`[Main-Img-Scan] Finished scanning "${dir}". No matching .dds or .tga file found for target "${targetName}".`, { source: 'Main-Scan' });
+        }
+        return finalResult;
     }
 
     async function resolveImagePreview(file, size, metaDirPath, appLogger) {
         const safeName = getSafeName(file);
+        appLogger?.info(`[Main-Img-Config] Starting preview resolution for safeName: "${safeName}" with requested size: "${size}"`, { source: 'Main-Config' });
+
         if (!safeName) {
+            appLogger?.error(`[Main-Img-Config] Failed: Could not determine safeName from input payload: ${JSON.stringify(file)}`, { source: 'Main-Config' });
             throw new Error("Could not determine safeName for preview resolution.");
         }
         
@@ -412,16 +468,22 @@ export function registerImageImporterHandlers(ipcMain, context) {
         const configPath = path.join(configDir, 'config.json');
         let config = {};
 
+        appLogger?.info(`[Main-Img-Config] Checking config path at: ${configPath}`, { source: 'Main-Config' });
         try {
             if (await fs.pathExists(configPath)) {
                 const fileContent = await fs.readFile(configPath, 'utf8');
                 config = JSON.parse(fileContent);
+                appLogger?.info(`[Main-Img-Config] Successfully loaded config.json for "${safeName}". ImageType configured as: "${config.imageType || 'none'}"`, { source: 'Main-Config' });
+            } else {
+                appLogger?.info(`[Main-Img-Config] config.json does not exist yet at ${configPath}`, { source: 'Main-Config' });
             }
         } catch (readErr) {
+            appLogger?.warn(`[Main-Img-Config] Failed to read or parse config.json at ${configPath}: ${readErr.message}`, { source: 'Main-Config' });
             config = {};
         }
 
         if (isThumbnail && config?.thumbnail) {
+            appLogger?.info(`[Main-Img-Config] Cache hit: Found embedded thumbnail in config.json for "${safeName}"`, { source: 'Main-Config' });
             return { 
                 success: true, 
                 size: '32x32', 
@@ -432,6 +494,7 @@ export function registerImageImporterHandlers(ipcMain, context) {
         }
 
         if (config?.imagePreviews?.[targetFileName]) {
+            appLogger?.info(`[Main-Img-Config] Cache hit: Found preview "${targetFileName}" in config.json imagePreviews mapping`, { source: 'Main-Config' });
             return { 
                 success: true, 
                 size, 
@@ -442,7 +505,9 @@ export function registerImageImporterHandlers(ipcMain, context) {
         }
 
         const targetImagePath = path.join(configDir, targetFileName);
+        appLogger?.info(`[Main-Img-Config] Checking physical preview file on disk at: ${targetImagePath}`, { source: 'Main-Config' });
         if (await fs.pathExists(targetImagePath)) {
+            appLogger?.info(`[Main-Img-Config] Cache hit: Found physical preview file on disk at ${targetImagePath}`, { source: 'Main-Config' });
             const buffer = await fs.readFile(targetImagePath);
             const base64Data = `data:image/png;base64,${buffer.toString('base64')}`;
             return {
@@ -454,38 +519,68 @@ export function registerImageImporterHandlers(ipcMain, context) {
             };
         }
 
-        appLogger?.warn(`[Main-Img-Config] Warning: Preview (${targetFileName}) for "${safeName}" not found. Generating via processImage.`, { source: 'Main-Config' });
+        appLogger?.warn(`[Main-Img-Config] Warning: Preview (${targetFileName}) for "${safeName}" not found in cache or disk. Initiating source search and generation via processImage.`, { source: 'Main-Config' });
 
         const inputDir = getInputDir();
         let filePath = null;
-        if (config.importedFrom && await fs.pathExists(config.importedFrom)) {
-            filePath = config.importedFrom;
-        } else if (inputDir) {
-            const gfxInputRoot = path.join(inputDir, 'gfx');
-            filePath = await findFileRecursive(gfxInputRoot, safeName);
+        if (!inputDir) {
+            appLogger?.error(`[Main-Img-Config] Error: inputDir is not defined or loaded. Cannot search for source image for "${safeName}".`, { source: 'Main-Config' });
+        } else {
+            let searchDir = inputDir;
+            
+            appLogger?.info(`[Main-Img-Config] Scanning inputDir root for 'gfx'/'GFX' folder case-insensitively at: ${inputDir}`, { source: 'Main-Config' });
+            
+            try {
+                const rootEntries = await fs.readdir(inputDir, { withFileTypes: true });
+                // Filter for any directory matching 'gfx' case-insensitively
+                const gfxEntries = rootEntries.filter(e => e.isDirectory() && e.name.toLowerCase() === 'gfx');
+                
+                if (gfxEntries.length > 0) {
+                    // Prioritize uppercase 'GFX' if it exists in the array, otherwise take the first match
+                    gfxEntries.sort((a, b) => (b.name === 'GFX' ? 1 : 0) - (a.name === 'GFX' ? 1 : 0));
+                    searchDir = path.join(inputDir, gfxEntries[0].name);
+                    appLogger?.info(`[Main-Img-Config] Successfully located asset directory: "${searchDir}"`, { source: 'Main-Config' });
+                } else {
+                    appLogger?.warn(`[Main-Img-Config] Warning: No 'gfx' or 'GFX' directory found in inputDir. Falling back to scanning entire inputDir root: "${inputDir}"`, { source: 'Main-Config' });
+                }
+            } catch (err) {
+                appLogger?.error(`[Main-Img-Config] Failed to read inputDir root entries: ${err.message}. Falling back to: "${inputDir}"`, { source: 'Main-Config' });
+                searchDir = inputDir;
+            }
+
+            const imageType = config.imageType || 'fallback';
+            appLogger?.info(`[Main-Img-Config] Delegating to findFileRecursive. Target Name: "${safeName}", ImageType: "${imageType}", Search Root: "${searchDir}"`, { source: 'Main-Config' });
+            
+            filePath = await findFileRecursive(searchDir, safeName, imageType, appLogger);
         }
 
         if (!filePath || !(await fs.pathExists(filePath))) {
-            appLogger?.error(`[Main-Img-Config] Error: Source image not found for ${safeName}`, { source: 'Main-Config' });
+            appLogger?.error(`[Main-Img-Config] ERROR: Source image search failed completely. No valid .dds or .tga source found for safeName "${safeName}" inside inputDir ("${inputDir}").`, { source: 'Main-Config' });
             throw new Error(`Source image not found for preview generation: ${safeName}`);
         }
 
+        appLogger?.info(`[Main-Img-Config] SUCCESS: Source image located at: "${filePath}". Proceeding to trigger processImage daemon.`, { source: 'Main-Config' });
+
         const mainOutputDir = path.dirname(filePath);
         const cacheOutputDir = configDir;
-        const imageType = config.imageType || 'fallback';
+        const imageTypeToUse = config.imageType || 'fallback';
 
         const result = await processImage({
             filePath,
-            imageType,
+            imageType: imageTypeToUse,
             mainOutputDir,
             cacheOutputDir
         });
 
         if (!result || !result.success) {
+            appLogger?.error(`[Main-Img-Config] ERROR: processImage daemon failed for "${safeName}". Message: ${result?.message || 'Unknown error'}`, { source: 'Main-Config' });
             throw new Error(result?.message || `Failed to process image for preview: ${safeName}`);
         }
 
+        appLogger?.info(`[Main-Img-Config] processImage completed successfully. Verifying generated preview output at: ${targetImagePath}`, { source: 'Main-Config' });
+
         if (!(await fs.pathExists(targetImagePath))) {
+            appLogger?.error(`[Main-Img-Config] ERROR: Expected generated preview image is missing from disk at: ${targetImagePath}`, { source: 'Main-Config' });
             throw new Error(`Generated preview image not found at: ${targetImagePath}`);
         }
 
@@ -493,12 +588,14 @@ export function registerImageImporterHandlers(ipcMain, context) {
         const base64Data = `data:image/png;base64,${buffer.toString('base64')}`;
 
         if (isThumbnail) {
+            appLogger?.info(`[Main-Img-Config] Embedding generated 32x32 thumbnail into config.json for "${safeName}"`, { source: 'Main-Config' });
             config.thumbnail = base64Data;
             delete config.imagePreviews;
 
             const tempPath = `${configPath}.${Date.now()}.${Math.random().toString(36).substring(2, 8)}.tmp`;
             await fs.outputJson(tempPath, config, { spaces: 2 });
             await fs.move(tempPath, configPath, { overwrite: true });
+            appLogger?.info(`[Main-Img-Config] Successfully updated config.json with new thumbnail.`, { source: 'Main-Config' });
         }
 
         return { 
