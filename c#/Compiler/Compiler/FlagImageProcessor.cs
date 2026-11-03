@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using ImageMagick;
 
 namespace Compiler
@@ -109,6 +110,42 @@ namespace Compiler
         }
 
         /// <summary>
+        /// Applies a vertical flip to the image on Linux systems as a workaround for unsupported -vflip flag.
+        /// 
+        /// CONTEXT & EXPLANATION:
+        /// Both Windows and Linux require the TGA image origin to be flipped from top-left to bottom-left
+        /// for correct in-game rendering (otherwise the flag appears upside down in-game).
+        /// 
+        /// On Windows, the image converter daemon applies the -vflip flag, producing a TGA with bottom-left origin.
+        /// 
+        /// However, the -vflip flag is NOT supported by Texconv-Custom-DLL on Linux systems due to a 
+        /// Windows-only dependency. The Texconv binary will error out if it receives this flag on Linux.
+        /// See: https://github.com/matyalatte/Texconv-Custom-DLL (MIT License, Copyright 2022-2025 matyalatte)
+        /// 
+        /// The image conversion daemon filters out -vflip and -hflip flags on Linux to prevent these 
+        /// unsupported flags from reaching the Texconv binary. This means the converter produces a TGA 
+        /// with top-left origin on Linux (the incorrect origin).
+        /// 
+        /// GLUE FIX (FINAL PIPELINE STEP):
+        /// This FlagImageProcessor is the final step in the pipeline. It receives the already-converted TGA file
+        /// and resizes it to three standard sizes. On Linux, since the converter couldn't apply -vflip,
+        /// we apply a vertical flip here as a glue fix to correct the image origin before outputting the 
+        /// final resized images. Flipping in code makes the image appear upside down in image editors
+        /// but renders correctly in-game, which is the desired behavior.
+        /// 
+        /// This ensures flags render correctly in-game on both Windows and Linux platforms.
+        /// </summary>
+        private static void ApplyLinuxImageFlip(MagickImage image)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                image.Flip();
+                Compiler.Logging.Logger.LogComponent("FlagImageProcessor", 
+                    "Applied vertical flip to flag image for Linux OS (workaround for unsupported write-top-left TGA flag on Linux)");
+            }
+        }
+
+        /// <summary>
         /// Outputs the standard sized flag image (82x52 pixels).
         /// </summary>
         private static void OutputStandardSize(MagickImage sourceImage, string flagsOutputDir, string fileName, List<string> outputFiles)
@@ -118,6 +155,10 @@ namespace Compiler
                 var standardImage = new MagickImage(sourceImage);
                 var geometry = new MagickGeometry(StandardWidth, StandardHeight) { IgnoreAspectRatio = true };
                 standardImage.Resize(geometry);
+
+                // Apply Linux vertical flip workaround AFTER resizing
+                ApplyLinuxImageFlip(standardImage);
+
                 standardImage.Format = MagickFormat.Tga;
                 standardImage.Settings.SetDefine(MagickFormat.Tga, "write-top-left", "false");
 
@@ -144,6 +185,10 @@ namespace Compiler
                 var mediumImage = new MagickImage(sourceImage);
                 var geometry = new MagickGeometry(MediumWidth, MediumHeight) { IgnoreAspectRatio = true };
                 mediumImage.Resize(geometry);
+
+                // Apply Linux vertical flip workaround AFTER resizing
+                ApplyLinuxImageFlip(mediumImage);
+
                 mediumImage.Format = MagickFormat.Tga;
                 mediumImage.Settings.SetDefine(MagickFormat.Tga, "write-top-left", "false");
 
@@ -170,8 +215,13 @@ namespace Compiler
                 var smallImage = new MagickImage(sourceImage);
                 var geometry = new MagickGeometry(SmallWidth, SmallHeight) { IgnoreAspectRatio = true };
                 smallImage.Resize(geometry);
+
+                // Apply Linux vertical flip workaround AFTER resizing
+                ApplyLinuxImageFlip(smallImage);
+
                 smallImage.Format = MagickFormat.Tga;
                 smallImage.Settings.SetDefine(MagickFormat.Tga, "write-top-left", "false");
+
                 var smallPath = Path.Combine(smallDir, fileName);
                 smallImage.Write(smallPath);
 
