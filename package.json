@@ -17,7 +17,7 @@
     "dist:all": "electron-vite build && electron-builder --win --linux"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.5",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "chokidar": "^3.6.0",
