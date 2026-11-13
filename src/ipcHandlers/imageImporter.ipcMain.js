@@ -4,7 +4,8 @@ import fs from 'fs-extra';
 
 export function registerImageImporterHandlers(ipcMain, context) {
     const { getInputDir, getLogger, updateManifest, getMetadataDir, processImage } = context;
-
+    
+    
     /**
      * Helper to consistently extract the exact base name (without extension) from a string path,
      * filename, or payload object, strictly preserving spaces, hyphens, and original casing,
@@ -27,7 +28,15 @@ export function registerImageImporterHandlers(ipcMain, context) {
         }
         return '';
     }
-
+    // Update the 'process-image' IPC handler to call the helper
+    ipcMain.handle('process-image', async (event, args) => {
+        try {
+            return await processImage(args);
+        } catch (error) {
+            appLogger?.error(`Image processing IPC failure: ${error.message}`, { source: 'Main-IPC-ImgConverter' });
+            return { success: false, message: error.message };
+        }
+    });
     ipcMain.handle('prepare-img-import', async (event, args) => {
         const appLogger = getLogger();
         const INPUT_DIR = getInputDir();
