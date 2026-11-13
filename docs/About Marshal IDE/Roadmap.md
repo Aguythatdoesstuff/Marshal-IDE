@@ -9,9 +9,6 @@ This document outlines the planned trajectory for Marshal IDE. Note: Features ma
 ### Code Cleanup & Architecture
     - **Main Process De-bloating (`main.js`)**: 
         - Refactor and modularize IPC handler registration away from `main.js` into dedicated domain modules to reduce file bloat and improve maintainability.
-### Reliability & Error Handling
-    - **Fatal Error Watchdog (Sidecar Process)**:
-        - Introduced a lightweight, native C# companion watchdog process spawned directly by the main application at startup. It runs independently to stream application `stderr` into a dedicated `watchdog.log` file within the metadata directory. Upon detecting a fatal crash, it copies the log to the desktop as an accessible crash report and triggers a native OS notification as a bulletproof fallback layer.
 ---
 ## 🔭 Long-term Research & Development
 - **Workflow Tools**:
