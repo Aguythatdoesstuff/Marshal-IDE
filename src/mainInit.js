@@ -3,8 +3,8 @@ import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'path';
 import fs from 'fs-extra';
 import { fileURLToPath} from 'url'; 
-import logger from './src/logger.cjs';
-import { processImage } from './src/ipcHandlers/img-converter.binary.js';
+import logger from './logger.cjs';
+import { processImage } from './ipcHandlers/img-converter.binary.js';
 
 const { handleIpcLog, initializeLogger, archiveCurrentSession, getSessionDir, getLogsRootDir, getLogsSessionDir, MAX_LOG_STORAGE_MB } = logger;
 const __filename = fileURLToPath(import.meta.url);

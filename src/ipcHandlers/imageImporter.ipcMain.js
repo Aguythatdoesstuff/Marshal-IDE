@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 
 export function registerImageImporterHandlers(ipcMain, context) {
-    const { getInputDir, getLogger, updateManifest, getMetadataDir, processImage } = context;
+    const { getInputDir, getLogger, getMetadataDir, processImage } = context;
     
     
     /**

@@ -1,9 +1,13 @@
+// These handle project creation, loading, deletion, exporting, and importing
+
 import { app, dialog, BrowserWindow } from 'electron';
+import { copyDir } from '../Helpers/filesystem.js';
+import { startWatcher } from '../Helpers/watcher.js';
 import path from 'path';
 import fs from 'fs-extra';
 import AdmZip from 'adm-zip';
 
-export function registerProjectHandlers(ipcMain, state, startWatcher, copyDir) {
+export function registerProjectHandlers(ipcMain, state) {
     // --- Project Management IPC ---
 
     ipcMain.handle('unload-project', async () => {
@@ -130,7 +134,7 @@ export function registerProjectHandlers(ipcMain, state, startWatcher, copyDir) {
 
             state.appLogger?.info(`Project loaded: ${projectName}`, { source: 'Main-Config' });
             
-            startWatcher(projectName); 
+            startWatcher(projectName, state); 
             return { success: true, projectName, config: state.currentProjectConfig };
 
         } catch (error) {
