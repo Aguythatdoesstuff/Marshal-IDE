@@ -12,6 +12,16 @@ export async function getFileContent(filePath, state) {
     }
 }
 
+/**
+ * Ensures all necessary directories exist in UserData on startup.
+ */
+export async function initializeDirectories(state) {
+    await fs.mkdir(state.USER_SETTINGS_DIR, { recursive: true });
+    await fs.mkdir(state.USER_PROJECTS_DIR, { recursive: true });
+    await fs.mkdir(state.USER_WORKSPACES_DIR, { recursive: true });
+    state.appLogger?.info(`Initialized directories at: ${state.USER_DATA_PATH}`, { source: 'Main-Init' });
+}
+
 
 export async function copyDir(src, dest, includeFiles = true) {
     await fs.mkdir(dest, { recursive: true }); 

@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import AdmZip from 'adm-zip';
 
-export function registerLoggerHandlers(ipcMain, state, logToSystem) {
+export function registerLoggerHandlers(ipcMain, state) {
 
     ipcMain.handle('get-log-directory', async () => {
         const logPath = state.getLogsRootDir(); 
@@ -27,6 +27,6 @@ export function registerLoggerHandlers(ipcMain, state, logToSystem) {
     });
 
     ipcMain.on('renderer-log', (event, data) => {
-        logToSystem(data);
+        state.appLogger?.info(data);
     });
 }

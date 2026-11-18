@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'path';
 import fs from 'fs-extra';
 import { fork } from 'child_process'; 
-import { logToSystem } from '../mainInit.js';
 import { spawnCompiler, compileFile, stopCompiler } from '../ipcHandlers/compiler.binary.js';
 /**
  * Starts the watcher process and sends a message to compile all files after startup.
@@ -40,16 +39,16 @@ export async function startWatcher(projectName, state) {
 
         // Handle compiler control actions sent from watcher
         if (logData.action === 'spawn-compiler') {
-            spawnCompiler(logData.config, logToSystem);
+            spawnCompiler(logData.config, state.handleIpcLog);
             return;
         }
         if (logData.action === 'compile-file') {
-            compileFile(logData.filePath, logData.outputOptions, logToSystem);
+            compileFile(logData.filePath, logData.outputOptions, state.handleIpcLog);
             return;
         }
         if (logData.action === 'stop-compiler') {
             console.log(`[Main] Received stop-compiler action from watcher. Stopping compiler...`);
-            stopCompiler(logData.source, logToSystem);
+            stopCompiler(logData.source, state.handleIpcLog);
             return;
         }
 
@@ -62,7 +61,7 @@ export async function startWatcher(projectName, state) {
                 buttons: ['OK']
             });
         }
-        logToSystem(logData);
+        state.handleIpcLog(logData);
     });
     
     state.watcherProcess.on('error', (err) => {

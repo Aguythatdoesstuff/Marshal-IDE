@@ -2,16 +2,18 @@
 import { app, dialog, BrowserWindow } from 'electron';
 import { startWatcher } from '../Helpers/watcher.js';
 import { checkEulaStatus } from '../eula_manager.js';
+import { readSettingsFile } from '../Helpers/settings.js';
 import path from 'path';
 import fs from 'fs-extra';
 import AdmZip from 'adm-zip';
 
-export function registerSettingsHandlers(ipcMain, state, readSettingsFile) {
+export function registerSettingsHandlers(ipcMain, state) {
     const eulaPromise = checkEulaStatus(state.appLogger);
+    
     // --- Settings IPC ---
     ipcMain.handle('load-all-global-settings', async () => {
         try {
-            const loggerSettings = await readSettingsFile(state.LOGGER_SETTINGS_PATH);
+            const loggerSettings = await readSettingsFile(state.LOGGER_SETTINGS_PATH, state);
             return { success: true, settings: { logger: loggerSettings } };
         } catch (error) {
             return { success: false, message: error.message };

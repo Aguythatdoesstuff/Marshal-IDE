@@ -11,19 +11,14 @@ import { registerDocsHandlers } from './src/ipcHandlers/docs.ipcMain.js';
 import { registerNavigationHandlers } from './src/ipcHandlers/navigation.ipcMain.js';
 import { createWindow } from './src/Helpers/window.js';
 import { setupAutoUpdater } from './src/ipcHandlers/updater.ipcMain.js';
+import { initializeDirectories } from './src/Helpers/filesystem.js';
 
 import { 
-    logToSystem, 
-    initializeDirectories, 
-    readSettingsFile,
-	executeProcessImage,
     state
 } from './src/mainInit.js';
 import path from 'path';
 import fs from 'fs-extra';
-import { runImporter } from './src/ipcHandlers/importer.binary.js';
 import { spawnImgConverter, stopImgConverter } from './src/ipcHandlers/img-converter.binary.js';
-import { getEditorCache, saveEditorCache } from './src/cacheHandler.js';
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -40,30 +35,24 @@ if (!gotTheLock) {
 		state.mainWindow.focus();
 	});
 	
-	registerSettingsHandlers(ipcMain, state, readSettingsFile);
+	registerSettingsHandlers(ipcMain, state);
 
 	registerFilesystemHandlers(ipcMain, state);
 
-	registerCompilerHandlers(ipcMain, state, getEditorCache, saveEditorCache,);
+	registerCompilerHandlers(ipcMain, state);
 
-	registerImporterHandlers(ipcMain, state, runImporter);
+	registerImporterHandlers(ipcMain, state);
 
-	registerLoggerHandlers(ipcMain, state, logToSystem);
+	registerLoggerHandlers(ipcMain, state);
 
 	registerDocsHandlers(ipcMain, state);
 
 	registerNavigationHandlers(ipcMain, state);
 
 
+	// todo: update registerImageImporterHandlers to use the new ipcMain and state instead of getters
+	registerImageImporterHandlers(ipcMain, state);
 
-	registerImageImporterHandlers(ipcMain, {
-		getInputDir: () => state.INPUT_DIR,
-		getMetadataDir: () => state.METADATA_DIR,
-		getOutputDir: () => state.OUTPUT_DIR,
-		getLogger: () => state.appLogger,
-		getConfig: () => state.currentProjectConfig,
-		processImage: executeProcessImage
-	});
 	registerProjectHandlers(ipcMain, state);
 	// ========================================================
 	// --- HELPER FUNCTIONS ---
@@ -75,21 +64,7 @@ if (!gotTheLock) {
 	
 
 	app.whenReady().then(async () => {
-	// 1. Load LogBroadcaster early to prevent preload script timing bugs
-    try {
-        const broadcasterPath = path.join(state.__dirname, 'LogBroadcaster.cjs');
-        state.LogBroadcaster = require(broadcasterPath);
-        
-        // 2. Set up a permanent data pipe directly to the browser window instance.
-        // This makes your UI logs immune to Vite frontend dev-server Hot Module Reloads!
-        state.LogBroadcaster.on('log', (msg) => {
-            if (state.mainWindow && !state.mainWindow.webContents.isDestroyed()) {
-                state.mainWindow.webContents.send('log-broadcaster-update', msg);
-            }
-        });
-    } catch (e) {
-        console.error(`Failed to load LogBroadcaster module early: ${e.message}`);
-    }
+
 		createWindow(state);
 
 	    const systemInfo = { 
@@ -117,15 +92,10 @@ if (!gotTheLock) {
 			console.error("Failed to read logger settings during bootstrap:", e.message);
 	    }
 
-		state.appLogger = await state.initializeLogger(LOGS_ROOT_PATH, systemInfo, state.mainWindow, maxStorageMB);
+		state.appLogger = await state.initializeLogger(LOGS_ROOT_PATH, systemInfo, state.mainWindow, maxStorageMB, state);
 
-		state.isLoggerReady = true; 
-
-		while (state.logBuffer.length > 0) {
-		    state.logger.handleIpcLog(state.logBuffer.shift());
-		}
 	    
-	    await initializeDirectories();
+	    await initializeDirectories(state);
 
 		if (app.isPackaged) { 
 			setupAutoUpdater(ipcMain, {
@@ -135,7 +105,7 @@ if (!gotTheLock) {
 			state.appLogger?.info(`Skipping setupAutoUpdater, Running in DEV.`, { source: 'Main-Init' })
 		}
 		
-		spawnImgConverter({ log_path: state.getLogsSessionDir() }, logToSystem);
+		spawnImgConverter({ log_path: state.getLogsSessionDir() }, state.handleIpcLog);
 		
 
 

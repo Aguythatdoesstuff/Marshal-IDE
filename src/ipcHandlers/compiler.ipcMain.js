@@ -2,11 +2,12 @@
 import { app, dialog, BrowserWindow } from 'electron';
 import { startWatcher } from '../Helpers/watcher.js';
 import { handleAstRequest } from '../Helpers/compiler.js';
+import  { getEditorCache, saveEditorCache } from '../Helpers/cache.js';
 import path from 'path';
 import fs from 'fs-extra';
 import AdmZip from 'adm-zip';
 
-export function registerCompilerHandlers(ipcMain, state, getEditorCache, saveEditorCache) {
+export function registerCompilerHandlers(ipcMain, state) {
 
     ipcMain.handle('run-compiler', async (event, { input, workspaceName }) => {
         try {

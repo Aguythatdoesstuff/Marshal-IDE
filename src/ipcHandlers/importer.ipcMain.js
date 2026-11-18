@@ -2,6 +2,7 @@ import { app, dialog, BrowserWindow } from 'electron';
 import path from 'path';
 import fs from 'fs-extra';
 import AdmZip from 'adm-zip';
+import { runImporter } from './importer.binary.js';
 
 export function registerImporterHandlers(ipcMain, state) {
 

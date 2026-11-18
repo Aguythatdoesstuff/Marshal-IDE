@@ -1,4 +1,4 @@
-const logBroadcaster = require('../modules/LogBroadcaster.cjs');
+const EventEmitter = require('events');
 const winston = require('winston');
 const path = require('path');
 const fs = require('fs/promises');
@@ -6,6 +6,11 @@ const archiver = require('archiver');
 const { createWriteStream, existsSync } = require('fs');
 const { dialog } = require('electron');
 const { performance } = require('perf_hooks');
+
+// --- Log Broadcaster ---
+// migrated directly here to avoid dynamic require bundling errors with Vite/Rollup.
+const logBroadcaster = new EventEmitter();
+logBroadcaster.setMaxListeners(20);
 
 // --- Configuration ---
 let LOGS_ROOT_DIR = null; 
@@ -174,10 +179,28 @@ function attemptArchiveOldSession(sessionDir, sessionTimestamp) {
     });
 }
 
-async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB) {
+/**
+ * Asynchronously initializes the logging system, setting up session storage paths, 
+ * Winston log transports, UI log piping via logBroadcaster, and buffer flushing.
+ * 
+ * @param {string} logsRootPath - Absolute path to the root logs storage directory.
+ * @param {Object} systemInfo - Operating system and architecture diagnostic metadata.
+ * @param {Electron.BrowserWindow} mainWin - Primary application window instance.
+ * @param {number} maxStorageMB - Maximum allowable log storage size in megabytes.
+ * @param {Object} state - The single global application state reference.
+ * @returns {Promise<winston.Logger>} The configured Winston logger instance.
+ */
+async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB, state) {
     if (logger) return logger;
     mainWindow = mainWin;
 
+    // Attach references to the global state container
+    if (state) {
+        state.mainWindow = mainWin;
+        state.LogBroadcaster = logBroadcaster;
+    }
+
+    // Configure storage byte thresholds if a valid numeric value is provided
     if (maxStorageMB && !isNaN(maxStorageMB)) {
         MAX_LOG_STORAGE_MB = maxStorageMB;
         MAX_LOG_STORAGE_BYTES = MAX_LOG_STORAGE_MB * 1024 * 1024;
@@ -186,6 +209,7 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB)
     LOGS_ROOT_DIR = logsRootPath;
     SESSION_DIR = path.join(LOGS_ROOT_DIR, SESSION_TIMESTAMP);
 
+    // Ensure the unique session log directory exists on disk
     try {
         await fs.mkdir(SESSION_DIR, { recursive: true });
     } catch (e) {
@@ -193,6 +217,15 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB)
         return console;
     }
 
+    // Set up a permanent data pipe directly to the browser window instance.
+    // This makes your UI logs immune to Vite frontend dev-server Hot Module Reloads!
+    logBroadcaster.on('log', (msg) => {
+        if (mainWindow && !mainWindow.webContents.isDestroyed()) {
+            mainWindow.webContents.send('log-broadcaster-update', msg);
+        }
+    });
+
+    // Define Winston output transports (Console for dev output, File for persistence)
     const transports = [
         new winston.transports.Console({
             level: 'debug',
@@ -207,41 +240,20 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB)
 
     logger = winston.createLogger({ level: 'debug', transports, exitOnError: false });
 
-    // --- FLUSH PRE-INIT BUFFER ---
+    state.isLoggerReady = true; 
+    
+    // Flush any logs accumulated in the pre-init buffer before logger readiness
     while (preInitBuffer.length > 0) {
         const bufferedLog = preInitBuffer.shift();
-        
-        // Pass exact timings so they match when they were actually fired
-        logger.log({ 
-            level: bufferedLog.level, 
-            message: bufferedLog.message, 
-            source: bufferedLog.source,
-            exactTimestamp: bufferedLog.timestamp,
-            exactDelta: bufferedLog.delta
-        });
-        
-        let specificLogFile;
-        if (bufferedLog.source.includes('Watcher')) specificLogFile = 'Watcher.log';
-        else if (bufferedLog.source.includes('Compiler')) specificLogFile = 'Compilers.log';
-
-        if (specificLogFile) {
-            const logEntry = formatLogString({ 
-                level: bufferedLog.level, 
-                message: bufferedLog.message, 
-                source: bufferedLog.source, 
-                exactTimestamp: bufferedLog.timestamp, 
-                exactDelta: bufferedLog.delta 
-            });
-            // Write synchronously here to ensure order is preserved before async processes start
-            require('fs').appendFileSync(path.join(SESSION_DIR, specificLogFile), `${logEntry}\n`);
-        }
+        handleIpcLog(bufferedLog);
     }
 
+    // Record system diagnostic startup metadata
     logger.info(`--- System Info ---`, { source: 'Logger-System' });
     logger.info(`Platform: ${systemInfo.platform}, Arch: ${systemInfo.arch}, Version: ${systemInfo.version}`, { source: 'Logger-System' });
     logger.info(`Session started in ${SESSION_DIR}`, { source: 'Logger-System' });
 
-    // BACKGROUND MAINTENANCE
+    // Execute background storage maintenance and session archiving asynchronously
     (async () => {
         try {
             if (existsSync(LOGS_ROOT_DIR)) {
@@ -259,6 +271,74 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB)
 
     logger.info('Logger initialized and ready.', { source: 'Logger-System' });
     return logger;
+}
+
+/**
+ * Handles incoming log data, normalizes payloads, broadcasts them directly via 
+ * logBroadcaster to the UI, buffers them if uninitialized, and writes 
+ * them to Winston transports and specific log files.
+ * 
+ * @param {Object|string} data - The log payload or message string to process.
+ */
+function handleIpcLog(data) {
+    const sanitized = {
+        level: (data && data.type) ? data.type.toLowerCase() : 'warn',
+        source: (data && data.source) ? data.source : 'Unknown-Process',
+        message: ''
+    };
+
+    if (typeof data === 'string') {
+        sanitized.message = data;
+    } else if (data && data.message) {
+        sanitized.message = data.message;
+    } else {
+        sanitized.message = JSON.stringify(data) || 'Empty/Null Log';
+    }
+
+    // Broadcast the log event directly via our local logBroadcaster instance
+    logBroadcaster.emit('log', {
+        level: sanitized.level,
+        message: sanitized.message,
+        source: sanitized.source,
+        timestamp: new Date().toISOString()
+    });
+
+    // Capture exact timing the moment the function is called
+    const exactTimestamp = new Date().toISOString().replace(/\..+/, '');
+    const exactDelta = getDelta();
+
+    // If logger isn't ready yet, buffer it with precise timings
+    if (!logger) {
+        preInitBuffer.push({
+            ...sanitized,
+            timestamp: exactTimestamp,
+            delta: exactDelta
+        });
+        return;
+    }
+
+    logger.log({ 
+        level: sanitized.level, 
+        message: sanitized.message, 
+        source: sanitized.source,
+        exactTimestamp,
+        exactDelta
+    });
+
+    let specificLogFile;
+    if (sanitized.source.includes('Watcher')) specificLogFile = 'Watcher.log';
+    else if (sanitized.source.includes('Compiler')) specificLogFile = 'Compilers.log';
+
+    if (specificLogFile) {
+        const logEntry = formatLogString({ 
+            level: sanitized.level, 
+            message: sanitized.message, 
+            source: sanitized.source, 
+            exactTimestamp, 
+            exactDelta 
+        });
+        fs.appendFile(path.join(SESSION_DIR, specificLogFile), `${logEntry}\n`).catch(() => {});
+    }
 }
 
 function archiveCurrentSession() {
@@ -308,58 +388,6 @@ function archiveCurrentSession() {
     });
 }
 
-function handleIpcLog(data) {
-    const sanitized = {
-        level: (data && data.type) ? data.type.toLowerCase() : 'warn',
-        source: (data && data.source) ? data.source : 'Unknown-Process',
-        message: ''
-    };
-
-    if (typeof data === 'string') {
-        sanitized.message = data;
-    } else if (data && data.message) {
-        sanitized.message = data.message;
-    } else {
-        sanitized.message = JSON.stringify(data) || 'Empty/Null Log';
-    }
-
-    // Capture exact timing the moment the function is called
-    const exactTimestamp = new Date().toISOString().replace(/\..+/, '');
-    const exactDelta = getDelta();
-
-    // If logger isn't ready yet, buffer it with the precise timings
-    if (!logger) {
-        preInitBuffer.push({
-            ...sanitized,
-            timestamp: exactTimestamp,
-            delta: exactDelta
-        });
-        return;
-    }
-
-    logger.log({ 
-        level: sanitized.level, 
-        message: sanitized.message, 
-        source: sanitized.source,
-        exactTimestamp,
-        exactDelta
-    });
-
-    let specificLogFile;
-    if (sanitized.source.includes('Watcher')) specificLogFile = 'Watcher.log';
-    else if (sanitized.source.includes('Compiler')) specificLogFile = 'Compilers.log';
-
-    if (specificLogFile) {
-        const logEntry = formatLogString({ 
-            level: sanitized.level, 
-            message: sanitized.message, 
-            source: sanitized.source, 
-            exactTimestamp, 
-            exactDelta 
-        });
-        fs.appendFile(path.join(SESSION_DIR, specificLogFile), `${logEntry}\n`).catch(() => {});
-    }
-}
 
 function getSessionDir() {
     return SESSION_DIR;
