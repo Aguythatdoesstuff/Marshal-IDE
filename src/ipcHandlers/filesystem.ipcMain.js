@@ -5,6 +5,7 @@ import { getFileContent, saveAndTriggerCompilation } from '../Helpers/filesystem
 import path from 'path';
 import fs from 'fs-extra';
 import AdmZip from 'adm-zip';
+import open from 'open';
 
 export function registerFilesystemHandlers(ipcMain, state) {
 

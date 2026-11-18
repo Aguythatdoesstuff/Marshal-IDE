@@ -69,12 +69,12 @@ export const state = {
 
 // Define the core helper function
 export async function executeProcessImage({ filePath, imageType, mainOutputDir, cacheOutputDir }) {
-    if (!INPUT_DIR) {
+    if (!state.INPUT_DIR) {
         return { success: false, message: "No project loaded." };
     }
 
-    const targetMainOutput = mainOutputDir || OUTPUT_DIR;
-    const targetCacheOutput = cacheOutputDir || path.join(currentProjectConfig.project_root, 'cache', 'images');
+    const targetMainOutput = mainOutputDir || state.OUTPUT_DIR;
+    const targetCacheOutput = cacheOutputDir || path.join(state.currentProjectConfig.project_root, 'cache', 'images');
 
     return await processImage(filePath, imageType, targetMainOutput, targetCacheOutput, logToSystem);
 }
