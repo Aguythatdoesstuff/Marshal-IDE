@@ -13,7 +13,6 @@ const logBroadcaster = new EventEmitter();
 logBroadcaster.setMaxListeners(20);
 
 // --- Configuration ---
-let LOGS_ROOT_DIR = null; 
 let SESSION_DIR = null; 
 
 let MAX_LOG_STORAGE_MB = 20;
@@ -40,7 +39,6 @@ const formatLogString = ({ level, message, timestamp, source, exactTimestamp, ex
 const winstonLogFormat = winston.format.printf(formatLogString);
 
 let logger = null;
-let mainWindow = null;
 const preInitBuffer = [];
 
 // ========================================================
@@ -107,11 +105,11 @@ async function getDirectorySize(itemPath) {
 /**
  * Detailed Storage Maintenance
  */
-async function performStorageMaintenance() {
-    if (!LOGS_ROOT_DIR || !existsSync(LOGS_ROOT_DIR)) return;
+async function performStorageMaintenance(state) {
+    if (!state.LOGS_ROOT_PATH || !existsSync(state.LOGS_ROOT_PATH)) return;
     if (!logger) return;
 
-    const entries = await fs.readdir(LOGS_ROOT_DIR, { withFileTypes: true });
+    const entries = await fs.readdir(state.LOGS_ROOT_PATH, { withFileTypes: true });
     const logItems = [];
     let initialSize = 0;
 
@@ -119,7 +117,7 @@ async function performStorageMaintenance() {
         // We only care about session directories or archived zip files
         if (!entry.isDirectory() && (!entry.isFile() || !entry.name.endsWith('.zip'))) continue;
         
-        const fullPath = path.join(LOGS_ROOT_DIR, entry.name);
+        const fullPath = path.join(state.LOGS_ROOT_PATH, entry.name);
         const size = await getDirectorySize(fullPath);
         initialSize += size;
         logItems.push({ name: entry.name, path: fullPath, size });
@@ -153,15 +151,15 @@ async function performStorageMaintenance() {
 
     const finalMB = (currentSize / (1024 * 1024)).toFixed(2);
     if (deletedCount > 0) {
-        logger.info(`Storage maintenance complete. Deleted ${deletedCount} item(s). New total: ${finalMB} MB.`, { source: 'Logger-Maintenance' });
+        logger.info(`Storage maintenance complete. Deleted ${deletedCount} item(s). New total: ${finalMB} MB. Max log storage ${MAX_LOG_STORAGE_MB} MB.`, { source: 'Logger-Maintenance' });
     } else {
-        logger.info(`Storage maintenance complete. No deletions required. Total usage: ${finalMB} MB.`, { source: 'Logger-Maintenance' });
+        logger.info(`Storage maintenance complete. No deletions required. Total usage: ${finalMB} MB. Max log storage ${MAX_LOG_STORAGE_MB} MB.`, { source: 'Logger-Maintenance' });
     }
 }
 
 function attemptArchiveOldSession(sessionDir, sessionTimestamp) {
     return new Promise(async (resolve, reject) => {
-        const outputZipPath = path.join(LOGS_ROOT_DIR, `${sessionTimestamp}.zip`);
+        const outputZipPath = path.join(sessionDir, `${sessionTimestamp}.zip`);
         const output = createWriteStream(outputZipPath);
         const archive = archiver('zip', { zlib: { level: 9 } });
 
@@ -183,31 +181,43 @@ function attemptArchiveOldSession(sessionDir, sessionTimestamp) {
  * Asynchronously initializes the logging system, setting up session storage paths, 
  * Winston log transports, UI log piping via logBroadcaster, and buffer flushing.
  * 
- * @param {string} logsRootPath - Absolute path to the root logs storage directory.
- * @param {Object} systemInfo - Operating system and architecture diagnostic metadata.
- * @param {Electron.BrowserWindow} mainWin - Primary application window instance.
- * @param {number} maxStorageMB - Maximum allowable log storage size in megabytes.
+ * @param {Electron.BrowserWindow} mainWin - Primary application window instance..
  * @param {Object} state - The single global application state reference.
  * @returns {Promise<winston.Logger>} The configured Winston logger instance.
  */
-async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB, state) {
+async function initializeLogger(state) {
     if (logger) return logger;
-    mainWindow = mainWin;
 
     // Attach references to the global state container
     if (state) {
-        state.mainWindow = mainWin;
         state.LogBroadcaster = logBroadcaster;
     }
 
+    try {
+        const settingsExists = await fs.stat(state.LOGGER_SETTINGS_PATH).catch(() => false);
+        if (settingsExists) {
+            const logSettingsRaw = await fs.readFile(state.LOGGER_SETTINGS_PATH, 'utf8');
+            const logSettings = JSON.parse(logSettingsRaw);
+            
+            const configValue = logSettings.max_archived_mb || logSettings.max_storage_size;
+
+            if (configValue && !isNaN(configValue)) {
+                MAX_LOG_STORAGE_MB = parseInt(configValue, 10);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to read logger settings during bootstrap:", e.message);
+    }
+
+
+
+
     // Configure storage byte thresholds if a valid numeric value is provided
-    if (maxStorageMB && !isNaN(maxStorageMB)) {
-        MAX_LOG_STORAGE_MB = maxStorageMB;
+    if (MAX_LOG_STORAGE_MB && !isNaN(MAX_LOG_STORAGE_MB)) {
         MAX_LOG_STORAGE_BYTES = MAX_LOG_STORAGE_MB * 1024 * 1024;
     }
 
-    LOGS_ROOT_DIR = logsRootPath;
-    SESSION_DIR = path.join(LOGS_ROOT_DIR, SESSION_TIMESTAMP);
+    SESSION_DIR = path.join(state.LOGS_ROOT_PATH, SESSION_TIMESTAMP);
 
     // Ensure the unique session log directory exists on disk
     try {
@@ -220,8 +230,8 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB,
     // Set up a permanent data pipe directly to the browser window instance.
     // This makes your UI logs immune to Vite frontend dev-server Hot Module Reloads!
     logBroadcaster.on('log', (msg) => {
-        if (mainWindow && !mainWindow.webContents.isDestroyed()) {
-            mainWindow.webContents.send('log-broadcaster-update', msg);
+        if (state.mainWindow && !state.mainWindow.webContents.isDestroyed()) {
+            state.mainWindow.webContents.send('log-broadcaster-update', msg);
         }
     });
 
@@ -283,20 +293,20 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB,
 
     // Record system diagnostic startup metadata
     logger.info(`--- System Info ---`, { source: 'Logger-System' });
-    logger.info(`Platform: ${systemInfo.platform}, Arch: ${systemInfo.arch}, Version: ${systemInfo.version}`, { source: 'Logger-System' });
+    logger.info(`Platform: ${state.systemInfo.platform}, Arch: ${state.systemInfo.arch}, Version: ${state.systemInfo.version}`, { source: 'Logger-System' });
     logger.info(`Session started in ${SESSION_DIR}`, { source: 'Logger-System' });
 
     // Execute background storage maintenance and session archiving asynchronously
     (async () => {
         try {
-            if (existsSync(LOGS_ROOT_DIR)) {
-                const entries = await fs.readdir(LOGS_ROOT_DIR, { withFileTypes: true });
+            if (existsSync(state.LOGS_ROOT_PATH)) {
+                const entries = await fs.readdir(state.LOGS_ROOT_PATH, { withFileTypes: true });
                 const oldDirs = entries.filter(d => d.isDirectory() && d.name !== SESSION_TIMESTAMP);
                 for (const dir of oldDirs) {
-                    await attemptArchiveOldSession(path.join(LOGS_ROOT_DIR, dir.name), dir.name).catch(() => {});
+                    await attemptArchiveOldSession(path.join(state.LOGS_ROOT_PATH, dir.name), dir.name).catch(() => {});
                 }
             }
-            await performStorageMaintenance();
+            await performStorageMaintenance(state);
         } catch (maintenanceError) {
             if (logger) logger.error(`Background maintenance error: ${maintenanceError.message}`, { source: 'Logger-Maintenance' });
         }
@@ -365,7 +375,7 @@ function handleIpcLog(data) {
     }
 }
 
-function archiveCurrentSession() {
+function archiveCurrentSession(state) {
     return new Promise(async (resolve, reject) => {
         try {
             if (logger) {
@@ -379,7 +389,7 @@ function archiveCurrentSession() {
         } catch (e) {
         }
 
-        const outputZipPath = path.join(LOGS_ROOT_DIR, `${SESSION_TIMESTAMP}.zip`);
+        const outputZipPath = path.join(state.LOGS_ROOT_PATH, `${SESSION_TIMESTAMP}.zip`);
 
         const output = createWriteStream(outputZipPath);
         const archive = archiver('zip', { zlib: { level: 9 } });
@@ -422,7 +432,7 @@ module.exports = {
     handleIpcLog,
     archiveCurrentSession,
     getSessionDir,
-    getLogsRootDir: () => LOGS_ROOT_DIR, 
+    getLogsRootDir: () => state.LOGS_ROOT_PATH, 
     getLogsSessionDir: () => SESSION_DIR, 
     MAX_LOG_STORAGE_MB 
 };

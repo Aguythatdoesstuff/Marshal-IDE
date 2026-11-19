@@ -6,7 +6,7 @@ import AdmZip from 'adm-zip';
 export function registerLoggerHandlers(ipcMain, state) {
 
     ipcMain.handle('get-log-directory', async () => {
-        const logPath = state.getLogsRootDir(); 
+        const logPath = state.LOGS_ROOT_PATH; 
 
         if (logPath) { 
         return { success: true, path: logPath };

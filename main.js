@@ -1,5 +1,5 @@
 // main.js - The Electron Main Process
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
+import { app, ipcMain } from 'electron';
 import { registerImageImporterHandlers } from './src/ipcHandlers/imageImporter.ipcMain.js';
 import { registerProjectHandlers } from './src/ipcHandlers/project.ipcMain.js';
 import { registerSettingsHandlers } from './src/ipcHandlers/settings.ipcMain.js';
@@ -16,8 +16,6 @@ import { initializeDirectories } from './src/Helpers/filesystem.js';
 import { 
     state
 } from './src/mainInit.js';
-import path from 'path';
-import fs from 'fs-extra';
 import { spawnImgConverter, stopImgConverter } from './src/ipcHandlers/img-converter.binary.js';
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -49,50 +47,15 @@ if (!gotTheLock) {
 
 	registerNavigationHandlers(ipcMain, state);
 
-
-	// todo: update registerImageImporterHandlers to use the new ipcMain and state instead of getters
 	registerImageImporterHandlers(ipcMain, state);
 
 	registerProjectHandlers(ipcMain, state);
-	// ========================================================
-	// --- HELPER FUNCTIONS ---
-	// ========================================================
-
-
-
-
-	
 
 	app.whenReady().then(async () => {
 
 		createWindow(state);
-
-	    const systemInfo = { 
-			platform: process.platform, 
-			arch: process.arch, 
-			version: app.getVersion() 
-	    };
-
-	    const LOGS_ROOT_PATH = path.join(state.USER_DATA_PATH, 'logs');
 	    
-	    let maxStorageMB = 20; // Default
-	    try {
-		const settingsExists = await fs.stat(state.LOGGER_SETTINGS_PATH).catch(() => false);
-		if (settingsExists) {
-		    const logSettingsRaw = await fs.readFile(state.LOGGER_SETTINGS_PATH, 'utf8');
-		    const logSettings = JSON.parse(logSettingsRaw);
-		    
-		    const configValue = logSettings.max_archived_mb || logSettings.max_storage_size;
-
-		    if (configValue && !isNaN(configValue)) {
-		        maxStorageMB = parseInt(configValue, 10);
-		    }
-		}
-	    } catch (e) {
-			console.error("Failed to read logger settings during bootstrap:", e.message);
-	    }
-
-		state.appLogger = await state.initializeLogger(LOGS_ROOT_PATH, systemInfo, state.mainWindow, maxStorageMB, state);
+		state.appLogger = await state.initializeLogger(state);
 
 	    
 	    await initializeDirectories(state);
@@ -133,14 +96,14 @@ if (!gotTheLock) {
 
 				}
 			} catch (e) {
-				state.applogger?.error(`Error while terminating watcher process: ${e.message}`, { source: 'Main-Quit' });
+				state.appLogger?.error(`Error while terminating watcher process: ${e.message}`, { source: 'Main-Quit' });
 			}
 			state.watcherProcess = null;
 		}
 		await stopImgConverter();
 		if (!state.isArchivingAndQuitting) {
 			state.isArchivingAndQuitting = true;
-			await state.archiveCurrentSession();
+			await state.archiveCurrentSession(state);
 		}
 		app.quit();
 	});

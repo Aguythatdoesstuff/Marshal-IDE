@@ -15,6 +15,7 @@ const USER_DATA_PATH = app.getPath('userData');
 const USER_SETTINGS_DIR = path.join(USER_DATA_PATH, 'settings');
 const USER_PROJECTS_DIR = path.join(USER_DATA_PATH, 'projects', 'hoi4');
 const USER_WORKSPACES_DIR = path.join(USER_DATA_PATH, 'workspaces', 'hoi4');
+const LOGS_ROOT_PATH = path.join(USER_DATA_PATH, 'logs');
 
 // APP PATHS (Static/Code - Read-only, updated via app installer)
 const TEMPLATE_DIR = path.join(__dirname, 'templates', 'workspace template'); 
@@ -23,6 +24,12 @@ const WATCHER_SCRIPT_PATH = path.join(__dirname, 'src/watcher_workspace.js');
 
 // SETTINGS FILE PATHS
 const LOGGER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, 'logger_settings.json');
+
+const systemInfo = { 
+    platform: process.platform, 
+    arch: process.arch, 
+    version: app.getVersion() 
+};
 
 export const state = {
     handleIpcLog, 
@@ -43,6 +50,8 @@ export const state = {
     USER_SETTINGS_DIR,
     USER_PROJECTS_DIR,
     USER_WORKSPACES_DIR,
+    LOGS_ROOT_PATH,
+    systemInfo,
 
     // APP PATHS (Static/Code - Read-only, updated via app installer)
     TEMPLATE_DIR,
