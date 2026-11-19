@@ -240,6 +240,39 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB,
 
     logger = winston.createLogger({ level: 'debug', transports, exitOnError: false });
 
+    const originalLog = logger.log.bind(logger);
+    logger.log = (levelOrInfo, ...args) => {
+        const result = originalLog(levelOrInfo, ...args);
+        let level;
+        let message;
+        let source = 'Main';
+
+        if (typeof levelOrInfo === 'object' && levelOrInfo !== null) {
+            level = levelOrInfo.level;
+            message = levelOrInfo.message;
+            source = levelOrInfo.source || source;
+        } else {
+            level = levelOrInfo;
+            message = args[0];
+            if (args[1] && typeof args[1] === 'object' && args[1].source) {
+                source = args[1].source;
+            }
+        }
+
+        const resolvedMessage = typeof message === 'string'
+            ? message
+            : (message instanceof Error ? message.stack : JSON.stringify(message));
+
+        logBroadcaster.emit('log', {
+            level,
+            message: resolvedMessage,
+            source,
+            timestamp: new Date().toISOString()
+        });
+
+        return result;
+    };
+
     state.isLoggerReady = true; 
     
     // Flush any logs accumulated in the pre-init buffer before logger readiness
@@ -274,9 +307,8 @@ async function initializeLogger(logsRootPath, systemInfo, mainWin, maxStorageMB,
 }
 
 /**
- * Handles incoming log data, normalizes payloads, broadcasts them directly via 
- * logBroadcaster to the UI, buffers them if uninitialized, and writes 
- * them to Winston transports and specific log files.
+ * Handles incoming log data, normalizes payloads, buffers them if uninitialized, 
+ * and writes them to Winston transports and specific log files.
  * 
  * @param {Object|string} data - The log payload or message string to process.
  */
@@ -294,14 +326,6 @@ function handleIpcLog(data) {
     } else {
         sanitized.message = JSON.stringify(data) || 'Empty/Null Log';
     }
-
-    // Broadcast the log event directly via our local logBroadcaster instance
-    logBroadcaster.emit('log', {
-        level: sanitized.level,
-        message: sanitized.message,
-        source: sanitized.source,
-        timestamp: new Date().toISOString()
-    });
 
     // Capture exact timing the moment the function is called
     const exactTimestamp = new Date().toISOString().replace(/\..+/, '');
