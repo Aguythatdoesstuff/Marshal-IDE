@@ -52,11 +52,10 @@ if (!gotTheLock) {
 	registerProjectHandlers(ipcMain, state);
 
 	app.whenReady().then(async () => {
+		state.appLogger = await state.initializeLogger(state);
 
 		createWindow(state);
 	    
-		state.appLogger = await state.initializeLogger(state);
-
 	    
 	    await initializeDirectories(state);
 
@@ -69,9 +68,6 @@ if (!gotTheLock) {
 		}
 		
 		spawnImgConverter({ log_path: state.getLogsSessionDir() }, state.handleIpcLog);
-		
-
-
 		
 	});
 

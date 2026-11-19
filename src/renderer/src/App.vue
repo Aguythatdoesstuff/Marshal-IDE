@@ -158,9 +158,9 @@ onMounted(async () => {
 
   try {
     const bootState = await window.api.invoke('get-boot-state');
-    statusText.value = 'Loading Environment...';
-    appVersion.value = bootState.currentVersion || '1.0.0';
-    
+    statusText.value = 'Starting Marshal IDE...';
+    appVersion.value = bootState.currentVersion || 'Error fetching version...';
+
     if (bootState.enforceEula) { 
       currentScreen.value = 'EULA'; 
       pendingWhatsNew.value = bootState.showWhatsNew; 
