@@ -204,7 +204,7 @@ def main(args: list[str]) -> None:
         sys.exit(1)
 
     log(f"Received arguments: {args}")
-    
+
     # 2. Locate texconv binary
     try:
         texconv_exe = get_texconv_executable()
@@ -223,8 +223,22 @@ def main(args: list[str]) -> None:
     print("[READY] img-converter Worker started. Listening on stdin...")
     sys.stdout.flush()
 
+    if sys.stdin is None:
+        log("stdin is None (host stream closed/unavailable). Exiting.")
+        return
+
     try:
-        for line in sys.stdin:
+        while True:
+            try:
+                line = sys.stdin.readline()
+            except (ValueError, OSError) as e:
+                log(f"stdin closed or unreadable ({e}). Exiting.")
+                break
+
+            if line == "":
+                log("EOF on stdin (host process closed stdin). Exiting.")
+                break
+
             cmd = line.strip()
             if cmd.lower() in ("exit process", "exit", "quit", "shutdown"):
                 log("Received shutdown signal from host process. Exiting.")

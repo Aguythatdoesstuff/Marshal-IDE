@@ -19,6 +19,8 @@ def build():
         sys.exit(1)
 
     command = [
+        sys.executable,
+        "-m",
         "nuitka",
         "--standalone",
         "--onefile",
@@ -33,10 +35,11 @@ def build():
 
     # Clean up intermediate build folders inside the output directory
     print("Cleaning up intermediate build folders inside output directory...")
+    artifact_base = os.path.splitext(binary_name)[0]
     artifacts_to_remove = [
-        f"{binary_name}.build",
-        f"{binary_name}.dist",
-        f"{binary_name}.onefile-build",
+        f"{artifact_base}.build",
+        f"{artifact_base}.dist",
+        f"{artifact_base}.onefile-build",
         "img-converter.bin",  # Cleanup any legacy .bin artifacts if present
     ]
 

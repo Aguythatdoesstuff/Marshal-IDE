@@ -228,9 +228,10 @@ async function initializeLogger(state) {
     }
 
     // Set up a permanent data pipe directly to the browser window instance.
-    // This makes your UI logs immune to Vite frontend dev-server Hot Module Reloads!
+    // This makes UI logs immune to Vite frontend dev-server Hot Module Reloads!
     logBroadcaster.on('log', (msg) => {
-        if (state.mainWindow && !state.mainWindow.webContents.isDestroyed()) {
+        // Guard mainWindow and webContents with isDestroyed() so shutdown logs never throw "Object has been destroyed".
+        if (state.mainWindow && !state.mainWindow.isDestroyed() && state.mainWindow.webContents && !state.mainWindow.webContents.isDestroyed()) {
             state.mainWindow.webContents.send('log-broadcaster-update', msg);
         }
     });
@@ -268,17 +269,19 @@ async function initializeLogger(state) {
                 source = args[1].source;
             }
         }
-
         const resolvedMessage = typeof message === 'string'
             ? message
             : (message instanceof Error ? message.stack : JSON.stringify(message));
-
-        logBroadcaster.emit('log', {
-            level,
-            message: resolvedMessage,
-            source,
-            timestamp: new Date().toISOString()
-        });
+            
+        // Guard mainWindow and webContents with isDestroyed() so shutdown logs never throw "Object has been destroyed".
+        if (state.mainWindow && !state.mainWindow.isDestroyed() && state.mainWindow.webContents && !state.mainWindow.webContents.isDestroyed()) {
+            logBroadcaster.emit('log', {
+                level,
+                message: resolvedMessage,
+                source,
+                timestamp: new Date().toISOString()
+            });
+        }
 
         return result;
     };
