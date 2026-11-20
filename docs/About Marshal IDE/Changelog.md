@@ -7,6 +7,13 @@ All notable changes to the Marshal IDE and DSL will be documented in this file.
     - **Main Process De-bloating (`main.js`)**: 
         - Refactor and modularize IPC handler registration away from `main.js` into dedicated domain modules to reduce file bloat and improve maintainability.
 
+### Bug Fixes & Stability
+- **Session Archive `EBUSY` Recovery & Locking Process Cleanup (`src/logger.cjs`)**:
+  - Resolve `EBUSY` resource lock failures during session archiving and cleanup caused by lingering processes (such as compiler/watcher processes holding log files open on exit) from crashing session archiving.
+  - Detect locking processes and their names on Windows via Restart Manager (`Rstrtmgr.dll` through `koffi`), perform a two-pass retry with escalating termination signals (`SIGTERM`, `SIGINT`, `SIGKILL`) when needed, and log recovery steps via `originalConsole` after logger shutdown.
+- **Destroyed Window Log Broadcast Guard (`src/logger.cjs`)**:
+  - Guard `mainWindow` and `webContents` with `isDestroyed()` checks during log broadcasting to prevent `TypeError: Object has been destroyed` on app shutdown.
+
 ## [1.5.0] - 2026-11-03 - DX Update
 ### Added
     - **Asset Suite**: 

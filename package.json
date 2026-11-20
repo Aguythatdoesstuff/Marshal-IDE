@@ -23,6 +23,7 @@
     "chokidar": "^3.6.0",
     "electron-updater": "^6.6.2",
     "fs-extra": "^11.3.3",
+    "koffi": "^3.3.8",
     "monaco-editor": "^0.52.0",
     "open": "^10.2.0",
     "rete": "^2.0.6",
