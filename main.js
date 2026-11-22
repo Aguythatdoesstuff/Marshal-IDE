@@ -12,6 +12,7 @@ import { registerNavigationHandlers } from './src/ipcHandlers/navigation.ipcMain
 import { createWindow } from './src/Helpers/window.js';
 import { setupAutoUpdater } from './src/ipcHandlers/updater.ipcMain.js';
 import { initializeDirectories } from './src/Helpers/filesystem.js';
+import { spawnBinary, spawnBinaries, stopProcesses } from './src/Helpers/binary.js';
 
 import { 
     state
@@ -67,7 +68,8 @@ if (!gotTheLock) {
 			state.appLogger?.info(`Skipping setupAutoUpdater, Running in DEV.`, { source: 'Main-Init' })
 		}
 		
-		spawnImgConverter({ log_path: state.getLogsSessionDir() }, state.handleIpcLog);
+		// spawnImgConverter({ log_path: state.getLogsSessionDir() }, state.handleIpcLog);
+		spawnBinary("img-converter", state);
 		
 	});
 
@@ -82,6 +84,10 @@ if (!gotTheLock) {
 		// Prevent the default quit behavior so we can perform async cleanup
 		event.preventDefault();
 		isQuitting = true;
+		const processesToShutdown = [
+			state.imgConverterProcess
+		];
+		await stopProcesses(processesToShutdown, state.handleIpcLog, "Main-shutdown");
 		if (state.watcherProcess) {
 			try {
 				if (state.watcherProcess.connected) {
@@ -96,7 +102,6 @@ if (!gotTheLock) {
 			}
 			state.watcherProcess = null;
 		}
-		await stopImgConverter();
 		if (!state.isArchivingAndQuitting) {
 			state.isArchivingAndQuitting = true;
 			await state.archiveCurrentSession(state);

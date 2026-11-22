@@ -12,7 +12,7 @@ export async function executeProcessImage({ filePath, imageType, mainOutputDir, 
     const targetMainOutput = mainOutputDir || state.OUTPUT_DIR;
     const targetCacheOutput = cacheOutputDir || path.join(state.currentProjectConfig.project_root, 'cache', 'images');
 
-    return await processImage(filePath, imageType, targetMainOutput, targetCacheOutput, state.handleIpcLog);
+    return await processImage(filePath, imageType, targetMainOutput, targetCacheOutput, state.handleIpcLog, state);
 }
 
 /**
