@@ -6,6 +6,7 @@ import { startWatcher } from '../Helpers/watcher.js';
 import path from 'path';
 import fs from 'fs-extra';
 import AdmZip from 'adm-zip';
+import { spawnBinary, spawnBinaries, stopProcesses } from '../Helpers/binary.js';
 
 export function registerProjectHandlers(ipcMain, state) {
     // --- Project Management IPC ---
@@ -35,7 +36,7 @@ export function registerProjectHandlers(ipcMain, state) {
             } else {
                 state.appLogger?.warn('Watcher is already unexpectedly inactive!', { source: 'Main-Config' });
             }
-
+            await stopProcesses([state.compilerProcess], state.handleIpcLog, "Main-shutdown");
             // Clear memory state bindings safely
             state.currentProjectConfig = null;
             state.INPUT_DIR = null;
@@ -135,6 +136,7 @@ export function registerProjectHandlers(ipcMain, state) {
             state.appLogger?.info(`Project loaded: ${projectName}`, { source: 'Main-Config' });
             
             startWatcher(projectName, state); 
+            spawnBinary("compiler", state);
             return { success: true, projectName, config: state.currentProjectConfig };
 
         } catch (error) {

@@ -15,8 +15,6 @@ const ALLOWED_EXTENSIONS = new Set(['.event', '.decision', '.scriptedgui', '.scr
 // --- Process Safety ---
 const checkParentAndExit = () => {
     if (!process.connected) {
-        console.log('warn', 'Parent process disconnected. Watcher terminating compiler process...', 'Watcher-Lifecycle');
-        stopCompilerProcess();
         process.exit(0);
     }
 };
@@ -34,21 +32,6 @@ async function setupWorkspace() {
         const payloadString = process.argv[2]; 
         if (!payloadString) throw new Error(`No config payload.`);
         config = JSON.parse(payloadString);
-        const cache_dir = path.join(config.metadata_dir, 'fileOutCache');
-
-        logToMain('info', `Requesting main process to spawn persistent compiler process...`, SOURCE);
-        process.send({
-            action: 'spawn-compiler',
-            config: {
-                output_dir: config.output_dir,
-                log_dir: config.log_dir,    
-                cache_dir: cache_dir
-            }
-        });
-
-        process.on('exit', () => {
-            stopCompilerProcess();
-        });
 
     } catch (error) {
         logToMain('error', `Setup failed: ${error.message}`, SOURCE);
@@ -144,27 +127,18 @@ function walkAndCompile(dirPath) {
     }
 }
 
-function stopCompilerProcess(source = 'Watcher-Lifecycle') {
-    process.send({
-        action: 'stop-compiler',
-        source
-    });
-}
-
 process.on('message', (packet) => {
     if (!packet || typeof packet !== 'object') return;
 
     switch (packet.action) {
         case 'manual-recompile-all':
-            logToMain('info', 'Received master workspace-wide rebuild instruction. Initiating complete compiler pass...', 'Watcher-IPC');
+            logToMain('info', 'Received master workspace-wide rebuild instruction. Initiating walkAndCompile...', 'Watcher-IPC');
             if (config && config.input_dir) {
                 walkAndCompile(config.input_dir); 
             }
             break;
             
         case 'shutdown':
-            logToMain('info', 'Watcher process received lifecycle shutdown signal from parent app. Terminating persistent compilation process...', 'Watcher-IPC');
-            stopCompilerProcess();
             process.exit(0);
             break;
 

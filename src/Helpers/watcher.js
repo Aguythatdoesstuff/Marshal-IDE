@@ -38,18 +38,8 @@ export async function startWatcher(projectName, state) {
     state.watcherProcess.on('message', (logData) => {
         if (!logData || typeof logData !== 'object') return;
 
-        // Handle compiler control actions sent from watcher
-        if (logData.action === 'spawn-compiler') {
-            spawnCompiler(logData.config, state.handleIpcLog);
-            return;
-        }
         if (logData.action === 'compile-file') {
-            compileFile(logData.filePath, logData.outputOptions, state.handleIpcLog);
-            return;
-        }
-        if (logData.action === 'stop-compiler') {
-            console.log(`[Main] Received stop-compiler action from watcher. Stopping compiler...`);
-            stopCompiler(logData.source, state.handleIpcLog);
+            compileFile(logData.filePath, logData.outputOptions, state.handleIpcLog, state);
             return;
         }
 

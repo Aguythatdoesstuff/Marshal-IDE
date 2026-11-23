@@ -84,7 +84,8 @@ if (!gotTheLock) {
 		event.preventDefault();
 		isQuitting = true;
 		const processesToShutdown = [
-			state.imgConverterProcess
+			state.imgConverterProcess,
+			state.compilerProcess
 		];
 		await stopProcesses(processesToShutdown, state.handleIpcLog, "Main-shutdown");
 		if (state.watcherProcess) {
