@@ -17,7 +17,6 @@ import { spawnBinary, spawnBinaries, stopProcesses } from './src/Helpers/binary.
 import { 
     state
 } from './src/mainInit.js';
-import { spawnImgConverter, stopImgConverter } from './src/ipcHandlers/img-converter.binary.js';
 
 const gotTheLock = app.requestSingleInstanceLock();
 
