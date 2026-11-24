@@ -2,7 +2,7 @@
 
 All notable changes to the Marshal IDE and DSL will be documented in this file.
 
-## [v1.5.1] – ? - Stability and Bug Fixes
+## [v1.5.1] – 2026-11-24 - Stability and Bug Fixes
 ### Code Cleanup & Architecture
     - **Main Process De-bloating (`main.js`)**: 
         - Refactor and modularize IPC handler registration away from `main.js` into dedicated domain modules to reduce file bloat and improve maintainability.
