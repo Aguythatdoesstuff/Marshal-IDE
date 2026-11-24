@@ -1,7 +1,7 @@
 import { dialog, BrowserWindow } from 'electron';
 import path from 'path';
 import fs from 'fs-extra';
-import { processImage } from '../ipcHandlers/img-converter.binary.js';
+import { processImage } from './img-converter.js';
 
 
 export async function executeProcessImage({ filePath, imageType, mainOutputDir, cacheOutputDir, state }) {

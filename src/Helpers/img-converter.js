@@ -1,8 +1,6 @@
 // src/ipcHandlers/img-converter.js
-import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs-extra';
-import { resolveBinaryPath } from './binaryUtils.js';
 import process from 'node:process';
 
 
