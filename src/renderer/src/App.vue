@@ -19,8 +19,24 @@
     <Ide v-else-if="currentScreen === 'IDE'" />
     <Importing v-else-if="currentScreen === 'IMPORTING'" />
 
+    <!-- Standalone Update Ready Prompt -->
+    <div v-if="updateIsReadyToInstall" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4 backdrop-blur [app-region:no-drag]">
+      <div class="w-full max-w-md rounded-lg border border-marshal-primary bg-marshal-editor p-6 text-center text-gray-200 shadow-2xl animate-modal-slide-up">
+        <h2 class="mb-2 text-lg font-semibold text-white">Update Ready</h2>
+        <p class="mb-5 text-sm text-gray-300">An update is ready to install. Would you like to install and restart now?</p>
+        <div class="flex justify-center gap-3">
+          <button @click="triggerAppUpdate" class="rounded bg-emerald-400 px-4 py-2 text-xs font-semibold text-gray-900 transition hover:bg-emerald-300">
+            Update Now
+          </button>
+          <button @click="dismissUpdatePrompt" class="rounded border border-gray-700 px-4 py-2 text-xs text-gray-400 transition hover:border-gray-500 hover:text-white">
+            Later
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- What's New Modal -->
-    <div v-if="showWhatsNewModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 p-4 backdrop-blur [app-region:no-drag]">
+    <div v-if="showWhatsNewModal" class="fixed inset-0 z-[9998] flex items-center justify-center bg-black/75 p-4 backdrop-blur [app-region:no-drag]">
       <div class="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border border-gray-700 bg-marshal-editor p-6 text-gray-200 shadow-2xl animate-modal-slide-up">
         <div class="flex items-center justify-between gap-4">
           <h2 class="text-lg font-semibold text-white">What's New in v{{ appVersion }}</h2>
@@ -28,7 +44,6 @@
         </div>
 
         <div class="mt-4 flex min-h-0 flex-1 flex-col">
-          <!-- Exact Wiki-styled content container and parser -->
           <main class="main-content min-h-0 flex-1 overflow-y-auto rounded border border-gray-700 bg-marshal-editor p-4">
             <article class="text-marshal-text">
               <div v-if="isLoadingChangelog" class="animate-pulse text-marshal-primary">Reading changelog...</div>
@@ -39,19 +54,12 @@
               <div v-else class="prose-content" v-html="parsedMarkdown"></div>
             </article>
           </main>
-
-          <!-- Update Prompt -->
-          <div v-if="updateIsReadyToInstall" class="mt-4 rounded-md border border-marshal-primary bg-sky-950/50 p-4 text-center">
-            <p class="mb-3 text-sm"><strong>An update is ready!</strong> Would you like to install and restart now?</p>
-            <div class="flex justify-center gap-3">
-              <button @click="triggerAppUpdate" class="rounded bg-emerald-400 px-4 py-1.5 text-xs font-semibold text-gray-900 transition hover:bg-emerald-300">Update Now</button>
-              <button @click="updateIsReadyToInstall = false" class="rounded border border-gray-700 px-4 py-1.5 text-xs text-gray-400 transition hover:border-gray-500 hover:text-white">Later</button>
-            </div>
-          </div>
         </div>
 
         <div class="mt-6 flex justify-center">
-          <button @click="closeWhatsNew" class="rounded bg-marshal-primary px-7 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">Got it, let's explore!</button>
+          <button @click="closeWhatsNew" class="rounded bg-marshal-primary px-7 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+            Got it, let's explore!
+          </button>
         </div>
       </div>
     </div>
@@ -68,7 +76,6 @@ import Settings from './settings.vue';
 import Ide from './ide.vue';
 import Importing from './Importing.vue';
 
-// --- Reactive State ---
 const currentScreen = ref('SPLASH');
 const statusText = ref('Starting Marshal IDE');
 const logoUrl = logoIcon;
@@ -81,48 +88,37 @@ const isLoadingChangelog = ref(false);
 const changelogError = ref('');
 const parsedMarkdown = ref('');
 
-// --- Exact Native Markdown-to-HTML Compiler from Wiki.vue ---
 const parseMarkdownNative = (md) => {
   let html = md;
-  // Blockquotes
   html = html.replace(/^\>\s+(.*)$/gim, '<blockquote>$1</blockquote>');
-  // Code Blocks
   html = html.replace(/```([\s\S]*?)```/gm, '<pre><code>$1</code></pre>');
-  // Inline Code
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // Headers (h1 - h3)
   html = html.replace(/^# (.*)$/gim, '<h1>$1</h1>');
   html = html.replace(/^## (.*)$/gim, '<h2>$1</h2>');
   html = html.replace(/^### (.*)$/gim, '<h3>$1</h3>');
-  // Bold / Italics
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-  // Bullet points
   html = html.replace(/^\s*-\s+(.*)$/gim, '<ul><li>$1</li></ul>');
-  // Fix double list stacking wrappers
   html = html.replace(/<\/ul>\s*<ul>/g, '');
-  
   return html;
 };
 
-// --- Load Changelog exactly like Wiki.vue loads docs ---
 const loadChangelog = async () => {
   isLoadingChangelog.value = true;
   changelogError.value = '';
   parsedMarkdown.value = '';
 
   try {
-    let markdown = "";
-    if (window.api && window.api.invoke) {
-      markdown = await window.api.invoke('read-doc-file', 'About Marshal IDE/Changelog.md');
-    } else {
-      markdown = "# Changelog\nEnvironment API not available.";
+    if (!window.api || !window.api.invoke) {
+      parsedMarkdown.value = parseMarkdownNative('# Changelog\nEnvironment API not available.');
+      return;
     }
-    
+
+    const markdown = await window.api.invoke('read-doc-file', 'About Marshal IDE/Changelog.md');
     parsedMarkdown.value = parseMarkdownNative(markdown);
   } catch (e) {
+    console.error('Failed to load changelog:', e);
     changelogError.value = e.message;
   } finally {
     isLoadingChangelog.value = false;
@@ -135,25 +131,24 @@ watch(showWhatsNewModal, (newVal) => {
   }
 });
 
-// --- Lifecycle (matching original options API hooks) ---
 onMounted(async () => {
   if (window.api && window.api.on) {
-    window.api.on('update-ready-interactive', () => { 
-      updateIsReadyToInstall.value = true; 
-      showWhatsNewModal.value = true; 
+    window.api.on('update-ready-interactive', () => {
+      console.info('Update ready interactive prompt triggered');
+      updateIsReadyToInstall.value = true;
     });
   }
 
-  if (localStorage.getItem('FORCE_SCREEN') === 'WIKI') { 
-    currentScreen.value = 'WIKI'; 
-    localStorage.removeItem('FORCE_SCREEN'); 
-    return; 
+  if (localStorage.getItem('FORCE_SCREEN') === 'WIKI') {
+    currentScreen.value = 'WIKI';
+    localStorage.removeItem('FORCE_SCREEN');
+    return;
   }
 
-  if (!window.api || !window.api.invoke) { 
-    console.error('Electron IPC bridge is not available.'); 
-    currentScreen.value = 'EULA'; 
-    return; 
+  if (!window.api || !window.api.invoke) {
+    console.error('Electron IPC bridge is not available.');
+    currentScreen.value = 'EULA';
+    return;
   }
 
   try {
@@ -161,55 +156,62 @@ onMounted(async () => {
     statusText.value = 'Starting Marshal IDE...';
     appVersion.value = bootState.currentVersion || 'Error fetching version...';
 
-    if (bootState.enforceEula) { 
-      currentScreen.value = 'EULA'; 
-      pendingWhatsNew.value = bootState.showWhatsNew; 
-    } else { 
-      currentScreen.value = 'WORKSPACE'; 
-      showWhatsNewModal.value = bootState.showWhatsNew; 
+    if (bootState.enforceEula) {
+      currentScreen.value = 'EULA';
+      pendingWhatsNew.value = Boolean(bootState.showWhatsNew);
+    } else {
+      currentScreen.value = 'WORKSPACE';
+      showWhatsNewModal.value = Boolean(bootState.showWhatsNew);
     }
-  } catch (error) { 
-    console.error('Failed to fetch boot state:', error); 
-    currentScreen.value = 'EULA'; 
+  } catch (error) {
+    console.error('Failed to fetch boot state:', error);
+    currentScreen.value = 'EULA';
   }
 
-  window.api.on('eula-accepted-success', () => { 
-    currentScreen.value = 'WORKSPACE'; 
-    if (pendingWhatsNew.value) { 
-      showWhatsNewModal.value = true; 
-      pendingWhatsNew.value = false; 
-    } 
+  window.api.on('eula-accepted-success', () => {
+    currentScreen.value = 'WORKSPACE';
+    if (pendingWhatsNew.value) {
+      showWhatsNewModal.value = true;
+      pendingWhatsNew.value = false;
+    }
   });
 
-  window.api.on('navigate-to', targetScreen => { 
-    if (targetScreen) currentScreen.value = targetScreen.toUpperCase(); 
+  window.api.on('navigate-to', (targetScreen) => {
+    if (targetScreen) {
+      currentScreen.value = targetScreen.toUpperCase();
+    }
   });
 });
 
-const closeWhatsNew = async () => { 
-  showWhatsNewModal.value = false; 
-  if (window.api && window.api.invoke) { 
-    try { 
-      await window.api.invoke('dismiss-whats-new'); 
-    } catch (error) { 
-      console.error("Failed to dismiss What's New modal:", error); 
-    } 
-  } 
+const dismissUpdatePrompt = () => {
+  console.info('User deferred update installation');
+  updateIsReadyToInstall.value = false;
 };
 
-const triggerAppUpdate = async () => { 
-  if (window.api && window.api.invoke) { 
-    try { 
-      await window.api.invoke('execute-immediate-install'); 
-    } catch (error) { 
-      console.error('Failed to invoke immediate installation routine:', error); 
-    } 
-  } 
+const closeWhatsNew = async () => {
+  showWhatsNewModal.value = false;
+  if (window.api && window.api.invoke) {
+    try {
+      await window.api.invoke('dismiss-whats-new');
+    } catch (error) {
+      console.error("Failed to dismiss What's New modal:", error);
+    }
+  }
+};
+
+const triggerAppUpdate = async () => {
+  if (window.api && window.api.invoke) {
+    try {
+      console.info('Invoking immediate app update install');
+      await window.api.invoke('execute-immediate-install');
+    } catch (error) {
+      console.error('Failed to invoke immediate installation routine:', error);
+    }
+  }
 };
 </script>
 
 <style scoped>
-/* Matching Wiki.vue prose styles */
 .prose-content :deep(h1) {
   font-size: 1.75rem;
   font-weight: 700;
