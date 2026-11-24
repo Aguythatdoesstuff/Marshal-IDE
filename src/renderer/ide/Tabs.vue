@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick, markRaw, toRaw } from 'vue'
+import { ref, computed, nextTick, markRaw, toRaw } from 'vue'
 import { getMonacoLanguage } from './components/hoi4/config.js'
 
 const props = defineProps({
@@ -27,7 +27,7 @@ const getWorkspaceTabsStorageKey = () => {
   return `workspace_tabs_${workspaceName}`
 }
 
-const getDefaultEditorMode = (filePath) => {
+const getDefaultEditorMode = () => {
   return 'monaco'
 }
 
@@ -66,7 +66,7 @@ const setActiveTab = async (path) => {
   isSwitchingTab = true
   activeTabPath.value = path
   emit('update:active-tab', path)
-  
+
   const targetTab = openTabs.value.find(t => t.path === path)
   if (!targetTab) {
     isSwitchingTab = false
@@ -83,9 +83,9 @@ const setActiveTab = async (path) => {
       if (!targetTab.monacoModel || targetTab.monacoModel.isDisposed()) {
         const languageId = getMonacoLanguage(path)
         const modelUri = monacoGlobal.Uri.file(path)
-        
+
         let modelInstance = monacoGlobal.editor.getModel(modelUri)
-        
+
         if (!modelInstance || modelInstance.isDisposed()) {
           modelInstance = monacoGlobal.editor.createModel(targetTab.content, languageId, modelUri)
           modelInstance.onDidChangeContent(() => {
@@ -95,7 +95,7 @@ const setActiveTab = async (path) => {
             }
           })
         }
-        
+
         targetTab.monacoModel = modelInstance ? markRaw(modelInstance) : null
       }
 
@@ -104,7 +104,7 @@ const setActiveTab = async (path) => {
         if (activeEditor.getModel() !== cleanNativeModel) {
           activeEditor.setModel(cleanNativeModel)
         }
-        
+
         const currentLanguageId = getMonacoLanguage(path)
         const existingLang = cleanNativeModel.getLanguageId()
         if (existingLang !== currentLanguageId) {
@@ -118,7 +118,6 @@ const setActiveTab = async (path) => {
       if (typeof targetTab.scrollTop === 'number') {
         activeEditor.setScrollTop(targetTab.scrollTop)
       }
-
     } catch (runtimeErr) {
       console.error('Error during tab activation:', runtimeErr)
     } finally {
@@ -132,20 +131,20 @@ const setActiveTab = async (path) => {
 
 const preloadFileTab = async (filePath, lineNumber, scrollTop, savedEditorMode) => {
   try {
-    let existingTab = openTabs.value.find(t => t.path === filePath)
+    const existingTab = openTabs.value.find(t => t.path === filePath)
     if (existingTab) return existingTab
 
     const res = await window.api.invoke('get-file-content', { filePath })
-    if (res && (res.success !== false)) {
+    if (res && res.success !== false) {
       const rawContent = typeof res === 'string' ? res : (res.content || '')
       const monacoGlobal = window.monaco
       let tabModel = null
-      
+
       if (monacoGlobal) {
         const languageId = getMonacoLanguage(filePath)
         const modelUri = monacoGlobal.Uri.file(filePath)
         tabModel = monacoGlobal.editor.getModel(modelUri)
-        
+
         if (!tabModel || tabModel.isDisposed()) {
           tabModel = monacoGlobal.editor.createModel(rawContent, languageId, modelUri)
           tabModel.onDidChangeContent(() => {
@@ -166,7 +165,7 @@ const preloadFileTab = async (filePath, lineNumber, scrollTop, savedEditorMode) 
         lineNumber: lineNumber || 1,
         scrollTop: scrollTop || 0,
         editorMode: savedEditorMode || getDefaultEditorMode(filePath),
-        monacoModel: tabModel ? markRaw(tabModel) : null 
+        monacoModel: tabModel ? markRaw(tabModel) : null
       }
       openTabs.value.push(newTab)
       return newTab
@@ -183,16 +182,16 @@ const openTab = async (node) => {
     let existingTab = openTabs.value.find(t => t.path === node.path)
     if (!existingTab) {
       const res = await window.api.invoke('get-file-content', { filePath: node.path })
-      if (res && (res.success !== false)) {
+      if (res && res.success !== false) {
         const rawContent = typeof res === 'string' ? res : (res.content || '')
         const monacoGlobal = window.monaco
         let tabModel = null
-        
+
         if (monacoGlobal) {
           const languageId = getMonacoLanguage(node.path)
           const modelUri = monacoGlobal.Uri.file(node.path)
           tabModel = monacoGlobal.editor.getModel(modelUri)
-          
+
           if (!tabModel || tabModel.isDisposed()) {
             tabModel = monacoGlobal.editor.createModel(rawContent, languageId, modelUri)
             tabModel.onDidChangeContent(() => {
@@ -213,7 +212,7 @@ const openTab = async (node) => {
           lineNumber: 1,
           scrollTop: 0,
           editorMode: getDefaultEditorMode(node.path),
-          monacoModel: tabModel ? markRaw(tabModel) : null 
+          monacoModel: tabModel ? markRaw(tabModel) : null
         }
         openTabs.value.push(existingTab)
       }
@@ -277,28 +276,31 @@ const restoreTabState = async () => {
   const storedState = localStorage.getItem(getWorkspaceTabsStorageKey())
   if (!storedState) return
 
+  let payload = null
   try {
-    const payload = JSON.parse(storedState)
-    if (!Array.isArray(payload.tabs)) return
-
-    const loadPromises = payload.tabs.map(tab => {
-      if (tab?.path) return preloadFileTab(tab.path, tab.lineNumber, tab.scrollTop, tab.editorMode)
-      return null
-    })
-    
-    await Promise.all(loadPromises)
-
-    if (payload.activeTabPath && openTabs.value.some(tab => tab.path === payload.activeTabPath)) {
-      const activeTab = openTabs.value.find(tab => tab.path === payload.activeTabPath)
-      await setActiveTab(payload.activeTabPath)
-      const activeEditor = props.editorInstance || window.editorInstance
-      if (activeEditor && activeTab) {
-        if (activeTab.lineNumber) activeEditor.setPosition({ lineNumber: activeTab.lineNumber, column: 1 })
-        if (typeof activeTab.scrollTop === 'number') activeEditor.setScrollTop(activeTab.scrollTop)
-      }
-    }
+    payload = JSON.parse(storedState)
   } catch (err) {
-    console.warn('Failed to restore workspace tab state:', err)
+    console.warn('Failed to parse workspace tab state:', err)
+    return
+  }
+
+  if (!payload || !Array.isArray(payload.tabs)) return
+
+  const loadPromises = payload.tabs.map(tab => {
+    if (tab?.path) return preloadFileTab(tab.path, tab.lineNumber, tab.scrollTop, tab.editorMode)
+    return null
+  })
+
+  await Promise.all(loadPromises)
+
+  if (payload.activeTabPath && openTabs.value.some(tab => tab.path === payload.activeTabPath)) {
+    const activeTab = openTabs.value.find(tab => tab.path === payload.activeTabPath)
+    await setActiveTab(payload.activeTabPath)
+    const activeEditor = props.editorInstance || window.editorInstance
+    if (activeEditor && activeTab) {
+      if (activeTab.lineNumber) activeEditor.setPosition({ lineNumber: activeTab.lineNumber, column: 1 })
+      if (typeof activeTab.scrollTop === 'number') activeEditor.setScrollTop(activeTab.scrollTop)
+    }
   }
 }
 
@@ -352,16 +354,24 @@ defineExpose({
 </script>
 
 <template>
-  <div v-if="openTabs.length > 0" class="flex h-[35px] shrink-0 overflow-x-auto overflow-y-hidden border-b border-marshal-border bg-black/15">
-    <div 
-      v-for="tab in openTabs" 
-      :key="tab.path" 
-      :class="['inline-flex h-full shrink-0 cursor-pointer select-none items-center border-r border-marshal-border bg-black/10 px-3.5 text-xs text-marshal-muted transition hover:bg-white/[0.02] hover:text-marshal-text', { 'border-t-2 border-t-marshal-primary bg-marshal-editor font-medium text-white': activeTabPath === tab.path }]"
+  <div v-if="openTabs.length > 0" class="marshal-tab-bar flex h-[35px] shrink-0 items-end overflow-x-auto overflow-y-hidden border-b border-marshal-border bg-black/15 px-1 pt-1">
+    <div
+      v-for="tab in openTabs"
+      :key="tab.path"
+      :class="[
+        'marshal-tab relative inline-flex h-[31px] shrink-0 cursor-pointer select-none items-center border-r border-marshal-border bg-black/10 px-3.5 text-xs text-marshal-muted transition-colors hover:bg-white/[0.03] hover:text-marshal-text',
+        { 'marshal-tab--active z-10 rounded-t-[7px] border-r-0 border-t-2 border-t-marshal-primary bg-marshal-editor font-medium text-white shadow-[0_-2px_8px_rgba(0,0,0,0.25)]': activeTabPath === tab.path }
+      ]"
       @click="setActiveTab(tab.path)"
+      @mousedown.middle.prevent
+      @auxclick.middle.stop.prevent="closeTab(tab.path)"
     >
       <span class="max-w-[120px] truncate">{{ tab.name }}</span>
       <span v-if="tab.isDirty" class="ml-1.5 text-[10px] text-rose-600">●</span>
-      <span class="ml-2 flex h-3.5 w-3.5 items-center justify-center rounded text-sm hover:bg-white/10 hover:text-white" @click.stop="closeTab(tab.path)">×</span>
+      <span
+        class="ml-2 flex h-3.5 w-3.5 items-center justify-center rounded text-sm hover:bg-white/10 hover:text-white"
+        @click.stop="closeTab(tab.path)"
+      >×</span>
     </div>
   </div>
 
@@ -379,3 +389,27 @@ defineExpose({
     </div>
   </div>
 </template>
+
+<style scoped>
+.marshal-tab--active::before,
+.marshal-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 7px;
+  height: 7px;
+  pointer-events: none;
+}
+
+.marshal-tab--active::before {
+  left: -7px;
+  background: radial-gradient(circle at 0 0, transparent 7px, currentColor 7.5px);
+  color: var(--editor-bg, #1e1e1e);
+}
+
+.marshal-tab--active::after {
+  right: -7px;
+  background: radial-gradient(circle at 100% 0, transparent 7px, currentColor 7.5px);
+  color: var(--editor-bg, #1e1e1e);
+}
+</style>

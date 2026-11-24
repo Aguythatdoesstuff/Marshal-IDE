@@ -184,7 +184,7 @@ export async function resolveImagePreview(file, size, state) {
 
     state.appLogger?.warn(`[Main-Img-Config] Warning: Preview (${targetFileName}) for "${safeName}" not found in cache or disk. Initiating source search and generation via executeProcessImage.`, { source: 'Main-Config' });
 
-    const inputDir = getInputDir();
+    const inputDir = state?.INPUT_DIR;
     let filePath = null;
     if (!inputDir) {
         state.appLogger?.error(`[Main-Img-Config] Error: inputDir is not defined or loaded. Cannot search for source image for "${safeName}".`, { source: 'Main-Config' });
@@ -232,7 +232,8 @@ export async function resolveImagePreview(file, size, state) {
         filePath,
         imageType: imageTypeToUse,
         mainOutputDir,
-        cacheOutputDir
+        cacheOutputDir,
+        state
     });
 
     if (!result || !result.success) {
