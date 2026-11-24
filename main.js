@@ -67,7 +67,6 @@ if (!gotTheLock) {
 			state.appLogger?.info(`Skipping setupAutoUpdater, Running in DEV.`, { source: 'Main-Init' })
 		}
 		
-		// spawnImgConverter({ log_path: state.getLogsSessionDir() }, state.handleIpcLog);
 		spawnBinary("img-converter", state);
 		
 	});
@@ -85,7 +84,8 @@ if (!gotTheLock) {
 		isQuitting = true;
 		const processesToShutdown = [
 			state.imgConverterProcess,
-			state.compilerProcess
+			state.compilerProcess,
+			state.importerProcess
 		];
 		await stopProcesses(processesToShutdown, state.handleIpcLog, "Main-shutdown");
 		if (state.watcherProcess) {

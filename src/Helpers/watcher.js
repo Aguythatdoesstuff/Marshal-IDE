@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'path';
 import fs from 'fs-extra';
 import { fork } from 'child_process'; 
-import { spawnCompiler, compileFile, stopCompiler } from '../ipcHandlers/compiler.binary.js';
+import { compileFile } from '../ipcHandlers/compiler.binary.js';
 
 /**
  * Starts the watcher process and sends a message to compile all files after startup.

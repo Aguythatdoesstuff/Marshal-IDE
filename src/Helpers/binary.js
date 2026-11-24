@@ -1,8 +1,9 @@
 import { spawn } from 'child_process';
 import path from 'path';
-import { BrowserWindow } from 'electron'; //
+import { BrowserWindow } from 'electron';
 import { resolveBinaryPath } from './binaryUtils.js';
-// // src/Helpers/binary.js
+import os from 'os';
+
 function logIfAvailable(loggerFn, type, message, source = 'Binary-Lifecycle') {
 	if (typeof loggerFn !== 'function') return;
 
@@ -13,9 +14,50 @@ function logIfAvailable(loggerFn, type, message, source = 'Binary-Lifecycle') {
 	}
 }
 
-// process spawning
+const getCpuTimes = () => {
+	const cpus = os.cpus();
+	if (!cpus || cpus.length === 0) return { total: 0, idle: 0 };
+	let user = 0, nice = 0, sys = 0, idle = 0, irq = 0;
+	for (const cpu of cpus) {
+		user += cpu.times.user;
+		nice += cpu.times.nice;
+		sys += cpu.times.sys;
+		idle += cpu.times.idle;
+		irq += cpu.times.irq;
+	}
+	return { total: user + nice + sys + idle + irq, idle };
+};
 
+function startImporterTelemetry() {
+	let lastCpuTimes = getCpuTimes();
 
+	return setInterval(() => {
+		const currentCpuTimes = getCpuTimes();
+		const idleDiff = currentCpuTimes.idle - lastCpuTimes.idle;
+		const totalDiff = currentCpuTimes.total - lastCpuTimes.total;
+
+		let cpuPercent = 0;
+		if (totalDiff > 0) {
+			cpuPercent = 100 - (100 * idleDiff / totalDiff);
+		}
+
+		lastCpuTimes = currentCpuTimes;
+
+		const totalMem = os.totalmem();
+		const freeMem = os.freemem();
+		const usedMemMB = Math.round((totalMem - freeMem) / (1024 * 1024));
+
+		const activeWin = getActiveBrowserWindow();
+		if (activeWin && !activeWin.isDestroyed()) {
+			activeWin.webContents.send('importer-telemetry', {
+				cpu: Math.max(0, Math.min(100, cpuPercent)).toFixed(1),
+				ram: usedMemMB.toString()
+			});
+		}
+	}, 1000);
+}
+
+// Process spawning
 
 const PROCESS_STATE_KEYS = {
 	compiler: 'compilerProcess',
@@ -25,8 +67,13 @@ const PROCESS_STATE_KEYS = {
 
 const BINARY_SPAWN_SOURCE = 'Binary-Spawn';
 
-function buildProcessArgs(processName, state) {
-	const logDir = typeof state?.getLogsSessionDir === 'function' ? state.getLogsSessionDir() : undefined;
+function buildProcessArgs(processName, state, importerPaths = {}) {
+	const logDir =
+		typeof state?.getSessionDir === 'function'
+			? state.getSessionDir()
+			: typeof state?.getLogsSessionDir === 'function'
+				? state.getLogsSessionDir()
+				: undefined;
 
 	if (processName === 'compiler') {
 		const cacheDir = state?.METADATA_DIR ? path.join(state.METADATA_DIR, 'fileOutCache') : undefined;
@@ -42,8 +89,8 @@ function buildProcessArgs(processName, state) {
 	}
 
 	if (processName === 'importer') {
-		const importerInput = state?.currentProjectConfig?.input_dir ?? state?.INPUT_DIR ?? '';
-		const importerOutput = state?.OUTPUT_DIR ?? state?.currentProjectConfig?.output_dir ?? '';
+		const importerInput = importerPaths.input ?? state?.currentProjectConfig?.input_dir ?? state?.INPUT_DIR ?? '';
+		const importerOutput = importerPaths.output ?? state?.OUTPUT_DIR ?? state?.currentProjectConfig?.output_dir ?? '';
 		return [
 			`--input=${importerInput}`,
 			`--output=${importerOutput}`,
@@ -77,7 +124,7 @@ function getActiveBrowserWindow() {
 	return wins.length > 0 ? wins[0] : null;
 }
 
-export async function spawnBinary(processName, state) {
+export async function spawnBinary(processName, state, importerPaths = {}) {
 	const stateKey = PROCESS_STATE_KEYS[processName];
 	if (!stateKey) {
 		throw new Error(`Unknown binary process: "${processName}"`);
@@ -93,23 +140,33 @@ export async function spawnBinary(processName, state) {
 	const binaryPath = resolveBinaryPath(processName, (type, message) => {
 		logIfAvailable(loggerFn, type, message, BINARY_SPAWN_SOURCE);
 	});
-	const args = buildProcessArgs(processName, state);
+	const args = buildProcessArgs(processName, state, importerPaths);
 
 	logIfAvailable(loggerFn, 'info', `Spawning ${processName} process: ${binaryPath}`, BINARY_SPAWN_SOURCE);
 
 	return new Promise((resolve, reject) => {
 		let settled = false;
 		let child;
+		let telemetryInterval = null;
+
+		const stopTelemetry = () => {
+			if (telemetryInterval) {
+				clearInterval(telemetryInterval);
+				telemetryInterval = null;
+			}
+		};
 
 		const finishResolve = (value) => {
 			if (settled) return;
 			settled = true;
+			stopTelemetry();
 			resolve(value);
 		};
 
 		const finishReject = (err) => {
 			if (settled) return;
 			settled = true;
+			stopTelemetry();
 			reject(err);
 		};
 
@@ -122,6 +179,10 @@ export async function spawnBinary(processName, state) {
 		}
 
 		state[stateKey] = child;
+
+		if (processName === 'importer') {
+			telemetryInterval = startImporterTelemetry();
+		}
 
 		attachLineStream(child.stdout, (line) => {
 			if (processName === 'importer') {
@@ -166,7 +227,7 @@ export async function spawnBinary(processName, state) {
 
 			if (code === 0) {
 				logIfAvailable(loggerFn, 'info', `${processName} process exited cleanly with code 0.`, BINARY_SPAWN_SOURCE);
-				finishResolve(child);
+				finishResolve(processName === 'importer' ? { success: true } : child);
 			} else {
 				logIfAvailable(loggerFn, 'error', `${processName} process exited with code ${code}.`, BINARY_SPAWN_SOURCE);
 				if (processName === 'importer') {
@@ -191,11 +252,7 @@ export async function spawnBinaries(processNames = [], state) {
 	return Promise.all(processNames.map((name) => spawnBinary(name, state)));
 }
 
-
-
-
-// process shutdown sequence
-
+// Process shutdown sequence
 
 function stopSingleProcess(proc, loggerFn, source = 'Binary-Lifecycle') {
 	if (!proc || proc.killed || proc.exitCode !== null) {
