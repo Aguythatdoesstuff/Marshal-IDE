@@ -232,9 +232,25 @@ export function registerProjectHandlers(ipcMain, state) {
 
     ipcMain.handle('export-project', async (event, projectName) => {
         try {
+            if (typeof projectName !== 'string' || projectName.trim().length === 0) {
+                const message = 'Invalid project name provided for export.';
+                state?.handleIpcLog({ type: 'error', message, source: 'project-export' });
+                return { success: false, message };
+            }
+
             const safeName = projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             const configPath = path.join(state.USER_PROJECTS_DIR, `${safeName}_project.json`);
             const config = await fs.readJson(configPath);
+
+            if (!config?.project_root || typeof config.project_root !== 'string') {
+                const message = `Missing project_root in configuration for "${projectName}".`;
+                state?.handleIpcLog({ type: 'error', message, source: 'project-export' });
+                return { success: false, message };
+            }
+
+            const projectRoot = path.resolve(config.project_root);
+            const excludedDir = path.resolve(projectRoot, 'metadata', 'fileOutCache');
+            const excludedManifest = path.resolve(projectRoot, 'metadata', 'manifest.json');
 
             const { filePath } = await dialog.showSaveDialog({
                 title: 'Export Marshal Project',
@@ -242,15 +258,51 @@ export function registerProjectHandlers(ipcMain, state) {
                 filters: [{ name: 'Marshal Project', extensions: ['MarshalIDE'] }]
             });
 
-            if (!filePath) return { success: false };
+            if (!filePath) {
+                return { success: false };
+            }
 
             const zip = new AdmZip();
-            zip.addLocalFolder(config.project_root);
+
+            const collectFiles = async (currentDir, zipDir) => {
+                const entries = await fs.readdir(currentDir, { withFileTypes: true });
+
+                for (const entry of entries) {
+                    const fullPath = path.resolve(currentDir, entry.name);
+
+                    if (entry.isDirectory() && fullPath === excludedDir) {
+                        continue;
+                    }
+
+                    if (!entry.isDirectory() && fullPath === excludedManifest) {
+                        continue;
+                    }
+
+                    const entryZipPath = zipDir ? `${zipDir}/${entry.name}` : entry.name;
+
+                    if (entry.isDirectory()) {
+                        await collectFiles(fullPath, entryZipPath);
+                    } else {
+                        const content = await fs.readFile(fullPath);
+                        zip.addFile(entryZipPath, content);
+                    }
+                }
+            };
+
+            await collectFiles(projectRoot, '');
             zip.writeZip(filePath);
+
+            state?.handleIpcLog({
+                type: 'info',
+                message: `Exported project "${projectName}" to ${filePath}`,
+                source: 'project-export'
+            });
 
             return { success: true };
         } catch (error) {
-            state.appLogger?.error(`Export Error: ${error.message}`);
+            const message = `Export Error: ${error.message}`;
+            state.appLogger?.error(message);
+            state?.handleIpcLog({ type: 'error', message, source: 'project-export' });
             return { success: false, message: error.message };
         }
     });
